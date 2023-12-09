@@ -3,6 +3,7 @@ Queueing Algorithm: SharedBuffer_FB_v01
 Implementation Method: via_MultiQueues/2_ToS
 Used D value: 0.5
 Alpha High = 17 Alpha Low = 3
+Traffic Duration: 6
 Application: prioOnOff
 
 *** Flow monitor statistics ***

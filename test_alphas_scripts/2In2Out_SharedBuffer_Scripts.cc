@@ -77,9 +77,6 @@ std::string elephantOnTime = "0.5"; // [sec] for ~125 packets/flow
 double_t miceOffTimeConst = 0.01; // [sec]
 double_t elephantOffTimeConst = 0.1; // [sec]
 
-double_t miceElephantProb = 0.5; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
-// in this simulation it effects silence time ratio for the onoff application
-
 NS_LOG_COMPONENT_DEFINE ("2In2Out");
 
 std::string
@@ -243,11 +240,11 @@ SojournTimeTrace (Time sojournTime)
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
 }
 
-std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+// std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
+// std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
 
 void
-viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, bool accumulateStats)
+viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, double_t trafficGenDuration, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -548,6 +545,9 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
       // std::string miceOnTime = "0.5"; // [sec]
       // std::string elephantOnTime = "0.5"; // [sec]
       // std::string offTime = "0.1"; // [sec]
+
+      std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
+      std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
       
       // create and install Client apps:    
       if (applicationType.compare("standardClient") == 0) 
@@ -714,6 +714,7 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
   std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
@@ -825,6 +826,7 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  testFlowStatistics << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl; 
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
   testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;
@@ -884,7 +886,7 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
 }
 
 void
-viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, bool accumulateStats)
+viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, double_t trafficGenDuration, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -1174,7 +1176,9 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
       // std::string miceOnTime = "0.5"; // [sec]
       // std::string elephantOnTime = "0.5"; // [sec]
       // std::string offTime = "0.1"; // [sec]
-      
+      std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
+      std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+
       // create and install Client apps:    
       if (applicationType.compare("standardClient") == 0) 
       {
@@ -1267,7 +1271,7 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
 
   sourceApps.Start (Seconds (1.0));
   // sourceApps.Stop (Seconds(3.0));
-  sourceApps.Stop (Seconds(7.0));
+  sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -1305,6 +1309,7 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
   std::cout << std::endl << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
   std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
@@ -1417,6 +1422,7 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl; 
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
   testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;
@@ -1486,7 +1492,7 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
 }
 
 void
-viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, bool accumulateStats)
+viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, double_t trafficGenDuration, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -1875,12 +1881,13 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
       sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
   }
 
+  double eachTypeDuration = (trafficGenDuration / 3); // the duration of a generation of each type of traffic
   sourceApps0.Start (Seconds (1.0));
-  sourceApps0.Stop (Seconds(3.0));
-  sourceApps1.Start (Seconds (3.0));
-  sourceApps1.Stop (Seconds(5.0));
-  sourceApps2.Start (Seconds (5.0));
-  sourceApps2.Stop (Seconds(7.0));
+  sourceApps0.Stop (Seconds(1.0 + eachTypeDuration));
+  sourceApps1.Start (Seconds (1.0 + eachTypeDuration));
+  sourceApps1.Stop (Seconds(1.0 + (2 * eachTypeDuration)));
+  sourceApps2.Start (Seconds (1.0 + (2 * eachTypeDuration)));
+  sourceApps2.Stop (Seconds(1.0 + (3 * eachTypeDuration)));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -1918,6 +1925,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
   std::cout << std::endl << "Used D value: [0.3, 0.5, 0.7]" << std::endl;
   std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
@@ -2030,6 +2038,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Used D value: [0.3, 0.5, 0.7]" << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  testFlowStatistics << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl; 
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
   testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;
@@ -2100,7 +2109,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
 
 
 void
-viaFIFO(std::string traffic_control_type, double_t alpha_high, double_t alpha_low, bool accumulateStats)
+viaFIFO(std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -2372,6 +2381,8 @@ viaFIFO(std::string traffic_control_type, double_t alpha_high, double_t alpha_lo
     // std::string miceOnTime = "0.05"; // [sec]
     // std::string elephantOnTime = "0.5"; // [sec]
     // std::string offTime = "0.1"; // [sec]
+    std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
+    std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
     // create and install Client apps:    
     if (applicationType.compare("standardClient") == 0) 
     {

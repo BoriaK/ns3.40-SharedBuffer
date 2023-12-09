@@ -23,6 +23,9 @@
 int main ()
 { 
   std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
+  double_t miceElephantProb = 0.5; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets. 
+  // in this simulation it effects silence time ratio for the onoff application
+  double_t trafficGenDuration = 6;  // the total duration of OnOff traffic generation
   bool accumulateStats = false; // true/false
   int runOption = 1; // [1, 2, 3]
   
@@ -35,8 +38,8 @@ int main ()
       double_t alpha_low = 3;
 
       // viaMQueues5ToS(traffic_control_type, alpha_high, alpha_low, accumulateStats);
-      viaMQueues2ToS(traffic_control_type, alpha_high, alpha_low, accumulateStats);
-      // viaMQueues2ToSVaryingD(traffic_control_type, alpha_high, alpha_low, accumulateStats);
+      // viaMQueues2ToS(traffic_control_type, alpha_high, alpha_low, miceElephantProb, trafficGenDuration, accumulateStats);
+      viaMQueues2ToSVaryingD(traffic_control_type, alpha_high, alpha_low, miceElephantProb, trafficGenDuration, accumulateStats);
       break;
     }
 
@@ -50,8 +53,8 @@ int main ()
       
       for (size_t i = 0; i < alpha_high_array.size(); i++)
       {
-        // viaMQueues5ToS(traffic_control_type, alpha_high_array[i], alpha_low_array[i], accumulateStats);
-        viaMQueues2ToS(traffic_control_type, alpha_high_array[i], alpha_low_array[i], accumulateStats);
+        // viaMQueues5ToS(traffic_control_type, alpha_high_array[i], alpha_low_array[i], miceElephantProb, trafficGenDuration, accumulateStats);
+        viaMQueues2ToS(traffic_control_type, alpha_high_array[i], alpha_low_array[i], miceElephantProb, trafficGenDuration, accumulateStats);
       }
         break;
     }
@@ -64,10 +67,10 @@ int main ()
       {
         // private case: a_l = 0.5
         double_t a_l = 0.5;
-        viaMQueues2ToS(traffic_control_type, a_h, a_l, accumulateStats);
+        viaMQueues2ToS(traffic_control_type, a_h, a_l, miceElephantProb, trafficGenDuration, accumulateStats);
         for (size_t a_l = 1; a_l < 20; a_l++)
         {
-          viaMQueues2ToS(traffic_control_type, a_h, a_l, accumulateStats);
+          viaMQueues2ToS(traffic_control_type, a_h, a_l, miceElephantProb, trafficGenDuration, accumulateStats);
         }
       }
       // private case: a_h = 0.5
@@ -75,10 +78,10 @@ int main ()
       
       // private case: a_l = 0.5
       double_t a_l = 0.5;
-      viaMQueues2ToS(traffic_control_type, a_h, a_l, accumulateStats);
+      viaMQueues2ToS(traffic_control_type, a_h, a_l, miceElephantProb, trafficGenDuration, accumulateStats);
       for (size_t a_l = 1; a_l < 20; a_l++)
       {
-        viaMQueues2ToS(traffic_control_type, a_h, a_l, accumulateStats);
+        viaMQueues2ToS(traffic_control_type, a_h, a_l, miceElephantProb, trafficGenDuration, accumulateStats);
       }
     }
 

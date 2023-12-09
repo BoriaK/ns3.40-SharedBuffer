@@ -1,0 +1,76 @@
+# .vscode/
+# build-support/
+# contrib/
+# doc/
+# examples/
+# utils/
+
+# .clang-format
+# .clang-tidy
+# .editorconfig
+# .lock-ns3_linux_build
+# AUTHORS
+# CHANGES.md
+# CONTRIBUTING.md
+# LICENSE
+# ns3
+# RELEASE_NOTES.md
+# test.py
+# utils.py
+
+*.diff
+*.orig
+*.patch
+*.rej
+
+*.o
+*.pyc
+*.pyo
+
+*.cwnd
+*.dat
+*.log
+*.mob
+*.pcap
+*.plt
+*.routes
+*.tr
+[D|U]l[A-Z][a-z]*Stats.txt
+
+\#*#
+*~
+
+testpy-output
+
+bindings/python/pybindgen/
+
+venv/
+
+ms_print.*
+massif.*
+coverity
+TAGS
+
+.lock-ns3_*
+.ns3rc
+
+build-dir/
+build/
+/.cproject
+/.project
+
+version.cache
+
+.gitlab-ci-local/
+.idea/
+cmake-cache/
+cmake-build-debug/
+cmake-build-relwithdebinfo/
+cmake-build-minsizerel/
+cmake-build-release/
+vcpkg/
+
+.vs/
+
+# Ignore local cache used by e.g. clangd
+.cache/

@@ -1,0 +1,11 @@
+# Ignore everything on scratch by default, except the provided examples
+/*
+!.gitignore
+
+!subdir/
+!CMakeLists.txt
+# !my_TrafficControl_IncastTopology_multiple_nodes_NOT_UPDATED.cc
+# !my_TrafficControl_IncastTopology_v01_2Nodes.cc
+# !my_TrafficControl_Line_v01.cc
+# !ProducePlots.cc
+!*.cc

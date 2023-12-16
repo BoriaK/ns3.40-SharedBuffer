@@ -240,8 +240,6 @@ SojournTimeTrace (Time sojournTime)
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
 }
 
-// std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-// std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
 
 void
 viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, double_t trafficGenDuration, bool accumulateStats)
@@ -1492,7 +1490,7 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
 }
 
 void
-viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, double_t trafficGenDuration, bool accumulateStats)
+viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, bool adjustableAlphas, double_t trafficGenDuration, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -1655,6 +1653,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
   tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("AdjustableAlphas", BooleanValue(adjustableAlphas));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -1785,8 +1784,8 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
       if (applicationType.compare("prioOnOff") == 0) 
       {
         // Create the OnOff applications to send TCP/UDP to the server
-        // for d = 0.3
-        double_t miceElephantProb = 0.3; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
+        // for d = 0.2
+        double_t miceElephantProb = 0.2; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
         // in this simulation it effects silence time ratio for the onoff application
         std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
         std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
@@ -1800,6 +1799,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
         clientHelperP00.SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP00.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelperP00.SetAttribute("MiceElephantProbability", StringValue ("0.2"));
         sourceApps0.Add(clientHelperP00.Install (servers.Get(serverIndex)));
 
         PrioOnOffHelper clientHelperP10 (socketType, socketAddressP1);
@@ -1810,6 +1810,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
         clientHelperP10.SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP10.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelperP10.SetAttribute("MiceElephantProbability", StringValue ("0.2"));
         sourceApps0.Add(clientHelperP10.Install (servers.Get(serverIndex)));
 
         // for d = 0.5
@@ -1827,6 +1828,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
         clientHelperP01.SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP01.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelperP01.SetAttribute("MiceElephantProbability", StringValue ("0.5"));
         sourceApps1.Add(clientHelperP01.Install (servers.Get(serverIndex)));
 
         PrioOnOffHelper clientHelperP11 (socketType, socketAddressP1);
@@ -1837,6 +1839,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
         clientHelperP11.SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP11.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelperP11.SetAttribute("MiceElephantProbability", StringValue ("0.5"));
         sourceApps1.Add(clientHelperP11.Install (servers.Get(serverIndex)));
 
         // for d = 0.7
@@ -1854,6 +1857,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
         clientHelperP02.SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP02.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelperP02.SetAttribute("MiceElephantProbability", StringValue ("0.7"));
         sourceApps2.Add(clientHelperP02.Install (servers.Get(serverIndex)));
 
         PrioOnOffHelper clientHelperP12 (socketType, socketAddressP1);
@@ -1864,6 +1868,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
         clientHelperP12.SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP12.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelperP12.SetAttribute("MiceElephantProbability", StringValue ("0.7"));
         sourceApps2.Add(clientHelperP12.Install (servers.Get(serverIndex)));
       }
       else 
@@ -1923,8 +1928,15 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
-  std::cout << std::endl << "Used D value: [0.3, 0.5, 0.7]" << std::endl;
-  std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << std::endl << "Used D value: [0.2, 0.5, 0.7]" << std::endl;
+  if (adjustableAlphas)
+  {
+    std::cout << std::endl << "Adjustable Alpha High/Low values" << std::endl;
+  }
+  else
+  {
+    std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low << std::endl;
+  }
   std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
 
@@ -2036,8 +2048,15 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
-  testFlowStatistics << "Used D value: [0.3, 0.5, 0.7]" << std::endl;
-  testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  testFlowStatistics << "Used D value: [0.2, 0.5, 0.7]" << std::endl;
+  if (adjustableAlphas)
+  {
+    testFlowStatistics << "Adjustable Alpha High/Low values" << std::endl;
+  }
+  else
+  {
+    testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  }
   testFlowStatistics << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl; 
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
@@ -2059,14 +2078,25 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   
   testFlowStatistics.close ();
 
-  // move all the produced files to a directory based on the Alpha values
-  std::string newDir = dirToSave + traffic_control_type + "/" + implementation + "/VaryingDValues/" 
-                      + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
-  system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
-  system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
+  if (adjustableAlphas)
+  {
+    // move all the produced files to a directory
+    std::string newDir = dirToSave + traffic_control_type + "/" + implementation + "/VaryingDValues/adjustableAlphas/";
+    system (("mkdir -p " + newDir).c_str ());
+    system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
+  }
+  else
+  {
+    // move all the produced files to a directory based on the Alpha values
+    std::string newDir = dirToSave + traffic_control_type + "/" + implementation + "/VaryingDValues/" 
+                        + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+    system (("mkdir -p " + newDir).c_str ());
+    system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
+  }
 
-  // if chose to acumulate statistics:
+  // if choose to acumulate statistics:
   if (accumulateStats)
   {
     if (!(std::filesystem::exists(dirToSave + "/TestStats/" + implementation + "/VaryingDValues/" 
@@ -2076,24 +2106,48 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
       system (("mkdir -p " + dirToSave + "/TestStats/" + implementation + "/VaryingDValues/").c_str ());
       std::ofstream testAccumulativeStats (dirToSave + "/TestStats/" + implementation + "/VaryingDValues/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
-      testAccumulativeStats
-      << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
-      << tcStats.nTotalDroppedPackets << " " 
-      << tcStats.nTotalDroppedPacketsHighPriority << " " 
-      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
-      testAccumulativeStats.close ();
+      if (adjustableAlphas)
+      {
+        testAccumulativeStats
+        << "AdjustableAlphas" << " "
+        << tcStats.nTotalDroppedPackets << " " 
+        << tcStats.nTotalDroppedPacketsHighPriority << " " 
+        << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+        testAccumulativeStats.close ();
+      }
+      else
+      {
+        testAccumulativeStats
+        << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
+        << tcStats.nTotalDroppedPackets << " " 
+        << tcStats.nTotalDroppedPacketsHighPriority << " " 
+        << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+        testAccumulativeStats.close ();
+      }
     }
     else
     {
       // Open the file in append mode
       std::fstream testAccumulativeStats (dirToSave + "/TestStats/" + implementation + "/VaryingDValues/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
-      testAccumulativeStats
-      << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
-      << tcStats.nTotalDroppedPackets << " " 
-      << tcStats.nTotalDroppedPacketsHighPriority << " " 
-      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
-      testAccumulativeStats.close ();
+      if (adjustableAlphas)
+      {
+        testAccumulativeStats
+        << "AdjustableAlphas" << " "
+        << tcStats.nTotalDroppedPackets << " " 
+        << tcStats.nTotalDroppedPacketsHighPriority << " " 
+        << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+        testAccumulativeStats.close ();
+      }
+      else
+      {
+        testAccumulativeStats
+        << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
+        << tcStats.nTotalDroppedPackets << " " 
+        << tcStats.nTotalDroppedPacketsHighPriority << " " 
+        << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+        testAccumulativeStats.close ();
+      }
     }
   }
   

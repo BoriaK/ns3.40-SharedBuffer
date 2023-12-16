@@ -86,6 +86,12 @@ TrafficControlLayer::GetTypeId()
                 MakeDoubleAccessor(&TrafficControlLayer::m_alpha_l),
                 MakeDoubleChecker<double_t>())
             .AddAttribute(
+                "AdjustableAlphas",
+                "To adjust Alpha High/Low to optimal values based on estimated 'D' value",
+                BooleanValue(false),
+                MakeBooleanAccessor(&TrafficControlLayer::m_adjustableAlphas),
+                MakeBooleanChecker())
+            .AddAttribute(
                 "TrafficControllAlgorythm",
                 "The Traffic Controll Algorythm to use inorder to manage traffic in Shared Buffer",
                 StringValue("DT"),
@@ -952,6 +958,36 @@ TrafficControlLayer::GetNewDeltaAlpha(double_t alpha_h, double_t alpha_l, uint32
 
     return m_deltaAlpha;
 }
+
+std::pair<double_t, double_t>
+TrafficControlLayer::GetNewAlphaHighAndLow(uint32_t miceElephantProbVal)
+{
+    double_t alpha_h, alpha_l;
+    // assign alpha high/low values based on previously done optimization
+    switch (miceElephantProbVal)
+    {
+    case 2:
+        alpha_h = 16;
+        alpha_l = 4;
+        break;
+    case 3:
+        alpha_h = 17;
+        alpha_l = 3;
+        break;
+    case 5:
+        alpha_h = 17;
+        alpha_l = 3;
+        break;
+    case 7:
+        alpha_h = 18;
+        alpha_l = 2;
+        break;
+    default:
+        break;
+    }
+
+    return std::make_pair(alpha_h, alpha_l); 
+}
 //////////////////////////////////////////////////////////////////////////////////
 
 void
@@ -1320,6 +1356,20 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     {
                         m_flow_priority = flowPrioTag.GetSimpleValue();
                     }
+
+                    // for debug:
+                    std::cout << "d value assigned by OnOff Application is: " << item->GetPacket ()->PeekPacketTag (miceElephantProbTag) << std::endl;
+                    // if (!item->GetPacket ()->PeekPacketTag (miceElephantProbTag))  // if d was not specifyed by the user at traffic generation level
+                    // {
+                    //     if (item->GetPacket ()->PeekPacketTag (flowPrioTag))
+                    //     {
+                    //         m_flow_priority = flowPrioTag.GetSimpleValue();
+                    //     }
+                    // }
+                    // else
+                    // {
+                        
+                    // }
                     
                     // std::cout << "Num of congested queues " << GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority) << std::endl;
                     
@@ -1551,10 +1601,19 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 {
                     internal_qDisc = qDisc;
                 }
+                // read the miceElephantProb (D) Tag assigned by the user at the OnOff App
+                // if D > 0 and adjustableAlphas = True than update Alpha High/Low values according to D
+                if (item->GetPacket ()->PeekPacketTag (miceElephantProbTag) && m_adjustableAlphas)
+                {
+                    // std::cout << "d value assigned by OnOff Application is: " << miceElephantProbTag.GetSimpleValue() << std::endl;
+                    m_miceElephantProbVal = miceElephantProbTag.GetSimpleValue();
+                    std::pair<double_t, double_t> alphas = GetNewAlphaHighAndLow(m_miceElephantProbVal);
+                    m_alpha_h = alphas.first;
+                    m_alpha_l = alphas.second;
+                }
                 
                 // set a besic Packet clasification based on arbitrary Tag from recieved packet:
                 // flow_priority = 1 is high priority, flow_priority = 2 is low priority
-
                 if (item->GetPacket ()->PeekPacketTag (flowPrioTag))
                 {
                     m_flow_priority = flowPrioTag.GetSimpleValue();

@@ -118,3 +118,51 @@ SharedRouterTag::GetSimpleValue (void) const
 {
   return m_isRouter;
 }
+
+TypeId 
+MiceElephantProbabilityTag::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::MiceElephantProbabilityTag")
+    .SetParent<Tag> ()
+    .AddConstructor<MiceElephantProbabilityTag> ()
+  ;
+  return tid;
+}
+TypeId 
+MiceElephantProbabilityTag::GetInstanceTypeId (void) const
+{
+  return GetTypeId ();
+}
+uint32_t 
+MiceElephantProbabilityTag::GetSerializedSize (void) const
+{
+  return 1;
+}
+void 
+MiceElephantProbabilityTag::Serialize (TagBuffer i) const
+{
+  // i.WriteDouble (m_dValue);
+  i.WriteU8 (m_dValue);
+}
+void 
+MiceElephantProbabilityTag::Deserialize (TagBuffer i)
+{
+  // m_dValue = i.ReadDouble ();
+  m_dValue = i.ReadU8 ();
+}
+void 
+MiceElephantProbabilityTag::Print (std::ostream &os) const
+{
+  // os << "v=" << (double)m_dValue;
+  os << "v=" << (int32_t)m_dValue;
+}
+void 
+MiceElephantProbabilityTag::SetSimpleValue (int32_t dValue)
+{
+  m_dValue = dValue;
+}
+int32_t
+MiceElephantProbabilityTag::GetSimpleValue (void) const
+{
+  return m_dValue;
+}

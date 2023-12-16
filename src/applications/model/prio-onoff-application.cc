@@ -122,6 +122,12 @@ PrioOnOffApplication::GetTypeId()
                             UintegerValue (0),
                             MakeUintegerAccessor (&PrioOnOffApplication::m_userSetPriority),
                             MakeUintegerChecker<uint32_t> ())
+            .AddAttribute ("MiceElephantProbability", 
+                            "The parameter D that's configured by the user. High D -> high mice probability, Low D -> high elephant probability"
+                            "if this attribute is added, the aplication will add a MiceElephantProbTag with the assigned D value",
+                            StringValue(""),
+                            MakeStringAccessor(&PrioOnOffApplication::m_miceElephantProb),
+                            MakeStringChecker())
             .AddTraceSource("Tx",
                             "A new packet is created and is sent",
                             MakeTraceSourceAccessor(&PrioOnOffApplication::m_txTrace),
@@ -155,6 +161,32 @@ PrioOnOffApplication::PrioOnOffApplication()
 PrioOnOffApplication::~PrioOnOffApplication()
 {
     NS_LOG_FUNCTION(this);
+}
+
+double_t 
+StringToDouble (std::string value)
+{
+  double valueAsDouble;
+  valueAsDouble = std::stod(value);
+//   double newvalueAsDouble;
+//   int valueAsInt = valueAsDouble * 100;
+//   valueAsInt = std::round(valueAsInt);
+//   newvalueAsDouble = valueAsInt / 100.0;
+
+  return valueAsDouble;
+}
+
+int32_t 
+StringToDecInt (std::string value)
+{
+  int32_t valueAsDecInt;
+  valueAsDecInt = (std::stod(value)) * 10;
+//   double newvalueAsDouble;
+//   int valueAsInt = valueAsDouble * 100;
+//   valueAsInt = std::round(valueAsInt);
+//   newvalueAsDouble = valueAsInt / 100.0;
+
+  return valueAsDecInt;
 }
 
 void
@@ -387,6 +419,17 @@ PrioOnOffApplication::SendPacket()
     else
     {
         packet = Create<Packet>(m_pktSize);
+    }
+
+    //// if D was assigned by the user:
+    if (!m_miceElephantProb.empty())
+    {
+        // double miceElephantProbValue = StringToDouble(m_miceElephantProb);
+        int32_t miceElephantProbValueDecInt = StringToDecInt(m_miceElephantProb);
+        
+        miceElephantProbTag.SetSimpleValue(miceElephantProbValueDecInt);
+        // store the tag in a packet.
+        packet->AddPacketTag (miceElephantProbTag);
     }
 
     ////////////////// option 1: set the priority tag arbitrarly from a user requested param

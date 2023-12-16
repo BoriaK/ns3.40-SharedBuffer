@@ -23,10 +23,11 @@
 int main ()
 { 
   std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
-  double_t miceElephantProb = 0.5; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets. 
+  double_t miceElephantProb = 0.2; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets. 
   // in this simulation it effects silence time ratio for the onoff application
-  double_t trafficGenDuration = 6;  // the total duration of OnOff traffic generation
-  bool accumulateStats = false; // true/false
+  bool adjustableAlphas = true;
+  double_t trafficGenDuration = 6;  // 2 or 6 [sec] the total duration of OnOff traffic generation
+  bool accumulateStats = true; // true/false
   int runOption = 1; // [1, 2, 3]
   
   switch (runOption)
@@ -39,7 +40,7 @@ int main ()
 
       // viaMQueues5ToS(traffic_control_type, alpha_high, alpha_low, accumulateStats);
       // viaMQueues2ToS(traffic_control_type, alpha_high, alpha_low, miceElephantProb, trafficGenDuration, accumulateStats);
-      viaMQueues2ToSVaryingD(traffic_control_type, alpha_high, alpha_low, miceElephantProb, trafficGenDuration, accumulateStats);
+      viaMQueues2ToSVaryingD(traffic_control_type, alpha_high, alpha_low, adjustableAlphas, trafficGenDuration, accumulateStats);
       break;
     }
 

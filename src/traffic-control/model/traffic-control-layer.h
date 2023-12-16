@@ -415,6 +415,15 @@ class TrafficControlLayer : public Object
      */
     double_t GetNewDeltaAlpha(double_t alpha_h, double_t alpha_l, uint32_t queue_priority);
 
+        /**
+     * \brief returns the optimal Alpha High and Low values based on the D of the traffic.
+     * \param miceElephantProbVal the mice/elephant probability (D) assigned at the OnOff Application
+    //  * \param queue_priority the priority of the queue that's currently being checked
+     * \returns return the new alpha_high and alpha_low value based on the optimization done prior.
+     */
+    std::pair<double_t, double_t> GetNewAlphaHighAndLow(uint32_t miceElephantProbVal);
+    // double_t GetNewAlphaHighAndLow(uint32_t miceElephantProbVal, uint32_t queue_priority);
+  //////////////////////////////////////////////////////////////////////////////
     /**
      * \brief Perform the actions required when the queue disc is notified of
      *        a packet dropped before enqueue
@@ -424,7 +433,6 @@ class TrafficControlLayer : public Object
      * dropped before enqueue for the specified reason
      */
     void DropBeforeEnqueue(Ptr<const QueueDiscItem> item);
-  //////////////////////////////////////////////////////////////////////////////
     
     //// The node this TrafficControlLayer object is aggregated to
     Ptr<Node> m_node;
@@ -461,6 +469,7 @@ class TrafficControlLayer : public Object
     double_t m_alpha;  //!< The selected alpha parameter for the arriving packet
     double_t m_alpha_h; //!< The pre-determined alpha parameter for high priority packets
     double_t m_alpha_l;  //!< The pre-determined alpha parameter for low priority packets
+    bool m_adjustableAlphas; // !< True if apply optimal Alpha High/Low values based on current "D"
     // FB queue disc parameters:
     float_t m_gamma;  //!< Normalized de-queue rate per port/queue in a single FIFO per port scenario.
     uint8_t m_nonEmpty; //!< number of non empty queues on each port.
@@ -483,6 +492,8 @@ class TrafficControlLayer : public Object
     float_t m_numConjestedQueuesLow;  //!< number of queues that are conjested at current time instance
     float_t numOfClasses;  //!< total number of classes. for now it's only High Priority/ Low Priority
     // Flow Classification Parameters
+    MiceElephantProbabilityTag miceElephantProbTag;  //!< a Tag that represents the mice/elephant probability assigned to the flow by the user
+    double_t m_miceElephantProbVal;  //!< the actual d value of the flow that was assigned at the OnOff application
     SharedPriorityTag flowPrioTag;    //< a tag that's added to each sent packet based on the priority assigned by the Sender application
     uint8_t m_flow_priority;   //< Flow priority assigned to each recieved packet, based on the flow priority assigned by sender
     // to collect statistics at the end of the flow

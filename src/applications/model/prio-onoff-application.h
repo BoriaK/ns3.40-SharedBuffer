@@ -182,6 +182,8 @@ class PrioOnOffApplication : public Application
     uint8_t         m_threshold;     //< [packets], max number of packets per flow to be considered mouse flow
     uint32_t        m_userSetPriority;     //!< the priority assigned to each flow. defined externaly by the user
     uint32_t        m_priority;     //!< the priority assigned to each packet/ flow. can be user defined or based on flow length.
+    std::string     m_miceElephantProb;  //!< the d parameter assigned to the flow by the user
+    MiceElephantProbabilityTag miceElephantProbTag;  //!< a Tag that represents the mice/elephant probability assigned to the flow by the user
     SharedPriorityTag  flowPrioTag;   //< a tag that's added to each sent packet based on the priority assigned by the SendPacket () function
     uint64_t        m_packetSeqCount; //!< Number of packets sent in sequence, added by me
 

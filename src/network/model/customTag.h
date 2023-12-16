@@ -32,68 +32,101 @@ using namespace ns3;
 
 /**
  * \ingroup network
- * A simple example of an Tag implementation
+ * A Tag that represents the flows shared priority
  */
 class SharedPriorityTag : public Tag
 {
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-  virtual TypeId GetInstanceTypeId (void) const;
-  virtual uint32_t GetSerializedSize (void) const;
-  virtual void Serialize (TagBuffer i) const;
-  virtual void Deserialize (TagBuffer i);
-  virtual void Print (std::ostream &os) const;
+  public:
+    /**
+     * \brief Get the type ID.
+     * \return the object TypeId
+     */
+    static TypeId GetTypeId (void);
+    virtual TypeId GetInstanceTypeId (void) const;
+    virtual uint32_t GetSerializedSize (void) const;
+    virtual void Serialize (TagBuffer i) const;
+    virtual void Deserialize (TagBuffer i);
+    virtual void Print (std::ostream &os) const;
 
-  // these are our accessors to our tag structure
-  /**
-   * Set the tag value
-   * \param value The tag value.
-   */
-  void SetSimpleValue (uint8_t value);
-  /**
-   * Get the tag value
-   * \return the tag value.
-   */
-  uint8_t GetSimpleValue (void) const;
-private:
-  uint8_t m_simpleValue;  //!< tag value
+    // these are our accessors to our tag structure
+    /**
+     * Set the tag value
+     * \param value The tag value.
+     */
+    void SetSimpleValue (uint8_t value);
+    /**
+     * Get the tag value
+     * \return the tag value.
+     */
+    uint8_t GetSimpleValue (void) const;
+  private:
+    uint8_t m_simpleValue;  //!< tag value
 };
 
 /**
  * \ingroup network
- * A simple example of an Tag implementation
+ * A tag that represents whether this node is a Router - currently not used
  */
 class SharedRouterTag : public Tag
 {
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-  virtual TypeId GetInstanceTypeId (void) const;
-  virtual uint32_t GetSerializedSize (void) const;
-  virtual void Serialize (TagBuffer i) const;
-  virtual void Deserialize (TagBuffer i);
-  virtual void Print (std::ostream &os) const;
+  public:
+    /**
+     * \brief Get the type ID.
+     * \return the object TypeId
+     */
+    static TypeId GetTypeId (void);
+    virtual TypeId GetInstanceTypeId (void) const;
+    virtual uint32_t GetSerializedSize (void) const;
+    virtual void Serialize (TagBuffer i) const;
+    virtual void Deserialize (TagBuffer i);
+    virtual void Print (std::ostream &os) const;
 
-  // these are our accessors to our tag structure
-  /**
-   * Set the tag value
-   * \param isRouter The tag value.
-   */
-  void SetSimpleValue (bool isRouter);
-  /**
-   * Get the tag value
-   * \return the tag value.
-   */
-  bool GetSimpleValue (void) const;
-private:
-  bool m_isRouter;  //!< tag value
+    // these are our accessors to our tag structure
+    /**
+     * Set the tag value
+     * \param isRouter The tag value.
+     */
+    void SetSimpleValue (bool isRouter);
+    /**
+     * Get the tag value
+     * \return the tag value.
+     */
+    bool GetSimpleValue (void) const;
+  private:
+    bool m_isRouter;  //!< tag value
+};
+
+/**
+ * \ingroup network
+ * A tag that represents the mice/elephant probability (d) when flow was created
+ */
+class MiceElephantProbabilityTag : public Tag
+{
+  public:
+    /**
+     * \brief Get the type ID.
+     * \return the object TypeId
+     */
+    static TypeId GetTypeId (void);
+    virtual TypeId GetInstanceTypeId (void) const;
+    virtual uint32_t GetSerializedSize (void) const;
+    virtual void Serialize (TagBuffer i) const;
+    virtual void Deserialize (TagBuffer i);
+    virtual void Print (std::ostream &os) const;
+
+    // these are our accessors to our tag structure
+    /**
+     * Set the tag value
+     * \param dValue The tag value.
+     */
+    void SetSimpleValue (int32_t dValue);
+    /**
+     * Get the tag value
+     * \return the tag value.
+     */
+    int32_t GetSimpleValue (void) const;
+  private:
+    int32_t m_dValue;  //!< tag value
 };
 
 #endif /* CUSTOM_TAGG_H */

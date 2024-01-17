@@ -1,7 +1,9 @@
 Topology: 2In2Out
 Queueing Algorithm: SharedBuffer_FB_v01
 Implementation Method: via_MultiQueues/2_ToS
+Used D value: 0.5
 Alpha High = 14 Alpha Low = 6
+Traffic Duration: 2 [Sec]
 Application: prioOnOff
 
 *** Flow monitor statistics ***

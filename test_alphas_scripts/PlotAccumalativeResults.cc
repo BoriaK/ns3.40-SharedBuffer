@@ -52,7 +52,7 @@ CreateSingle2DPlotFile(std::string usedAlgorythm, std::string implementation)  /
 int main (int argc, char *argv[])
 { 
                                           // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.5"/"FB_0.7"/"FB_0.9"
-  std::string usedAlgorythm = "FB_0.2";  // "DT"/"FB"/"All"/"FB_All_D"
-  std::string implementation = "MQueue_2ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
+  std::string usedAlgorythm = "FB_0.9";  // "DT"/"FB"/"All"/"FB_All_D"
+  std::string implementation = "MQueue_5ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
   CreateSingle2DPlotFile(usedAlgorythm, implementation);
 }

@@ -121,8 +121,8 @@ class TrafficControlLayer : public Object
       /// constructor
       TCStats();
 
-      // // destructor
-      // ~TCStats();
+      // destructor
+      ~TCStats();
 
       
       /**
@@ -130,6 +130,9 @@ class TrafficControlLayer : public Object
        * \param os output stream in which the data should be printed.
        */
       void Print(std::ostream& os) const;
+
+      // Member function to reset values
+      void reset();
     };
 
     /**
@@ -245,13 +248,13 @@ class TrafficControlLayer : public Object
      */
     virtual void Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item);
 
-  ///////Added by me to monitor dropped packets from TrafficControl Layer
+    ///////Added by me to monitor dropped packets from TrafficControl Layer
     /**
      * \brief Retrieve all the collected statistics.
      * \return the collected statistics.
      */
     const TCStats& GetStats();
-  /////////////////////////////////////////////////////////////////////  
+    /////////////////////////////////////////////////////////////////////  
 
   protected:
     void DoDispose() override;
@@ -418,10 +421,10 @@ class TrafficControlLayer : public Object
         /**
      * \brief returns the optimal Alpha High and Low values based on the D of the traffic.
      * \param miceElephantProbVal the mice/elephant probability (D) assigned at the OnOff Application
-    //  * \param queue_priority the priority of the queue that's currently being checked
+     * \param device the NetDevice that's currently being used as Tx Port.
      * \returns return the new alpha_high and alpha_low value based on the optimization done prior.
      */
-    std::pair<double_t, double_t> GetNewAlphaHighAndLow(uint32_t miceElephantProbVal);
+    std::pair<double_t, double_t> GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t miceElephantProbVal);
     // double_t GetNewAlphaHighAndLow(uint32_t miceElephantProbVal, uint32_t queue_priority);
   //////////////////////////////////////////////////////////////////////////////
     /**

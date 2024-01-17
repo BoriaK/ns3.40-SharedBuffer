@@ -23,12 +23,15 @@
 int main ()
 { 
   std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
-  double_t miceElephantProb = 0.2; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets. 
+  double_t miceElephantProb = 0.5; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets. 
   // in this simulation it effects silence time ratio for the onoff application
-  bool adjustableAlphas = true;
-  double_t trafficGenDuration = 6;  // 2 or 6 [sec] the total duration of OnOff traffic generation
+  ////////// for Varring D mode only /////////////
+  std::array<double_t, 3> miceElephantProb_array = {0.1, 0.5, 0.7}; // 3 consequtive D values to use in a single flow
+  bool adjustableAlphas = true;  // selects the optimal Alpha High/Low for each D value 
+  ////////////////////////////////////////////////
+  double_t trafficGenDuration = 2;  // 2 or 6 [sec] the total duration of OnOff traffic generation
   bool accumulateStats = true; // true/false
-  int runOption = 1; // [1, 2, 3]
+  int runOption = 2; // [1, 2, 3]
   
   switch (runOption)
   {
@@ -38,9 +41,10 @@ int main ()
       double_t alpha_high = 17;
       double_t alpha_low = 3;
 
-      // viaMQueues5ToS(traffic_control_type, alpha_high, alpha_low, accumulateStats);
-      // viaMQueues2ToS(traffic_control_type, alpha_high, alpha_low, miceElephantProb, trafficGenDuration, accumulateStats);
-      viaMQueues2ToSVaryingD(traffic_control_type, alpha_high, alpha_low, adjustableAlphas, trafficGenDuration, accumulateStats);
+      // viaMQueues5ToS(traffic_control_type, alpha_high, alpha_low, miceElephantProb, trafficGenDuration, accumulateStats);
+      viaMQueues2ToS(traffic_control_type, alpha_high, alpha_low, miceElephantProb, trafficGenDuration, accumulateStats);
+      // viaMQueues5ToSVaryingD(traffic_control_type, alpha_high, alpha_low, miceElephantProb_array, adjustableAlphas, trafficGenDuration, accumulateStats);
+      // viaMQueues2ToSVaryingD(traffic_control_type, alpha_high, alpha_low, miceElephantProb_array, adjustableAlphas, trafficGenDuration, accumulateStats);
       break;
     }
 
@@ -49,8 +53,8 @@ int main ()
       // option 2: run over a specific array of alphas high/low:
       std::array<double_t, 21> alpha_high_array = {20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5};
       std::array<double_t, 21> alpha_low_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-      // std::array<double_t, 2> alpha_high_array = {20, 19};
-      // std::array<double_t, 2> alpha_low_array = {0.5, 1};
+      // std::array<double_t, 4> alpha_high_array = {20, 19, 18, 17};
+      // std::array<double_t, 4> alpha_low_array = {0.5, 1, 2, 3};
       
       for (size_t i = 0; i < alpha_high_array.size(); i++)
       {

@@ -339,7 +339,7 @@ class QueueDisc : public Object
      */
     QueueSize GetCurrentSize();
 
-/////////////////Added by me /////////////
+    /////////////////Added by me /////////////
     /**
      * \brief Get the current number of High Priority Packets in the queue, in bytes, if
      *        operating in bytes mode, or packets, otherwise.
@@ -357,7 +357,7 @@ class QueueDisc : public Object
      * \returns The number of high priority packets in queue in bytes or packets.
      */
     QueueSize GetNumOfLowPrioPacketsInQueue();
-///////////////////////////////////////
+    ///////////////////////////////////////
 
     /**
      * \brief Retrieve all the collected statistics.

@@ -432,49 +432,66 @@ PrioOnOffApplication::SendPacket()
         packet->AddPacketTag (miceElephantProbTag);
     }
 
-    ////////////////// option 1: set the priority tag arbitrarly from a user requested param
-  
-    /////////////////////// option 2: add priority tag to packet
-    // create a tag.
-    // set Tag value to depend on the number of previously sent packets
-    // if m_packetSeqCount < m_threshold: TagValue->0x1 (High Priority)
-    // if m_packetSeqCount >= m_threshold: TagValue->0x2 (Low Priority)
-    if (m_userSetPriority)
+    SocketIpTosTag ipTosTag;  // used in the switch loop, and in the end of the function
+    int setPriorityMode = 2;
+    switch (setPriorityMode)
     {
-        m_priority = m_userSetPriority;
+        ////////////////// option 1: set the priority tag arbitrarly from a user requested param
+        case 2:
+            ////////////////// option 2: add priority tag to packet
+            // create a tag.
+            // set Tag value to depend on the number of previously sent packets
+            // if m_packetSeqCount < m_threshold: TagValue->0x1 (High Priority)
+            // if m_packetSeqCount >= m_threshold: TagValue->0x2 (Low Priority)
+            if (m_userSetPriority)
+            {
+                m_priority = m_userSetPriority;
+            }
+            else
+            {
+                if (m_packetSeqCount < m_threshold)
+                {
+                m_priority = 0x1;
+                // flowPrioTag.SetSimpleValue (0x1);
+                }
+                else 
+                m_priority = 0x2;
+                // flowPrioTag.SetSimpleValue (0x2);
+            }
+
+            flowPrioTag.SetSimpleValue (m_priority);
+            // store the tag in a packet.
+            packet->AddPacketTag (flowPrioTag);
+            break;
+        /////////////////////// option 3: add sequence conter tag to packet. Currently not used!
+        //   // create a tag.
+        //   MyTag flowPacketCounterTag;
+        // // add a Flow Packet Counter Tag to each packet in Tx
+        // // Rx can asign priority based on sequence length
+
+        //   flowPacketCounterTag.SetSimpleValue(m_packetSeqCount);
+        //   // store the tag in a packet.
+        //   packet->AddPacketTag (flowPacketCounterTag);
+        // ///////////////////////////
+        case 4:
+            /////////////////////// option 4: add a priority to a packet based on ToS value.
+            // Tos 0x0 -> Low Priority -> TagValue->0x2 (Low Priority)
+            // ToS 0x6 -> High Priority -> TagValue->0x1 (High Priority)
+            if (packet->PeekPacketTag(ipTosTag))
+            {
+                if (ipTosTag.GetTos() == 0x10)
+                {
+                    m_priority = 0x1;
+                }
+                else if (ipTosTag.GetTos() == 0x00 || ipTosTag.GetTos() == 0x02 || ipTosTag.GetTos() == 0x04 || ipTosTag.GetTos() == 0x06 )
+                {
+                    m_priority = 0x2;
+                }
+            }
+            break;
+        default:
+        break;
     }
-    else
-    {
-        if (m_packetSeqCount < m_threshold)
-        {
-        m_priority = 0x1;
-        // flowPrioTag.SetSimpleValue (0x1);
-        }
-        else 
-        m_priority = 0x2;
-        // flowPrioTag.SetSimpleValue (0x2);
-    }
-
-    flowPrioTag.SetSimpleValue (m_priority);
-    // store the tag in a packet.
-    packet->AddPacketTag (flowPrioTag);
-    /////////////////////////
-
-// /////////////////////// option 3: add sequence conter tag to packet. Currently not used!
-//   // create a tag.
-//   MyTag flowPacketCounterTag;
-// // add a Flow Packet Counter Tag to each packet in Tx
-// // Rx can asign priority based on sequence length
-
-//   flowPacketCounterTag.SetSimpleValue(m_packetSeqCount);
-//   // store the tag in a packet.
-//   packet->AddPacketTag (flowPacketCounterTag);
-// ///////////////////////////
-
-/////////////////////// option 4: add a priority to a packet based on ToS value.
-// Tos 0x0 -> Low Priority -> TagValue->0x2 (Low Priority)
-// ToS 0x6 -> High Priority -> TagValue->0x1 (High Priority)
-////////////////////////////////////////////////////////////////////
 
     int actual = m_socket->Send(packet);
     if ((unsigned)actual == m_pktSize)
@@ -511,8 +528,12 @@ PrioOnOffApplication::SendPacket()
         m_unsentPacket = packet;
     }
     m_residualBits = 0;
-    SocketIpTosTag ipTosTag;
     packet->PeekPacketTag(ipTosTag);
+    
+    // for debug:
+    // std::cout << "packet: " << packet << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
+    ///////////////////////
+    
     m_lastStartTime = Simulator::Now();
     ScheduleNextTx();
 }

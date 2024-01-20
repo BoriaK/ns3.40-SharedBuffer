@@ -223,7 +223,7 @@ UdpPrioClient::Send()
     seqTs.SetSeq(m_sent);
     Ptr<Packet> p = Create<Packet>(m_size - (8 + 4)); // 8+4 : the size of the seqTs header
     p->AddHeader(seqTs);
-      // create a tag.
+    // create a tag.
 
     // option 1: set the priority tag arbitrarly from a user requested param:
 
@@ -252,6 +252,10 @@ UdpPrioClient::Send()
     // store the tag in a packet.
     p->AddPacketTag (flowPrioTag);
     /////////////////////////
+
+    SocketIpTosTag ipTosTag;
+    p->AddPacketTag (ipTosTag);
+    std::cout << "the ToS for this packet is: " << int(ipTosTag.GetTos()) << std::endl;
 
     if ((m_socket->Send(p)) >= 0)
     {

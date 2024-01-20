@@ -125,12 +125,12 @@ RoundRobinTosQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item)
         SocketIpTosTag ipTosTag;
         if (item->GetPacket()->PeekPacketTag(ipTosTag))
         {
-            std::cout << "ToS: " << int(ipTosTag.GetTos()) << std::endl;
+            // std::cout << "packet: " << item->GetPacket() << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
             band = m_tos2band[(ipTosTag.GetTos() / 2) & 0x0f];  // ToS can be an EVEN number between 0 and 30 (Hex). Each ToS value corresponds to an index 0:15 on the "tos2Band"
         }
         else
         {
-            std::cout << "ToS: " << 0 << std::endl;
+            // std::cout << "packet: " << item->GetPacket() << " ToS : " << 0 << std::endl;
         }
         
     }
@@ -153,6 +153,7 @@ RoundRobinTosQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item)
     // }
     // std::cout << "Packet of priority: " << int(flow_priority) << " enqueued in band: " << band << std::endl;
     //////////////
+    
     NS_ASSERT_MSG(band < GetNQueueDiscClasses(), "Selected band out of range");
     bool retval = GetQueueDiscClass(band)->GetQueueDisc()->Enqueue(item);
 

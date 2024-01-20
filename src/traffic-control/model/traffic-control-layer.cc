@@ -33,6 +33,8 @@
 #include "ns3/string.h"
 //////////////////////////////
 
+#include <iostream>
+#include <cstdlib>
 #include <string>
 #include <tuple>
 
@@ -645,9 +647,7 @@ TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t qu
     m_nConjestedQueues_p = 0;
 
     /// calculate the number of the qunjested queues of priority p in the Shared Buffer
-    // start the index from 2 since the first 2 net devices are for Tx Ack packets back to senders
-    // in TCP scenario
-    for (size_t i = 0; i < m_netDevicesList.size(); i++)
+    for (size_t i = 0; i < m_netDevicesList.size(); i++)  // itterate over all ports
     {
         Ptr<NetDevice> ndev = m_netDevicesList[i];
         std::string netDeviceName = Names::FindName(ndev); // Get the name of the net-device
@@ -663,6 +663,7 @@ TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t qu
                     if (queue->GetNumOfHighPrioPacketsInQueue().GetValue())
                     {
                         m_nConjestedQueues_p++;
+                        return m_nConjestedQueues_p; // because there is no scenario in which there's 2 ports of the same priority
                     }
                 }
                 else if (queue_priority == 2) // 2 is low priority
@@ -670,6 +671,7 @@ TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t qu
                     if (queue->GetNumOfLowPrioPacketsInQueue().GetValue())
                     {
                         m_nConjestedQueues_p++;
+                        return m_nConjestedQueues_p; // because there is no scenario in which there's 2 ports of the same priority
                     }
                 }
                 else
@@ -713,6 +715,7 @@ TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t qu
                         if (qDisc->GetNumOfHighPrioPacketsInQueue().GetValue())
                         {
                             m_nConjestedQueues_p++;
+                            return m_nConjestedQueues_p; // because there is no scenario in which there's 2 ports of the same priority
                         }
                     }
                     else if (queue_priority == 2) // 2 is low priority
@@ -720,6 +723,7 @@ TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t qu
                         if (qDisc->GetNumOfLowPrioPacketsInQueue().GetValue())
                         {
                             m_nConjestedQueues_p++;
+                            return m_nConjestedQueues_p; // because there is no scenario in which there's 2 ports of the same priority
                         }
                     }
                     else
@@ -734,9 +738,11 @@ TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t qu
 }
 
 float_t
-TrafficControlLayer::GetNormalizedDequeueBandWidth(Ptr<NetDevice> device, uint8_t flow_priority)
+TrafficControlLayer::GetNormalizedDequeueBandWidth_v1(Ptr<NetDevice> device, uint16_t queueIndex)
 {
     NS_LOG_FUNCTION(this);
+
+    // this version DOESN'T ASSIGN different dequeue rates for packets of different class from the same port.
 
     // initilize non empty queues/port count at each itteration
     m_nonEmpty = 0;
@@ -758,16 +764,64 @@ TrafficControlLayer::GetNormalizedDequeueBandWidth(Ptr<NetDevice> device, uint8_
         {
             for (size_t j = 0; j < ndi->second.m_rootQueueDisc->GetNQueueDiscClasses(); j++)
             {
-                Ptr<QueueDisc> qDisc =
-                    ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
+                Ptr<QueueDisc> qDisc = ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
                 // if queue_i(t) is either non empty or it's the same queue_i(t) that's about to
                 // recieve the next packet
-                uint8_t queueIndex =
-                    flow_priority - 1; // it's just know the queue index on the port, tha's about to
-                                       // recieve the incomming packet
                 if (qDisc->GetNPackets() || j == queueIndex)
                 {
                     m_nonEmpty++;
+                }
+            }
+        }
+    }
+    // calculate the normalized dequeue rate of a queue on a port (net-device) as 1/non-empty queues
+    // on this port
+    m_gamma = 1.0 / m_nonEmpty;
+    return m_gamma;
+}
+
+float_t
+TrafficControlLayer::GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uint8_t flow_priority, uint16_t queueIndex)
+{
+    NS_LOG_FUNCTION(this);
+
+    // this version ASSIGNES different dequeue rates for packets of different class from the same port.
+    
+    // initilize non empty queues/port count at each itteration
+    m_nonEmpty = 0;
+
+    Ptr<NetDevice> ndev = device;
+    std::map<Ptr<NetDevice>, NetDeviceInfo>::iterator ndi = m_netDevices.find(ndev);
+    if (ndi == m_netDevices.end() ||
+        !ndi->second.m_rootQueueDisc) // if no root-queue-disc is installed on the net-device
+    {
+        m_nonEmpty = 1; // gamma_i(t) is always 1 when there's a single queue/port scenario
+    }
+    else // if we use a queue-disc on NetDevice as port
+    {
+        if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 0) // if we use single queue/port
+        {
+            m_nonEmpty = 1;
+        }
+        else // if we use multiple queues/port
+        {
+            if (flow_priority == 2)  // for High Priority packets
+            {
+                m_nonEmpty = 1; // currently there can only be a single subQueue of high priority per port
+            }
+            else  // for low priority packets, go over all low priority sub queues and check
+            {
+                for (size_t j = 1; j < ndi->second.m_rootQueueDisc->GetNQueueDiscClasses(); j++)
+                // subqueue[0] is reserved for high priority packets only
+                {
+                    Ptr<QueueDisc> qDisc =
+                        ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
+                    // if queue_i(t) is either non empty or it's the same queue_i(t) that's about to
+                    // recieve the next packet
+                    if (qDisc->GetNPackets() || j == queueIndex)
+                    {
+                        m_nonEmpty++;
+                    }
                 }
             }
         }
@@ -1101,6 +1155,10 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t miceE
     {
         switch (miceElephantProbVal)
         {
+        case 1:
+            alpha_h = 16;
+            alpha_l = 4;
+            break;
         case 2:
             alpha_h = 16;
             alpha_l = 4;
@@ -1109,11 +1167,27 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t miceE
             alpha_h = 17;
             alpha_l = 3;
             break;
+        case 4:
+            alpha_h = 17;
+            alpha_l = 3;
+            break;
         case 5:
             alpha_h = 17;
             alpha_l = 3;
             break;
+        case 6:
+            alpha_h = 17;
+            alpha_l = 3;
+            break;
         case 7:
+            alpha_h = 18;
+            alpha_l = 2;
+            break;
+        case 8:
+            alpha_h = 18;
+            alpha_l = 2;
+            break;        
+        case 9:
             alpha_h = 18;
             alpha_l = 2;
             break;
@@ -1503,13 +1577,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
 
             if (m_useSharedBuffer) // if user choses to activate Shared-Buffer algorythem
             {
-                // determine the port index of current net-device:
-                size_t netDeviceIndex = GetNetDeviceIndex(device);
-                // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
-                size_t portIndex =
-                    netDeviceIndex - 2; // the index of the current TxPort on the Shared Buffer
-
-                /// for Shared Buffer. in case no queue-disc is installed on the NetDevice////////
+                // for Shared Buffer. in case no queue-disc is installed on the NetDevice////////
                 // std::cout << "SharedBuffer, No QueueDisc" << std::endl;
 
                 std::string nodeName = Names::FindName(m_node); // Get the name of the Node
@@ -1534,15 +1602,20 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     Ptr<PointToPointNetDevice> p2pndev = DynamicCast<PointToPointNetDevice>(device);
                     Ptr<Queue<Packet>> queue = p2pndev->GetQueue();
 
-                    // for debug:
-                    // std::cout << "Number of High Priority packets in shared-queue on port: " <<
-                    // device << " is: " << queue->GetNumOfHighPrioPacketsInQueue() << std::endl;
-                    // std::cout << "Number of Low Priority packets in shared-queue on port: " <<
-                    // device << " is: " << queue->GetNumOfLowPrioPacketsInQueue() << std::endl;
+                    // determine the port index of current net-device:
+                    std::string netDeviceName = Names::FindName(device); // Get the name of the net-device
+                    size_t portIndex = 0;
+                    if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
+                    {
+                        size_t netDeviceIndex = GetNetDeviceIndex(device);
+                        // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
+                        size_t portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then,
+                        // the port index is the netDeviceIndex modulu 2.
+                        // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
+                    }
 
                     // set a besic Packet clasification based on arbitrary Tag from recieved packet:
                     // flow_priority = 1 is high priority, flow_priority = 2 is low priority
-
                     if (item->GetPacket()->PeekPacketTag(flowPrioTag))
                     {
                         m_flow_priority = flowPrioTag.GetSimpleValue();
@@ -1551,21 +1624,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     // for debug:
                     std::cout << "d value assigned by OnOff Application is: "
                               << item->GetPacket()->PeekPacketTag(miceElephantProbTag) << std::endl;
-                    // if (!item->GetPacket ()->PeekPacketTag (miceElephantProbTag))  // if d was
-                    // not specifyed by the user at traffic generation level
-                    // {
-                    //     if (item->GetPacket ()->PeekPacketTag (flowPrioTag))
-                    //     {
-                    //         m_flow_priority = flowPrioTag.GetSimpleValue();
-                    //     }
-                    // }
-                    // else
-                    // {
-
-                    // }
-
-                    // std::cout << "Num of congested queues " <<
-                    // GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority) << std::endl;
 
                     // perform enqueueing process based on incoming flow priority
                     if (m_flow_priority == 1)
@@ -1589,11 +1647,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                         GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
                                             .GetValue(); // for tracing
                                 }
-                                // std::cout << "number of packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNPackets() << std::endl; std::cout
-                                // << "Number of High Priority packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNumOfHighPrioPacketsInQueue() <<
-                                // std::endl;
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
                                              item->GetProtocol());
@@ -1616,18 +1669,19 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         else if (m_usedAlgorythm.compare("FB") == 0)
                         {
                             // step 1: calculate the Normalized dequeue BW of the designated queue:
-                            float gamma_i = GetNormalizedDequeueBandWidth(device, m_flow_priority);
+                            float gamma_i = GetNormalizedDequeueBandWidth_v1(device, 0);
+                            
                             // step 2: get the total number of conjested queues in shared buffer
-                            int conjestedQueues =
+                            int conjestedQueues = 0; // initilize to 0
+                            conjestedQueues =
                                 GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
+                            
                             // for debug:
-                            std::cout << "Num of High Priority congested queues " << conjestedQueues
-                                      << std::endl;
-                            std::cout << "Num of Low Priority congested queues "
-                                      << GetNumOfPriorityConjestedQueuesInSharedQueue_v1(2)
-                                      << std::endl;
-                            // std::cout << "Num of total congested queues " << conjestedQueues <<
-                            // std::endl; step 3: use calculated gamma_i(t) and Np(t) to calculate
+                            std::cout << "Num of congested queues of priority: " << int(m_flow_priority)
+                                                            << " is: " << conjestedQueues << std::endl;
+                            // std::cout << "Num of total congested queues " << conjestedQueues << std::endl;
+                             
+                            // step 3: use calculated gamma_i(t) and Np(t) to calculate
                             // the FB_Threshold_c(t)
                             if (queue->GetNumOfHighPrioPacketsInQueue().GetValue() <
                                 GetQueueThreshold_FB_v2(m_alpha,
@@ -1658,11 +1712,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                                                 gamma_i)
                                             .GetValue(); // for tracing
                                 }
-                                // std::cout << "number of packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNPackets() << std::endl; std::cout
-                                // << "Number of High Priority packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNumOfHighPrioPacketsInQueue() <<
-                                // std::endl;
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
                                              item->GetProtocol());
@@ -1701,8 +1750,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         {
                             if (queue->GetNumOfLowPrioPacketsInQueue().GetValue() <
                                 GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue())
-                            // if (GetNumOfLowPriorityPacketsInSharedQueue().GetValue() <
-                            // GetQueueThreshold_DT(alpha, alpha_l, alpha_h).GetValue())
                             {
                                 // to trace Threshold per port
                                 if (portIndex == 0)
@@ -1717,11 +1764,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                         GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
                                             .GetValue(); // for tracing
                                 }
-                                // std::cout << "number of packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNPackets() << std::endl; std::cout
-                                // << "Number of Low Priority packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNumOfLowPrioPacketsInQueue() <<
-                                // std::endl;
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
                                              item->GetProtocol());
@@ -1744,9 +1786,10 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         else if (m_usedAlgorythm.compare("FB") == 0)
                         {
                             // step 1: calculate the Normalized dequeue BW of the designated queue:
-                            float gamma_i = GetNormalizedDequeueBandWidth(device, m_flow_priority);
+                            float gamma_i = GetNormalizedDequeueBandWidth_v1(device, 0);
                             // step 2: get the total number of conjested queues in shared buffer
-                            int conjestedQueues =
+                            int conjestedQueues = 0;
+                            conjestedQueues = 
                                 GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
 
                             if (queue->GetNumOfLowPrioPacketsInQueue().GetValue() <
@@ -1778,11 +1821,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                                                 gamma_i)
                                             .GetValue(); // for tracing
                                 }
-                                // std::cout << "number of packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNPackets() << std::endl; std::cout
-                                // << "Number of Low Priority packets in queue on net-device: " <<
-                                // device << " is: " << queue->GetNumOfLowPrioPacketsInQueue() <<
-                                // std::endl;
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
                                              item->GetProtocol());
@@ -1835,31 +1873,15 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
     {
         if (m_useSharedBuffer)
         {
-            // determine the port index of current net-device:
-            size_t netDeviceIndex = GetNetDeviceIndex(device);
-            // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
-            size_t portIndex =
-                netDeviceIndex - 2; // the index of the current TxPort on the Shared Buffer
-
             std::string nodeName = Names::FindName(m_node); // Get the name of the Node
-            // std::cout << "Node Name is: " << nodeName << std::endl;
+            std::cout << "Node Name is: " << nodeName << std::endl;
             // if (nodeName.compare("Router") == 0)
             if (nodeName.find("Router") == 0)
             {
-                // for debug:
-                std::cout << "### Node Name is: " << nodeName << " ###" << std::endl;
-
                 std::cout << "Current Shared Buffer size is "
                           << GetCurrentSharedBufferSize().GetValue()
                           << " out of: " << GetMaxSharedBufferSize().GetValue() << std::endl;
-
-                // for debug: set a breakpoint at the beginning of the second iteration (second
-                // alpha from the alpha array)
-                if (m_alpha_h == 19)
-                {
-                    std::cout << "second alpha in array" << std::endl;
-                }
-
+                
                 // for tracing
                 m_traceSharedBufferPackets = GetCurrentSharedBufferSize().GetValue();
                 m_nPackets_trace_High_InSharedQueue =
@@ -1878,48 +1900,57 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     outputFile.close();
                 }
 
-                // for debug:
-                // if (nodeName.compare("Router") == 0)
-                // {
-                //     // retrieve the number of packets in shared buffer in time t+Tau from a saved
-                //     file: std::ifstream inputFile("Predictive_Packets_In_SharedBuffer.dat");
-                //     double packetsInSharedBuffer, highPriorityPacketsInSharedBuffer,
-                //     lowPriorityPacketsInSharedBuffer; // Read the values sequentially from the
-                //     file inputFile >> packetsInSharedBuffer >> highPriorityPacketsInSharedBuffer
-                //     >> lowPriorityPacketsInSharedBuffer; inputFile.close(); std::cout << "Current
-                //     Predictive Shared Buffer size is " << packetsInSharedBuffer <<
-                //             " out of: " << GetMaxSharedBufferSize().GetValue() << std::endl;
-                // }
-
+                // determine the port index of current net-device:
+                std::string netDeviceName = Names::FindName(device); // Get the name of the net-device
+                size_t portIndex = 0;
+                if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
+                {
+                    size_t netDeviceIndex = GetNetDeviceIndex(device);
+                    // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
+                    size_t portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then the port index is the netDeviceIndex modulu 2
+                    // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
+                }
+                
                 // Enqueue the packet in the queue disc associated with the netdevice queue
                 // selected for the packet and try to dequeue packets from such queue disc
                 item->SetTxQueueIndex(txq);
                 Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
                 NS_ASSERT(qDisc);
                 Ptr<QueueDisc> internal_qDisc; // for the multiqueue case
-                if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() >
-                    1) // if we use multiple queues/port.
+                SocketIpTosTag ipTosTag;
+                uint16_t subQueueIndex = m_tosPrioMap[0];
+                if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() > 1) // if we use multiple queues/port.
                 {
-                    uint16_t subQueueIndex = m_tosPrioMap[0];
-
-                    // SocketPriorityTag priorityTag;
-                    // if (item->GetPacket()->PeekPacketTag(priorityTag))
-                    // {
-                    //     subQueueIndex = m_tosPrioMap[priorityTag.GetPriority() & 0x0f];
-                    // }
-
-                    SocketIpTosTag ipTosTag;
+                    // uint16_t subQueueIndex = m_tosPrioMap[0];
+                    // SocketIpTosTag ipTosTag;
                     if (item->GetPacket()->PeekPacketTag(ipTosTag))
                     {
                         subQueueIndex = m_tosPrioMap[(ipTosTag.GetTos() / 2) & 0x0f];
+                        //for debug:
+                        std::cout << "packet: " << item->GetPacket() << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
                     }
-
+                    else
+                    {
+                        std::cout << "packet: " << item->GetPacket() << " ToS : " << 0 << std::endl;
+                    }
+                    ////////////////////////////////////////
                     internal_qDisc = qDisc->GetQueueDiscClass(subQueueIndex)->GetQueueDisc();
                     NS_ASSERT(internal_qDisc);
                     m_multiQueuePerPort = true;
                 }
                 else
                 {
+                    subQueueIndex = 0; // efectively it doesn't matter
+                    // for debug:
+                    if (item->GetPacket()->PeekPacketTag(ipTosTag))
+                    {
+                        std::cout << "packet: " << item->GetPacket() << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "packet: " << item->GetPacket() << " ToS : " << 0 << std::endl;
+                    }
+                    ////////////////////////////
                     internal_qDisc = qDisc;
                 }
                 // read the miceElephantProb (D) Tag assigned by the user at the OnOff App
@@ -1943,9 +1974,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     m_flow_priority = flowPrioTag.GetSimpleValue();
                 }
 
-                // for Shared Buffer.
-                //  std::cout << "SharedBuffer, QueueDisc" << std::endl;
-
                 // perform enqueueing process based on incoming flow priority
                 if (m_flow_priority == 1)
                 {
@@ -1954,9 +1982,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     {
                         if (internal_qDisc->GetNumOfHighPrioPacketsInQueue().GetValue() <
                             GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue())
-                        // if
-                        // (qDisc->GetQueueDiscClass(flow_priority-1)->GetQueueDisc()->GetNumOfHighPrioPacketsInQueue().GetValue()
-                        // < GetQueueThreshold_DT(alpha, alpha_l, alpha_h).GetValue())
                         {
                             // to trace Threshold per port
                             if (nodeName.compare("Router") == 0)
@@ -1974,10 +1999,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                             .GetValue(); // for tracing
                                 }
                             }
-                            // std::cout << "number of packets in queue on net-device: " << device
-                            // << " is: " << queue->GetNPackets() << std::endl; std::cout << "Number
-                            // of High Priority packets in queue on net-device: " << device << " is:
-                            // " << queue->GetNumOfHighPrioPacketsInQueue() << std::endl;
                             qDisc->Enqueue(item);
                             qDisc->Run();
                         }
@@ -1991,7 +2012,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     else if (m_usedAlgorythm.compare("FB") == 0)
                     {
                         // step 1: calculate the Normalized dequeue BW of the designated queue:
-                        float gamma_i = GetNormalizedDequeueBandWidth(device, m_flow_priority);
+                        float gamma_i = GetNormalizedDequeueBandWidth_v1(device, subQueueIndex);
                         // for debug:
                         std::cout << "the normalized dequeue rate on port: " << device
                                   << " is: " << gamma_i << std::endl;
@@ -2012,18 +2033,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                                     gamma_i)
                                 .GetValue())
                         {
-                            // for debug loop issue:
-                            std::cout << "number of High Priority packets in queue: "
-                                      << internal_qDisc->GetNumOfHighPrioPacketsInQueue().GetValue()
-                                      << std::endl;
-                            std::cout << "High Priority packet threshold is: "
-                                      << GetQueueThreshold_FB_v2(m_alpha,
-                                                                 m_alpha_l,
-                                                                 m_alpha_h,
-                                                                 conjestedQueues,
-                                                                 gamma_i)
-                                             .GetValue()
-                                      << std::endl;
 
                             // to trace Threshold per port
                             if (nodeName.compare("Router") == 0)
@@ -2049,10 +2058,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                             .GetValue(); // for tracing
                                 }
                             }
-                            // std::cout << "number of packets in queue on net-device: " << device
-                            // << " is: " << queue->GetNPackets() << std::endl; std::cout << "Number
-                            // of High Priority packets in queue on net-device: " << device << " is:
-                            // " << queue->GetNumOfHighPrioPacketsInQueue() << std::endl;
                             qDisc->Enqueue(item);
                             qDisc->Run();
                         }
@@ -2076,12 +2081,9 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         std::cout << "the calculated delta alpha is: "
                                   << GetNewDeltaAlpha(m_alpha_h, m_alpha_l, m_flow_priority)
                                   << std::endl;
-                        // calculate new Alphas:
-                        // m_deltaAlphaUpdate = GetNewDeltaAlpha(m_alpha_h, m_alpha_l,
-                        // m_flow_priority) - (m_alpha_h - m_alpha_l); m_alpha_h = m_alpha_h +
-                        // m_deltaAlphaUpdate / 2; m_alpha_l = m_alpha_l - m_deltaAlphaUpdate / 2;
+
                         // step 1: calculate the Normalized dequeue BW of the designated queue:
-                        float gamma_i = GetNormalizedDequeueBandWidth(device, m_flow_priority);
+                        float gamma_i = GetNormalizedDequeueBandWidth_v1(device, subQueueIndex);
                         // for debug:
                         std::cout << "the normalized dequeue rate on port: " << device
                                   << " is: " << gamma_i << std::endl;
@@ -2189,7 +2191,10 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     else if (m_usedAlgorythm.compare("FB") == 0)
                     {
                         // step 1: calculate the Normalized dequeue BW of the designated queue:
-                        float gamma_i = GetNormalizedDequeueBandWidth(device, m_flow_priority);
+                        float gamma_i = GetNormalizedDequeueBandWidth_v1(device, subQueueIndex);
+                        // for debug:
+                        std::cout << "the normalized dequeue rate on port: " << device
+                                  << " is: " << gamma_i << std::endl;
                         // step 2: get the total number of conjested queues in shared buffer
                         int conjestedQueues = 0; // initilize to 0
                         conjestedQueues =
@@ -2272,7 +2277,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         // m_flow_priority) - (m_alpha_h - m_alpha_l); m_alpha_h = m_alpha_h +
                         // m_deltaAlphaUpdate / 2; m_alpha_l = m_alpha_l - m_deltaAlphaUpdate / 2;
                         // step 1: calculate the Normalized dequeue BW of the designated queue:
-                        float gamma_i = GetNormalizedDequeueBandWidth(device, m_flow_priority);
+                        float gamma_i = GetNormalizedDequeueBandWidth_v1(device, subQueueIndex);
                         // step 2: get the total number of conjested queues in shared buffer
                         int conjestedQueues = 0; // initilize to 0
                         conjestedQueues =

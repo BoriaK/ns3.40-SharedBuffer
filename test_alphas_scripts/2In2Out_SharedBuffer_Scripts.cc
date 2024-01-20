@@ -45,7 +45,7 @@
 #define SWITCH_RECIEVER_CAPACITY  2000000              // Total Leaf-Spine Capacity 2Mbps
 #define SERVER_SWITCH_CAPACITY 20000000         // Total Serever-Leaf Capacity 20Mbps
 #define LINK_LATENCY MicroSeconds(20)             // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 1000                           // Buffer Size (for each queue) 100 Packets
+#define BUFFER_SIZE 1000                           // Buffer Size (for each queue) 1000 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -363,6 +363,12 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
       NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
   }
 
+  ////for external loop issue///////
+  for (size_t i = 0; i < switchDevicesOut.GetN(); i++)
+  {     
+    Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
+  }
+  ///////////////////
 
   // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
   NS_LOG_INFO ("Install Internet stacks");
@@ -389,9 +395,7 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
 
   QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
 
-  
-
-///////// set the Traffic Controll layer to be a shared buffer////////////////////////
+  ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
   Ptr<TrafficControlLayer> tc;
   tc = router.Get(0)->GetObject<TrafficControlLayer>();
@@ -1004,6 +1008,12 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
       NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
   }
 
+  ////for external loop issue///////
+  for (size_t i = 0; i < switchDevicesOut.GetN(); i++)
+  {     
+    Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
+  }
+  ///////////////////
 
   // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
   NS_LOG_INFO ("Install Internet stacks");
@@ -1112,7 +1122,6 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
 
       switch2recieverIPs.NewNetwork ();    
   }
-
 
   // and setup ip routing tables to get total ip-level connectivity.
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
@@ -1416,6 +1425,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
+  // dir = "./Trace_Plots/test_Alphas/"
   std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/VaryingDValues/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
@@ -1587,9 +1597,10 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   if (adjustableAlphas)
   {
     // move all the produced files to a directory
+    // dirToSave = dir + traffic_control_type + "/" + implementation + "/VaryingDValues/"
     std::string newDir = dirToSave + "adjustableAlphas/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
   else
@@ -1597,7 +1608,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
     // move all the produced files to a directory based on the Alpha values
     std::string newDir = dirToSave + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
 
@@ -2060,6 +2071,7 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
+  // dir = "./Trace_Plots/test_Alphas/"
   std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
@@ -2677,6 +2689,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
+  // dir = "./Trace_Plots/test_Alphas/"
   std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/VaryingDValues/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
@@ -2684,8 +2697,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   }
 
   NS_LOG_INFO ("Start simulation");
-  Simulator::Stop (Seconds (END_TIME + 10)); // original
-  // Simulator::Stop (Seconds (6));  // doesn't work
+  Simulator::Stop (Seconds (END_TIME + 10)); 
   Simulator::Run ();
 
   // print the tested scenario at the top of the terminal: Topology, Queueing Algorithm and Application.
@@ -2849,9 +2861,10 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   if (adjustableAlphas)
   {
     // move all the produced files to a directory
+    // dirToSave = dir + traffic_control_type + "/" + implementation + "/VaryingDValues/"
     std::string newDir = dirToSave + "adjustableAlphas/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
   else
@@ -2859,7 +2872,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
     // move all the produced files to a directory based on the Alpha values
     std::string newDir = dirToSave + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
 

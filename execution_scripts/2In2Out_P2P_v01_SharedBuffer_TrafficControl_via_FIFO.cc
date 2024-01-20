@@ -50,10 +50,10 @@
 #define SWITCH_COUNT 1
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  2000000              // Total Leaf-Spine Capacity 2Mbps
+#define SWITCH_RECIEVER_CAPACITY  4000000       // Total Leaf-Spine Capacity 4Mbps
 #define SERVER_SWITCH_CAPACITY 20000000         // Total Serever-Leaf Capacity 20Mbps
-#define LINK_LATENCY MicroSeconds(20)             // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 100                           // Buffer Size (for each queue) 100 Packets
+#define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
+#define BUFFER_SIZE 1000                        // Buffer Size (for each queue) 1000 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -89,6 +89,14 @@ NDevicePointerToString (Ptr<NetDevice> ndevpointer)
 
 std::string
 ToString (uint32_t value)
+{
+  std::stringstream ss;
+  ss << value;
+  return ss.str();
+}
+
+std::string
+IntToString (u_int32_t value)
 {
   std::stringstream ss;
   ss << value;
@@ -214,8 +222,8 @@ int main (int argc, char *argv[])
     {
         usedAlgorythm = "FB";
     }
-    double_t alpha_high = 10;
-    double_t alpha_low = 2;
+    double_t alpha_high = 17;
+    double_t alpha_low = 3;
     uint32_t flowletTimeout = 50;
     bool eraseOldData = true; // true/false
 
@@ -327,6 +335,13 @@ int main (int argc, char *argv[])
 
         NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
     }
+
+    ////for external loop issue///////
+    for (size_t i = 0; i < switchDevicesOut.GetN(); i++)
+    {     
+      Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
+    }
+    ///////////////////
 
 
     // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
@@ -476,10 +491,17 @@ int main (int argc, char *argv[])
         InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
         socketAddressP1.SetTos(ipTos_LP);  // ToS 0x0 -> Low priority
 
-        // time interval values for OnOff Aplications
-        std::string miceOnTime = "0.05"; // [sec]
-        std::string elephantOnTime = "0.5"; // [sec]
-        std::string offTime = "0.1"; // [sec]
+    // time interval values for OnOff Aplications
+    // original values:
+    std::string miceOnTime = "0.05"; // [sec]
+    std::string miceOffTime = "0.01"; // [sec]
+    // for debug:
+    // std::string miceOnTime = "0.5"; // [sec]
+    // std::string miceOffTime = "0.1"; // [sec]
+    
+    std::string elephantOnTime = "0.5"; // [sec]
+    std::string elephantOffTime = "0.1"; // [sec]
+
         // create and install Client apps:    
         if (applicationType.compare("standardClient") == 0) 
         {
@@ -554,7 +576,7 @@ int main (int argc, char *argv[])
             PrioOnOffHelper clientHelperP0 (socketType, socketAddressP0);
             clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
             clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-            clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + offTime + "]"));
+            clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
             clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
             clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
             // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
@@ -566,7 +588,7 @@ int main (int argc, char *argv[])
             PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
             clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
             clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-            clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + offTime + "]"));
+            clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
             clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
             clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
             // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user

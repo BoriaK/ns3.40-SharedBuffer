@@ -23,15 +23,15 @@
 int main ()
 { 
   std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
-  double_t miceElephantProb = 0.5; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets. 
+  double_t miceElephantProb = 0.8; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets. 
   // in this simulation it effects silence time ratio for the onoff application
   ////////// for Varring D mode only /////////////
-  std::array<double_t, 3> miceElephantProb_array = {0.1, 0.5, 0.7}; // 3 consequtive D values to use in a single flow
-  bool adjustableAlphas = true;  // selects the optimal Alpha High/Low for each D value 
+  std::array<double_t, 3> miceElephantProb_array = {0.2, 0.5, 0.7}; // 3 consequtive D values to use in a single flow
+  bool adjustableAlphas = false;  // selects the optimal Alpha High/Low for each D value 
   ////////////////////////////////////////////////
   double_t trafficGenDuration = 2;  // 2 or 6 [sec] the total duration of OnOff traffic generation
-  bool accumulateStats = true; // true/false
-  int runOption = 2; // [1, 2, 3]
+  bool accumulateStats = false; // true/false
+  int runOption = 1; // [1, 2, 3]
   
   switch (runOption)
   {

@@ -392,7 +392,15 @@ class TrafficControlLayer : public Object
      *        so the actual gamma_i(t) is calculated as: 1/current number of non empty queues on the port.
      * \returns the normalized dequeue rate of queue_i(t).
      */
-    float_t GetNormalizedDequeueBandWidth(Ptr<NetDevice> device, uint8_t queueIndex);
+    float_t GetNormalizedDequeueBandWidth_v1(Ptr<NetDevice> device, uint16_t queueIndex);
+
+    /**
+     * \brief calculate the normalized dequeue rate of queue_i_c(t). gamma_i_c(t) 
+     *        at the current model, each queue on the port has an equal share of the dequeue BW.
+     *        so the actual gamma_i_c(t) is calculated as: 1/current number of non empty queues of priority p (high/low) on the port.
+     * \returns the normalized dequeue rate of queue_i_c(t).
+     */
+    float_t GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uint8_t flow_riority, uint16_t queueIndex);
 
     /**
      * \brief claculate the nesesarry learning rate as the normalized difference between the incoming traffic

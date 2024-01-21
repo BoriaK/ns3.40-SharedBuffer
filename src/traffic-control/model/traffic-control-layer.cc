@@ -1609,7 +1609,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     {
                         size_t netDeviceIndex = GetNetDeviceIndex(device);
                         // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
-                        size_t portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then,
+                        portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then,
                         // the port index is the netDeviceIndex modulu 2.
                         // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
                     }
@@ -1907,8 +1907,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 {
                     size_t netDeviceIndex = GetNetDeviceIndex(device);
                     // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
-                    size_t portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then the port index is the netDeviceIndex modulu 2
-                    // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
+                    portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then the port index is the netDeviceIndex modulu 2
+                    std::cout << "Index of '" << device << "': " << portIndex << std::endl;
                 }
                 
                 // Enqueue the packet in the queue disc associated with the netdevice queue

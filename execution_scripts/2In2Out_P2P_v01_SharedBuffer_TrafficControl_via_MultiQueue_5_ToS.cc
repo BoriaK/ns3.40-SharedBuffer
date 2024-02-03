@@ -353,7 +353,7 @@ int main (int argc, char *argv[])
         NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
     }
 
-    for (size_t i = 0; i < switchDevicesOut.GetN(); i++)
+    for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
     {     
       Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
     }

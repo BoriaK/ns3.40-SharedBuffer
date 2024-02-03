@@ -11,7 +11,7 @@ Application: prioOnOff
   Rx Packets/Bytes:   1314 / 1382328
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 2.25106 Mbps
+  Throughput: 2.18219 Mbps
 
 *** TC Layer statistics ***
 

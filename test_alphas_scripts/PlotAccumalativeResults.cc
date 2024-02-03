@@ -36,23 +36,40 @@ using namespace ns3;
 
 
 void
-CreateSingle2DPlotFile(std::string usedAlgorythm, std::string implementation)  // for a single plot with N data-sets
+CreateSingle2DPlotFile(std::string someUsedAlgorythm, std::string someImplementation)  // for a single plot with N data-sets
 {
   std::string gnuPlotFileLocation = "./test_alphas_scripts/";
 
   // // Set up some default values for the simulation.
-  std::string trace_parameter = usedAlgorythm + "_TestAccumulativeStatistics";
-  std::string gnuPlotFileName = gnuPlotFileLocation + trace_parameter + "_" + implementation + ".plt";
+  std::string trace_parameter = someUsedAlgorythm + "_TestAccumulativeStatistics";
+  std::string gnuPlotFileName = gnuPlotFileLocation + trace_parameter + "_" + someImplementation + ".plt";
 
   // command line needs to be in ./ns-3-dev-git$ inorder for the script to produce gnuplot correctly///
   system (("gnuplot " + gnuPlotFileName).c_str ());
 
 }
 
+// Function template to accept a reference to an array of any size
+template <size_t N>
+void
+CreateMultiple2DPlotFiles(const std::string (&someUsedAlgorythmArray)[N], std::string someImplementation)  // for a single plot with N data-sets
+{
+  for (size_t i = 0; i < N; i++)
+  {
+    CreateSingle2DPlotFile(someUsedAlgorythmArray[i], someImplementation);
+  }
+}
+
 int main (int argc, char *argv[])
 { 
-                                          // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.5"/"FB_0.7"/"FB_0.9"
-  std::string usedAlgorythm = "FB_0.8";  // "DT"/"FB"/"All"/"FB_All_D"
-  std::string implementation = "MQueue_2ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
-  CreateSingle2DPlotFile(usedAlgorythm, implementation);
+                                        // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.4"/"FB_0.5"/"FB_0.6"/"FB_0.7"/"FB_0.8"/"FB_0.9"
+  std::string usedAlgorythm = "FB_All_D";  // "DT"/"FB"/"All"/"FB_All_D"
+  std::string implementation = "MQueue_5ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
+  // CreateSingle2DPlotFile(usedAlgorythm, implementation);
+  
+  // for multiple different plots
+  // const int arraySize = 9; // insert the number of different elements to plot
+  // std::array<std::string, arraySize> usedAlgorythmArray = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9"};
+  std::string usedAlgorythmArray[] = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9","FB_All_D"};
+  CreateMultiple2DPlotFiles(usedAlgorythmArray, implementation);
 }

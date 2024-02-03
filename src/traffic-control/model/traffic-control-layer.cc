@@ -562,8 +562,7 @@ TrafficControlLayer::GetNumOfLowPriorityPacketsInSharedQueue()
 }
 
 uint32_t
-TrafficControlLayer::GetNumOfConjestedQueuesInSharedQueue_v1() // v1 referres to conjested as
-                                                               // "non-empty"
+TrafficControlLayer::GetNumOfConjestedQueuesInSharedQueue() // this version referres to conjested as "non-empty"
 {
     NS_LOG_FUNCTION(this);
 
@@ -629,7 +628,7 @@ TrafficControlLayer::GetNumOfConjestedQueuesInSharedQueue_v1() // v1 referres to
 }
 
 uint32_t
-TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t queue_priority) // v1 referres to conjested as "non-empty"
+TrafficControlLayer::GetNumOfPriorityConjestedQueuesInSharedQueue(uint32_t queue_priority) // this version referres to conjested as "non-empty"
 {
     NS_LOG_FUNCTION(this);
 
@@ -1156,40 +1155,40 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t miceE
         switch (miceElephantProbVal)
         {
         case 1:
-            alpha_h = 16;
-            alpha_l = 4;
+            alpha_h = 13;
+            alpha_l = 7;
             break;
         case 2:
+            alpha_h = 13;
+            alpha_l = 7;
+            break;
+        case 3:
+            alpha_h = 14;
+            alpha_l = 6;
+            break;
+        case 4:
+            alpha_h = 14;
+            alpha_l = 6;
+            break;
+        case 5:
+            alpha_h = 15;
+            alpha_l = 5;
+            break;
+        case 6:
+            alpha_h = 15;
+            alpha_l = 5;
+            break;
+        case 7:
             alpha_h = 16;
             alpha_l = 4;
             break;
-        case 3:
-            alpha_h = 17;
-            alpha_l = 3;
-            break;
-        case 4:
-            alpha_h = 17;
-            alpha_l = 3;
-            break;
-        case 5:
-            alpha_h = 17;
-            alpha_l = 3;
-            break;
-        case 6:
-            alpha_h = 17;
-            alpha_l = 3;
-            break;
-        case 7:
-            alpha_h = 18;
-            alpha_l = 2;
-            break;
         case 8:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 17;
+            alpha_l = 3;
             break;        
         case 9:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 17;
+            alpha_l = 3;
             break;
         default:
             break;
@@ -1200,40 +1199,40 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t miceE
         switch (miceElephantProbVal)
         {
         case 1:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 18;
+            alpha_l = 2;
             break;
         case 2:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 18;
+            alpha_l = 2;
             break;
         case 3:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 18;
+            alpha_l = 2;
             break;
         case 4:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 18;
+            alpha_l = 2;
             break;
         case 5:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 18;
+            alpha_l = 2;
             break;
         case 6:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 19;
+            alpha_l = 1;
             break;
         case 7:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 19;
+            alpha_l = 1;
             break;
         case 8:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 19;
+            alpha_l = 1;
             break;
         case 9:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 19;
+            alpha_l = 1;
             break;
         default:
             break;
@@ -1609,8 +1608,10 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     {
                         size_t netDeviceIndex = GetNetDeviceIndex(device);
                         // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
-                        portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then,
+                        // portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then,
                         // the port index is the netDeviceIndex modulu 2.
+                        
+                        portIndex = netDeviceName.back() - '0';
                         // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
                     }
 
@@ -1674,7 +1675,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             // step 2: get the total number of conjested queues in shared buffer
                             int conjestedQueues = 0; // initilize to 0
                             conjestedQueues =
-                                GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
+                                GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority);
                             
                             // for debug:
                             std::cout << "Num of congested queues of priority: " << int(m_flow_priority)
@@ -1790,7 +1791,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             // step 2: get the total number of conjested queues in shared buffer
                             int conjestedQueues = 0;
                             conjestedQueues = 
-                                GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
+                                GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority);
 
                             if (queue->GetNumOfLowPrioPacketsInQueue().GetValue() <
                                 GetQueueThreshold_FB_v2(m_alpha,
@@ -1907,8 +1908,10 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 {
                     size_t netDeviceIndex = GetNetDeviceIndex(device);
                     // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
-                    portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then the port index is the netDeviceIndex modulu 2
-                    std::cout << "Index of '" << device << "': " << portIndex << std::endl;
+                    // portIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then the port index is the netDeviceIndex modulu 2
+                    
+                    portIndex = netDeviceName.back() - '0';
+                    // std::cout << "Index of '" << device << "': " << portIndex << std::endl;
                 }
                 
                 // Enqueue the packet in the queue disc associated with the netdevice queue
@@ -2019,7 +2022,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         // step 2: get the total number of conjested queues in shared buffer
                         int conjestedQueues = 0; // initilize to 0
                         conjestedQueues =
-                            GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
+                            GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority);
                         // for debug:
                         std::cout << "Num of congested queues of priority: " << int(m_flow_priority)
                                   << " is: " << conjestedQueues << std::endl;
@@ -2090,7 +2093,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         // step 2: get the total number of conjested queues in shared buffer
                         int conjestedQueues = 0; // initilize to 0
                         conjestedQueues =
-                            GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
+                            GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority);
                         // for debug:
                         std::cout << "Num of congested queues of priority: " << int(m_flow_priority)
                                   << " is: " << conjestedQueues << std::endl;
@@ -2198,7 +2201,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         // step 2: get the total number of conjested queues in shared buffer
                         int conjestedQueues = 0; // initilize to 0
                         conjestedQueues =
-                            GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
+                            GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority);
                         // for debug:
                         std::cout << "Num of congested queues of priority " << int(m_flow_priority)
                                   << " is: " << conjestedQueues << std::endl;
@@ -2281,7 +2284,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         // step 2: get the total number of conjested queues in shared buffer
                         int conjestedQueues = 0; // initilize to 0
                         conjestedQueues =
-                            GetNumOfPriorityConjestedQueuesInSharedQueue_v1(m_flow_priority);
+                            GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority);
                         // for debug:
                         std::cout << "Num of congested queues of priority " << int(m_flow_priority)
                                   << " is: " << conjestedQueues << std::endl;

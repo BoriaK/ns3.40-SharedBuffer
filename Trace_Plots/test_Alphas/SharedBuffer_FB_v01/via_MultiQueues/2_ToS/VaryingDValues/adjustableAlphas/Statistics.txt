@@ -4,45 +4,45 @@ Implementation Method: via_MultiQueues/2_ToS
 Used D value: [0.2, 0.5, 0.7]
 Adjustable Alpha High/Low values
 
-Traffic Duration: 6 [Sec]
+Traffic Duration: 3x2 [Sec]
 Application: prioOnOff
 
 *** Flow monitor statistics ***
   Tx Packets/Bytes:   4824 / 5074848
-  Rx Packets/Bytes:   2338 / 2459576
+  Rx Packets/Bytes:   3756 / 3951312
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 7.66017 Mbps
+  Throughput: 6.65239 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 2486 / 2615272
-High Priority Packets/Bytes dropped by Traffic Control Layer: 927 / 975204
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 1559 / 1640068
+Packets/Bytes dropped by Traffic Control Layer: 1068 / 1123536
+High Priority Packets/Bytes dropped by Traffic Control Layer: 192 / 201984
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 876 / 921552
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1171 / 1231892
-Packets/Bytes enqueued: 1171 / 1231892
-Packets/Bytes dequeued: 1171 / 1231892
+Packets/Bytes received: 1880 / 1977760
+Packets/Bytes enqueued: 1880 / 1977760
+Packets/Bytes dequeued: 1880 / 1977760
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1171 / 1231892
+Packets/Bytes sent: 1880 / 1977760
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 1167 / 1227684
-Packets/Bytes enqueued: 1167 / 1227684
-Packets/Bytes dequeued: 1167 / 1227684
+Packets/Bytes received: 1876 / 1973552
+Packets/Bytes enqueued: 1876 / 1973552
+Packets/Bytes dequeued: 1876 / 1973552
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1167 / 1227684
+Packets/Bytes sent: 1876 / 1973552
 Packets/Bytes marked: 0 / 0
 

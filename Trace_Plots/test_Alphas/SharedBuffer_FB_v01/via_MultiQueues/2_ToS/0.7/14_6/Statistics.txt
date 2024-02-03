@@ -1,45 +1,47 @@
 Topology: 2In2Out
 Queueing Algorithm: SharedBuffer_FB_v01
 Implementation Method: via_MultiQueues/2_ToS
+Used D value: 0.7
 Alpha High = 14 Alpha Low = 6
+Traffic Duration: 2 [Sec]
 Application: prioOnOff
 
 *** Flow monitor statistics ***
   Tx Packets/Bytes:   1602 / 1685304
-  Rx Packets/Bytes:   1402 / 1474904
+  Rx Packets/Bytes:   1393 / 1465436
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 2.05354 Mbps
+  Throughput: 2.19422 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 200 / 210400
-High Priority Packets/Bytes dropped by Traffic Control Layer: 107 / 112564
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 93 / 97836
+Packets/Bytes dropped by Traffic Control Layer: 209 / 219868
+High Priority Packets/Bytes dropped by Traffic Control Layer: 39 / 41028
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 170 / 178840
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 702 / 738504
-Packets/Bytes enqueued: 702 / 738504
-Packets/Bytes dequeued: 702 / 738504
+Packets/Bytes received: 698 / 734296
+Packets/Bytes enqueued: 698 / 734296
+Packets/Bytes dequeued: 698 / 734296
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 702 / 738504
+Packets/Bytes sent: 698 / 734296
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 700 / 736400
-Packets/Bytes enqueued: 700 / 736400
-Packets/Bytes dequeued: 700 / 736400
+Packets/Bytes received: 695 / 731140
+Packets/Bytes enqueued: 695 / 731140
+Packets/Bytes dequeued: 695 / 731140
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 700 / 736400
+Packets/Bytes sent: 695 / 731140
 Packets/Bytes marked: 0 / 0
 

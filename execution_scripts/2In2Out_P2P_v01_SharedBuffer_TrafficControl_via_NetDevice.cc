@@ -99,6 +99,14 @@ ToString (uint32_t value)
 }
 
 std::string
+IntToString (u_int32_t value)
+{
+  std::stringstream ss;
+  ss << value;
+  return ss.str();
+}
+
+std::string
 StringCombine (std::string A, std::string B, std::string C)
 {
   std::stringstream ss;
@@ -335,6 +343,10 @@ int main (int argc, char *argv[])
         NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
     }
 
+    for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
+    {     
+      Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
+    }
 
     // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
     NS_LOG_INFO ("Install Internet stacks");

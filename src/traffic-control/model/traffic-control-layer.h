@@ -376,7 +376,7 @@ class TrafficControlLayer : public Object
      *        in bytes, ifoperating in bytes mode, or packets, otherwise. for a SINGLE QUEUE PER PORT architecture
      * \returns The number of high priority packets in queue disc in bytes or packets.
      */
-    uint32_t GetNumOfConjestedQueuesInSharedQueue_v1();
+    uint32_t GetNumOfConjestedQueuesInSharedQueue();
 
     /**
      * \brief Get the current number of conjested (non empty) queues of priority p on the shared buffer, 
@@ -384,7 +384,7 @@ class TrafficControlLayer : public Object
      * \param queue_priority the priority of the queue that's currently being checked
      * \returns The number of high priority packets in queue disc in bytes or packets.
      */
-    uint32_t GetNumOfPriorityConjestedQueuesInSharedQueue_v1(uint32_t queue_priority);
+    uint32_t GetNumOfPriorityConjestedQueuesInSharedQueue(uint32_t queue_priority);
 
     /**
      * \brief calculate the normalized dequeue rate of queue_i(t). gamma_i(t) 

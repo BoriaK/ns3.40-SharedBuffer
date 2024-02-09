@@ -62,14 +62,14 @@ CreateMultiple2DPlotFiles(const std::string (&someUsedAlgorythmArray)[N], std::s
 
 int main (int argc, char *argv[])
 { 
-                                        // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.4"/"FB_0.5"/"FB_0.6"/"FB_0.7"/"FB_0.8"/"FB_0.9"
-  std::string usedAlgorythm = "FB_All_D";  // "DT"/"FB"/"All"/"FB_All_D"
-  std::string implementation = "MQueue_5ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
-  // CreateSingle2DPlotFile(usedAlgorythm, implementation);
+                                        // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.4"/"FB_0.5"/"FB_0.6"/"FB_0.7"/"FB_0.8"/"FB_0.9"/"FB_VaryingDValues"
+  std::string usedAlgorythm = "FB_VaryingDValues";  // "DT"/"FB"/"All"/"FB_All_D"
+  std::string implementation = "MQueue_2ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
+  CreateSingle2DPlotFile(usedAlgorythm, implementation);
   
   // for multiple different plots
-  // const int arraySize = 9; // insert the number of different elements to plot
-  // std::array<std::string, arraySize> usedAlgorythmArray = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9"};
+  // const int arraySize = 9; // insert the number of different elements to plot - not necessary
+  // std::array<std::string, arraySize> usedAlgorythmArray = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9"};  // - not necessary
   std::string usedAlgorythmArray[] = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9","FB_All_D"};
-  CreateMultiple2DPlotFiles(usedAlgorythmArray, implementation);
+  // CreateMultiple2DPlotFiles(usedAlgorythmArray, implementation);
 }

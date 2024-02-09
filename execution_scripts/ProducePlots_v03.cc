@@ -35,9 +35,9 @@ ToString (uint32_t value)
 }
 
 std::string usedAlgorythm = "FB";  // "DT"/"FB"
-std::string implementation = "via_MultiQueues/2_ToS";  // "via_NetDevices/2_ToS"/"via_FIFO_QueueDiscs/2_ToS"/"via_MultiQueues/2_ToS"/"via_MultiQueues/4_ToS"/"via_MultiQueues/5_ToS"
-std::string miceElephantProb = "VaryingDValues"; // [0.1:0.1:0.9]/ "VaryingDValues"
-std::string testAlphasPair = "16_4"; // format: alphaHigh_alphaLow or "adjustableAlphas". Alpha High/Low = [20, 19, ..., 1, 0.5] 
+std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices/2_ToS"/"via_FIFO_QueueDiscs/2_ToS"/"via_MultiQueues/2_ToS"/"via_MultiQueues/4_ToS"/"via_MultiQueues/5_ToS"
+std::string miceElephantProb = "0.5"; // [0.1:0.1:0.9]/ "VaryingDValues"
+std::string testAlphasPair = "6_14"; // format: alphaHigh_alphaLow or "adjustableAlphas". Alpha High/Low = [20, 19, ..., 1, 0.5] 
 std::size_t numOfSubQueues = static_cast<size_t>(implementation[implementation.length() - 5] - '0');
 std::string dir = "./Trace_Plots/";
 std::string topology = "test_Alphas";  // "Line"/"Incast"/"2In2Out"/"test_Alphas"

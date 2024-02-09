@@ -1,48 +1,48 @@
 Topology: 2In2Out
 Queueing Algorithm: SharedBuffer_FB_v01
 Implementation Method: via_MultiQueues/2_ToS
-Used D value: [0.2, 0.5, 0.7]
+Used D value: [0.2, 0.5, 0.8]
 Alpha High = 15 Alpha Low = 5
 
 Traffic Duration: 3x2 [Sec]
 Application: prioOnOff
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   4824 / 5074848
-  Rx Packets/Bytes:   3753 / 3948156
+  Tx Packets/Bytes:   4856 / 5108512
+  Rx Packets/Bytes:   4149 / 4364748
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 6.6269 Mbps
+  Throughput: 6.48944 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 1071 / 1126692
-High Priority Packets/Bytes dropped by Traffic Control Layer: 205 / 215660
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 866 / 911032
+Packets/Bytes dropped by Traffic Control Layer: 707 / 743764
+High Priority Packets/Bytes dropped by Traffic Control Layer: 34 / 35768
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 673 / 707996
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1878 / 1975656
-Packets/Bytes enqueued: 1878 / 1975656
-Packets/Bytes dequeued: 1878 / 1975656
+Packets/Bytes received: 2076 / 2183952
+Packets/Bytes enqueued: 2076 / 2183952
+Packets/Bytes dequeued: 2076 / 2183952
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1878 / 1975656
+Packets/Bytes sent: 2076 / 2183952
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 1875 / 1972500
-Packets/Bytes enqueued: 1875 / 1972500
-Packets/Bytes dequeued: 1875 / 1972500
+Packets/Bytes received: 2073 / 2180796
+Packets/Bytes enqueued: 2073 / 2180796
+Packets/Bytes dequeued: 2073 / 2180796
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1875 / 1972500
+Packets/Bytes sent: 2073 / 2180796
 Packets/Bytes marked: 0 / 0
 

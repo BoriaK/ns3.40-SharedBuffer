@@ -1,48 +1,48 @@
 Topology: 2In2Out
 Queueing Algorithm: SharedBuffer_FB_v01
 Implementation Method: via_MultiQueues/2_ToS
-Used D value: [0.2, 0.5, 0.7]
+Used D value: [0.2, 0.5, 0.8]
 Alpha High = 20 Alpha Low = 0.5
 
 Traffic Duration: 3x2 [Sec]
 Application: prioOnOff
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   4824 / 5074848
-  Rx Packets/Bytes:   3355 / 3529460
+  Tx Packets/Bytes:   4856 / 5108512
+  Rx Packets/Bytes:   3381 / 3556812
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 7.32505 Mbps
+  Throughput: 7.34625 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 1469 / 1545388
+Packets/Bytes dropped by Traffic Control Layer: 1475 / 1551700
 High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 1469 / 1545388
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 1475 / 1551700
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1678 / 1765256
-Packets/Bytes enqueued: 1678 / 1765256
-Packets/Bytes dequeued: 1678 / 1765256
+Packets/Bytes received: 1691 / 1778932
+Packets/Bytes enqueued: 1691 / 1778932
+Packets/Bytes dequeued: 1691 / 1778932
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1678 / 1765256
+Packets/Bytes sent: 1691 / 1778932
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 1677 / 1764204
-Packets/Bytes enqueued: 1677 / 1764204
-Packets/Bytes dequeued: 1677 / 1764204
+Packets/Bytes received: 1690 / 1777880
+Packets/Bytes enqueued: 1690 / 1777880
+Packets/Bytes dequeued: 1690 / 1777880
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1677 / 1764204
+Packets/Bytes sent: 1690 / 1777880
 Packets/Bytes marked: 0 / 0
 

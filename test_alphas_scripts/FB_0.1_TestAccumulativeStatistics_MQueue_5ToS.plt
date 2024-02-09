@@ -10,7 +10,8 @@ set datafile separator whitespace
 # Use multiplot to arrange the plots in the same graph
 set multiplot
 
-set xtics 1  # This sets the distance between xtics to 1
+# set xtics 1  # This sets the distance between xtics to 1
+set xtics nomirror scale 1
 
 plot "./Trace_Plots/test_Alphas/TestStats/via_MultiQueues/5_ToS/0.1/FB_TestAccumulativeStatistics.dat" using 0:2:xticlabels(1) with linespoints title "Total Packets Dropped", \
      "./Trace_Plots/test_Alphas/TestStats/via_MultiQueues/5_ToS/0.1/FB_TestAccumulativeStatistics.dat" using 0:3:xticlabels(1) with linespoints title "High Priority Packets Dropped", \

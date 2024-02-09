@@ -7,17 +7,17 @@ Traffic Duration: 2 [Sec]
 Application: prioOnOff
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   3822 / 4020744
+  Tx Packets/Bytes:   3252 / 3421104
   Rx Packets/Bytes:   1277 / 1343404
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 2.12565 Mbps
+  Throughput: 2.15726 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 2545 / 2677340
-High Priority Packets/Bytes dropped by Traffic Control Layer: 525 / 552300
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 2020 / 2125040
+Packets/Bytes dropped by Traffic Control Layer: 1975 / 2077700
+High Priority Packets/Bytes dropped by Traffic Control Layer: 407 / 428164
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 1568 / 1649536
 
 
 *** QueueDisc Layer statistics ***

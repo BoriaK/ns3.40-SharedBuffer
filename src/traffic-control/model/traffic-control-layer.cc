@@ -1199,40 +1199,40 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t miceE
         switch (miceElephantProbVal)
         {
         case 1:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 15;
+            alpha_l = 5;
             break;
         case 2:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 15;
+            alpha_l = 5;
             break;
         case 3:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 15;
+            alpha_l = 5;
             break;
         case 4:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 15;
+            alpha_l = 5;
             break;
         case 5:
-            alpha_h = 18;
-            alpha_l = 2;
+            alpha_h = 16;
+            alpha_l = 4;
             break;
         case 6:
-            alpha_h = 19;
-            alpha_l = 1;
+            alpha_h = 16;
+            alpha_l = 4;
             break;
         case 7:
-            alpha_h = 19;
-            alpha_l = 1;
+            alpha_h = 16;
+            alpha_l = 4;
             break;
         case 8:
-            alpha_h = 19;
-            alpha_l = 1;
+            alpha_h = 17;
+            alpha_l = 3;
             break;
         case 9:
-            alpha_h = 19;
-            alpha_l = 1;
+            alpha_h = 17;
+            alpha_l = 3;
             break;
         default:
             break;

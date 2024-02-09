@@ -42,10 +42,10 @@
 #define SWITCH_COUNT 1
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  2000000              // Total Leaf-Spine Capacity 2Mbps
-#define SERVER_SWITCH_CAPACITY 20000000         // Total Serever-Leaf Capacity 20Mbps
-#define LINK_LATENCY MicroSeconds(20)             // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 1000                           // Buffer Size (for each queue) 1000 Packets
+#define SWITCH_RECIEVER_CAPACITY  500000        // Leaf-Spine Capacity 500Kbps/queue/port
+#define SERVER_SWITCH_CAPACITY 5000000          // Total Serever-Leaf Capacity 5Mbps/queue/port
+#define LINK_LATENCY MicroSeconds(20)            // each link latency 10 MicroSeconds 
+#define BUFFER_SIZE 500                          // Shared Buffer Size for a single queue per port. 500 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -244,7 +244,7 @@ SojournTimeTrace (Time sojournTime)
 
 
 void
-viaFIFO(std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, bool accumulateStats)
+viaFIFO(std::string traffic_control_type, double_t miceElephantProb, double_t alpha_high, double_t alpha_low, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -328,12 +328,12 @@ viaFIFO(std::string traffic_control_type, double_t alpha_high, double_t alpha_lo
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY / SERVER_COUNT;
+  uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / RECIEVER_COUNT;
+  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -520,8 +520,11 @@ viaFIFO(std::string traffic_control_type, double_t alpha_high, double_t alpha_lo
     // std::string miceOnTime = "0.05"; // [sec]
     // std::string elephantOnTime = "0.5"; // [sec]
     // std::string offTime = "0.1"; // [sec]
-    std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-    std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+    // std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
+    // std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+    // need to try:
+    std::string miceOffTime = DoubleToString((1 - miceElephantProb) * miceOffTimeConst); // [sec]
+    std::string elephantOffTime = DoubleToString(miceElephantProb * elephantOffTimeConst); // [sec]
     // create and install Client apps:    
     if (applicationType.compare("standardClient") == 0) 
     {
@@ -840,7 +843,7 @@ viaFIFO(std::string traffic_control_type, double_t alpha_high, double_t alpha_lo
 
 
 void
-viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, bool accumulateStats)
+viaMQueues2ToS (std::string traffic_control_type, double_t miceElephantProb, double_t alpha_high, double_t alpha_low, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -872,7 +875,7 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   }
   else
   {
-    queue_capacity = ToString(BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -924,12 +927,12 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY / SERVER_COUNT;
+  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / RECIEVER_COUNT;
+  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -1440,9 +1443,9 @@ viaMQueues2ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   NS_LOG_INFO ("Stop simulation");
 }
 
-
+template <size_t N>
 void
-viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, std::array<double_t, 3> miceElephantProb_array, bool adjustableAlphas, bool accumulateStats)
+viaMQueues2ToSVaryingD (std::string traffic_control_type, const std::double_t(&miceElephantProb_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -1472,7 +1475,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   }
   else
   {
-    queue_capacity = ToString(BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -1524,12 +1527,12 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY / SERVER_COUNT;
+  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / RECIEVER_COUNT;
+  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -1681,174 +1684,125 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   uint32_t ipTos_HP = 0x10;  //High priority: Maximize Throughput
   uint32_t ipTos_LP1 = 0x00; //(Low) priority 0: Best Effort
   
-  
-  ApplicationContainer sinkApps, sourceApps0, sourceApps1, sourceApps2;
-  
-  for (size_t i = 0; i < 2; i++)
+  ApplicationContainer sinkApps;
+  std::vector<ApplicationContainer> sourceApps_vector;
+  // create and install Client apps:  
+  for (size_t i = 0; i < N; i++) // iterate over all D values to create SourceAppContainers Array
   {
-      int serverIndex = i;
-      int recieverIndex = i;
-      // create sockets
-      ns3::Ptr<ns3::Socket> sockptr;
+    ApplicationContainer sourceApps;
+    sourceApps_vector.push_back(sourceApps);
+  }
+  
+  for (size_t i = 0; i < 2; i++)  // iterate over switch ports
+  {
+    int serverIndex = i;
+    int recieverIndex = i;
+    // create sockets
+    ns3::Ptr<ns3::Socket> sockptr;
 
-      if (transportProt.compare("TCP") == 0) 
+    if (transportProt.compare("TCP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::TcpSocketFactory::GetTypeId());
+    ns3::Ptr<ns3::TcpSocket> tcpsockptr =
+        ns3::DynamicCast<ns3::TcpSocket> (sockptr);
+    } 
+    else if (transportProt.compare("UDP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::UdpSocketFactory::GetTypeId());
+        ////////Added by me///////////////        
+        ns3::Ptr<ns3::UdpSocket> udpsockptr =
+            ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+        //////////////////////////////////
+    } 
+    else 
+    {
+    std::cerr << "unknown transport type: " <<
+        transportProt << std::endl;
+    exit(1);
+    }
+    
+    InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
+
+
+    // time interval values for OnOff Aplications
+    // std::string miceOnTime = "0.05"; // [sec]
+    // std::string elephantOnTime = "0.5"; // [sec]
+    
+    if (applicationType.compare("prioOnOff") == 0) 
+    {
+      std::vector<PrioOnOffHelper> clientHelpersP0_vector;
+      std::vector<PrioOnOffHelper> clientHelpersP1_vector;
+      // create and install Client apps:  
+      for (size_t j = 0; j < N; j++) // iterate over all D values to create SourceApps Array for each port
       {
-      // setup source socket
-      sockptr =
-          ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                  ns3::TcpSocketFactory::GetTypeId());
-      ns3::Ptr<ns3::TcpSocket> tcpsockptr =
-          ns3::DynamicCast<ns3::TcpSocket> (sockptr);
-      } 
-      else if (transportProt.compare("UDP") == 0) 
-      {
-      // setup source socket
-      sockptr =
-          ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                  ns3::UdpSocketFactory::GetTypeId());
-          ////////Added by me///////////////        
-          ns3::Ptr<ns3::UdpSocket> udpsockptr =
-              ns3::DynamicCast<ns3::UdpSocket> (sockptr);
-          //////////////////////////////////
-      } 
-      else 
-      {
-      std::cerr << "unknown transport type: " <<
-          transportProt << std::endl;
-      exit(1);
+        PrioOnOffHelper clientHelperP0(socketType, socketAddressP0);
+        PrioOnOffHelper clientHelperP1(socketType, socketAddressP1);
+
+        clientHelpersP0_vector.push_back(clientHelperP0);
+        clientHelpersP1_vector.push_back(clientHelperP1);
       }
       
-      InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
-      socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
-      InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
-      socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
-
-
-      // time interval values for OnOff Aplications
-      // std::string miceOnTime = "0.05"; // [sec]
-      // std::string elephantOnTime = "0.5"; // [sec]
-      
-      // create and install Client apps:  
-      if (applicationType.compare("prioOnOff") == 0) 
+      for (size_t j = 0; j < N; j++) // iterate over all D values to configure and install OnOff Application for each Client
       {
-        if (miceElephantProb_array.size() != 3)
-        {
-          // if miceElephantProb_array.size() is != 3 throw exception!
-          std::cerr << "miceElephantProb_array must contain 3 values" << std::endl;
-          exit(1);
-        }
-        
-        // for 1st D value:
-        double_t miceElephantProb = miceElephantProb_array[0]; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
+        double_t miceElephantProb = miceElephantProb_array[j];
         // in this simulation it effects silence time ratio for the onoff application
         std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
         std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
-        
-        PrioOnOffHelper clientHelperP00 (socketType, socketAddressP0);
-        clientHelperP00.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        clientHelperP00.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP00.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        clientHelperP00.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP00.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP00.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP00.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps0.Add(clientHelperP00.Install (servers.Get(serverIndex)));
 
-        PrioOnOffHelper clientHelperP10 (socketType, socketAddressP1);
-        clientHelperP10.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP10.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP10.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP10.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP10.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP10.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP10.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps0.Add(clientHelperP10.Install (servers.Get(serverIndex)));
+        clientHelpersP0_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP0));
+        clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
+        clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+        clientHelpersP0_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+        clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        // clientHelpersP0_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+        clientHelpersP0_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        sourceApps_vector[j].Add(clientHelpersP0_vector[j].Install (servers.Get(serverIndex)));
 
-        // for 2nd D value:
-        miceElephantProb = miceElephantProb_array[1]; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
-        // in this simulation it effects silence time ratio for the onoff application
-        miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-        elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
-        
-        PrioOnOffHelper clientHelperP01 (socketType, socketAddressP0);
-        clientHelperP01.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        clientHelperP01.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP01.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        clientHelperP01.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP01.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP01.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP01.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps1.Add(clientHelperP01.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP11 (socketType, socketAddressP1);
-        clientHelperP11.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP11.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP11.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP11.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP11.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP11.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP11.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps1.Add(clientHelperP11.Install (servers.Get(serverIndex)));
-
-        // for 3rd D value:
-        miceElephantProb = miceElephantProb_array[2]; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
-        // in this simulation it effects silence time ratio for the onoff application
-        miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-        elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
-        
-        PrioOnOffHelper clientHelperP02 (socketType, socketAddressP0);
-        clientHelperP02.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        clientHelperP02.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP02.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        clientHelperP02.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP02.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP02.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP02.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps2.Add(clientHelperP02.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP12 (socketType, socketAddressP1);
-        clientHelperP12.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP12.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP12.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP12.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP12.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP12.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP12.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps2.Add(clientHelperP12.Install (servers.Get(serverIndex)));
+        clientHelpersP1_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP1));
+        clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelpersP1_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+        clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        // clientHelpersP1_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+        clientHelpersP1_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        sourceApps_vector[j].Add(clientHelpersP1_vector[j].Install (servers.Get(serverIndex)));
       }
-      else 
-      {
-          std::cerr << "unknown app type: " << applicationType << std::endl;
-          exit(1);
-      }
+    }
+    else 
+    {
+        std::cerr << "unknown app type: " << applicationType << std::endl;
+        exit(1);
+    }
       
-      // setup sinks
-      Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
-      Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
-      PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
+    // setup sinks
+    Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
   }
 
   double_t trafficGenDuration = 2; // for a single OnOff segment
-  double_t silenceDuration = 3; // time between OnOff segments
+  double_t silenceDuration = 4; // time between OnOff segments
 
-  sourceApps0.Start (Seconds (1.0));
-  sourceApps0.Stop (Seconds(1.0 + trafficGenDuration));
-  sourceApps1.Start (Seconds (1.0 + trafficGenDuration + silenceDuration));
-  sourceApps1.Stop (Seconds(1.0 + 2*trafficGenDuration + silenceDuration));
-  sourceApps2.Start (Seconds (1.0 + 2*(trafficGenDuration + silenceDuration)));
-  sourceApps2.Stop (Seconds(1.0 + 3*trafficGenDuration + 2*silenceDuration));
+  for (size_t i = 0; i < N; i++) // iterate over all D values to synchronize Start/Stop for all OnOffApps
+  {
+    sourceApps_vector[i].Start (Seconds (1.0 + i * (trafficGenDuration + silenceDuration)));
+    sourceApps_vector[i].Stop (Seconds (1.0 + (i + 1) * trafficGenDuration + i * silenceDuration));
+  }
+  
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -2111,9 +2065,8 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   NS_LOG_INFO ("Stop simulation");
 }
 
-
 void
-viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, double_t miceElephantProb, bool accumulateStats)
+viaMQueues5ToS (std::string traffic_control_type, double_t miceElephantProb, double_t alpha_high, double_t alpha_low, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -2141,7 +2094,7 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   }
   else
   {
-    queue_capacity = ToString(BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -2193,12 +2146,12 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY / SERVER_COUNT;
+  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / RECIEVER_COUNT;
+  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -2409,9 +2362,15 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
       // std::string elephantOnTime = "0.5"; // [sec]
       // std::string offTime = "0.1"; // [sec]
 
-      std::string miceOffTime = DoubleToString((1 - miceElephantProb) * miceOffTimeConst); // [sec]
-      std::string elephantOffTime = DoubleToString(miceElephantProb * 4 * elephantOffTimeConst); // [sec]
-      
+      // std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * (1/4) * miceOffTimeConst); // [sec]
+      // std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+      std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
+      std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * 4 * elephantOffTimeConst); // [sec]
+      // for debug:
+      std::cout << "miceOffTime: " << miceOffTime << "[sec]" << std::endl;
+      std::cout << "elephantOffTime: " << elephantOffTime << "[sec]" << std::endl;
+
+
       // create and install Client apps:    
       if (applicationType.compare("standardClient") == 0) 
       {
@@ -2757,8 +2716,9 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
 }
 
 
+template <size_t N>
 void
-viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, double_t alpha_low, std::array<double_t, 3> miceElephantProb_array, bool adjustableAlphas, bool accumulateStats)
+viaMQueues5ToSVaryingD (std::string traffic_control_type, const std::double_t(&miceElephantProb_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulateStats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -2786,7 +2746,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   }
   else
   {
-    queue_capacity = ToString(BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -2838,12 +2798,12 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY / SERVER_COUNT;
+  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / RECIEVER_COUNT;
+  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -2910,7 +2870,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
 
   
 
-///////// set the Traffic Controll layer to be a shared buffer////////////////////////
+  ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
   Ptr<TrafficControlLayer> tc;
   tc = router.Get(0)->GetObject<TrafficControlLayer>();
@@ -2931,20 +2891,20 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   tc->TraceConnectWithoutContext("EnqueueingThreshold_High_1", MakeBoundCallback (&TrafficControlThresholdHighTrace, 1));
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_1", MakeBoundCallback (&TrafficControlThresholdLowTrace, 1));
 
-/////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-//////////////Monitor data from q-disc//////////////////////////////////////////
+  //////////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
   {
-      for (size_t j = 0; j < qdiscs.Get (i)->GetNQueueDiscClasses(); j++)  // over all the queues per port
-      {
-        Ptr<QueueDisc> queue = qdiscs.Get (i)->GetQueueDiscClass(j)->GetQueueDisc();
-        queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&MultiQueueDiscPacketsInQueueTrace, i, j));
-        // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
-        // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
-      }
+    for (size_t j = 0; j < qdiscs.Get (i)->GetNQueueDiscClasses(); j++)  // over all the queues per port
+    {
+      Ptr<QueueDisc> queue = qdiscs.Get (i)->GetQueueDiscClass(j)->GetQueueDisc();
+      queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&MultiQueueDiscPacketsInQueueTrace, i, j));
+      // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+      // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+    }
   }
-////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////
 
   NS_LOG_INFO ("Setup IPv4 Addresses");
 
@@ -3003,289 +2963,175 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type, double_t alpha_high, d
   uint32_t ipTos_LP4 = 0x06; //(Low) priority 0: Best Effort
   
   
-  ApplicationContainer sinkApps, sourceApps0, sourceApps1, sourceApps2;
-  
-  for (size_t i = 0; i < 2; i++)
+  ApplicationContainer sinkApps;
+  std::vector<ApplicationContainer> sourceApps_vector;
+  // create and install Client apps:  
+  for (size_t i = 0; i < N; i++) // iterate over all D values to create SourceAppContainers Array
   {
-      int serverIndex = i;
-      int recieverIndex = i;
-      // create sockets
-      ns3::Ptr<ns3::Socket> sockptr;
+    ApplicationContainer sourceApps;
+    sourceApps_vector.push_back(sourceApps);
+  }
+  
+  for (size_t i = 0; i < 2; i++) // iterate over switch ports
+  {
+    int serverIndex = i;
+    int recieverIndex = i;
+    // create sockets
+    ns3::Ptr<ns3::Socket> sockptr;
 
-      if (transportProt.compare("TCP") == 0) 
+    if (transportProt.compare("TCP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::TcpSocketFactory::GetTypeId());
+    ns3::Ptr<ns3::TcpSocket> tcpsockptr =
+        ns3::DynamicCast<ns3::TcpSocket> (sockptr);
+    } 
+    else if (transportProt.compare("UDP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::UdpSocketFactory::GetTypeId());
+        ////////Added by me///////////////        
+        ns3::Ptr<ns3::UdpSocket> udpsockptr =
+            ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+        //////////////////////////////////
+    } 
+    else 
+    {
+    std::cerr << "unknown transport type: " <<
+        transportProt << std::endl;
+    exit(1);
+    }
+    
+    InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
+    InetSocketAddress socketAddressP2 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P2);
+    socketAddressP2.SetTos(ipTos_LP2);  // ToS 0x02 -> Low priority
+    InetSocketAddress socketAddressP3 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P3);
+    socketAddressP3.SetTos(ipTos_LP3);  // ToS 0x04 -> Low priority
+    InetSocketAddress socketAddressP4 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P4);
+    socketAddressP4.SetTos(ipTos_LP4);  // ToS 0x06 -> Low priority
+    
+    // create and install Client apps:    
+    if (applicationType.compare("prioOnOff") == 0) 
+    {
+      // Create the OnOff applications to send TCP/UDP to the server
+      std::vector<PrioOnOffHelper> clientHelpersP0_vector;
+      std::vector<PrioOnOffHelper> clientHelpersP1_vector;
+      std::vector<PrioOnOffHelper> clientHelpersP2_vector;
+      std::vector<PrioOnOffHelper> clientHelpersP3_vector;
+      std::vector<PrioOnOffHelper> clientHelpersP4_vector; 
+      for (size_t j = 0; j < N; j++) // iterate over all D values to create SourceApps Array for each port
       {
-      // setup source socket
-      sockptr =
-          ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                  ns3::TcpSocketFactory::GetTypeId());
-      ns3::Ptr<ns3::TcpSocket> tcpsockptr =
-          ns3::DynamicCast<ns3::TcpSocket> (sockptr);
-      } 
-      else if (transportProt.compare("UDP") == 0) 
-      {
-      // setup source socket
-      sockptr =
-          ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                  ns3::UdpSocketFactory::GetTypeId());
-          ////////Added by me///////////////        
-          ns3::Ptr<ns3::UdpSocket> udpsockptr =
-              ns3::DynamicCast<ns3::UdpSocket> (sockptr);
-          //////////////////////////////////
-      } 
-      else 
-      {
-      std::cerr << "unknown transport type: " <<
-          transportProt << std::endl;
-      exit(1);
+        PrioOnOffHelper clientHelperP0(socketType, socketAddressP0);
+        PrioOnOffHelper clientHelperP1(socketType, socketAddressP1);
+        PrioOnOffHelper clientHelperP2(socketType, socketAddressP2);
+        PrioOnOffHelper clientHelperP3(socketType, socketAddressP3);
+        PrioOnOffHelper clientHelperP4(socketType, socketAddressP4);
+
+        clientHelpersP0_vector.push_back(clientHelperP0);
+        clientHelpersP1_vector.push_back(clientHelperP1);
+        clientHelpersP2_vector.push_back(clientHelperP2);
+        clientHelpersP3_vector.push_back(clientHelperP3);
+        clientHelpersP4_vector.push_back(clientHelperP4);
       }
       
-      InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
-      socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
-      InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
-      socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
-      InetSocketAddress socketAddressP2 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P2);
-      socketAddressP2.SetTos(ipTos_LP2);  // ToS 0x02 -> Low priority
-      InetSocketAddress socketAddressP3 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P3);
-      socketAddressP3.SetTos(ipTos_LP3);  // ToS 0x04 -> Low priority
-      InetSocketAddress socketAddressP4 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P4);
-      socketAddressP4.SetTos(ipTos_LP4);  // ToS 0x06 -> Low priority
-
-      // // time interval values for OnOff Aplications
-      // // std::string miceOnTime = "0.05"; // [sec]
-      // std::string miceOnTime = "0.5"; // [sec]
-      // std::string elephantOnTime = "0.5"; // [sec]
-      // std::string offTime = "0.1"; // [sec]
-      
-      // create and install Client apps:    
-      if (applicationType.compare("prioOnOff") == 0) 
+      for (size_t j = 0; j < N; j++) // iterate over all D values to configure and install OnOff Application for each Client
       {
-        if (miceElephantProb_array.size() != 3)
-        {
-          // if miceElephantProb_array.size() is != 3 throw exception!
-          std::cerr << "miceElephantProb_array must contain 3 values" << std::endl;
-          exit(1);
-        }
-        
-        // Create the OnOff applications to send TCP/UDP to the server
-
-        // for 1st D value:
-        double_t miceElephantProb = miceElephantProb_array[0]; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
+        double_t miceElephantProb = miceElephantProb_array[j];
         // in this simulation it effects silence time ratio for the onoff application
-        std::string miceOffTime = DoubleToString((1 - miceElephantProb) * miceOffTimeConst); // [sec]
-        std::string elephantOffTime = DoubleToString(miceElephantProb * 4 * elephantOffTimeConst); // [sec]
+        // std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * (1/4) * miceOffTimeConst); // [sec]
+        // std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+        std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
+        std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * 4 * elephantOffTimeConst); // [sec]
 
-        PrioOnOffHelper clientHelperP00 (socketType, socketAddressP0);
-        clientHelperP00.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        clientHelperP00.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP00.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        clientHelperP00.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP00.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP00.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP00.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps0.Add(clientHelperP00.Install (servers.Get(serverIndex)));
+        clientHelpersP0_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP0));
+        clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
+        clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+        clientHelpersP0_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+        clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        // clientHelpersP0_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+        clientHelpersP0_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        sourceApps_vector[j].Add(clientHelpersP0_vector[j].Install (servers.Get(serverIndex)));
 
-        PrioOnOffHelper clientHelperP10 (socketType, socketAddressP1);
-        clientHelperP10.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP10.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP10.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP10.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP10.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP10.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP10.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps0.Add(clientHelperP10.Install (servers.Get(serverIndex)));
+        clientHelpersP1_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP1));
+        clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelpersP1_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+        clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        // clientHelpersP1_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+        clientHelpersP1_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        sourceApps_vector[j].Add(clientHelpersP1_vector[j].Install (servers.Get(serverIndex)));
 
-        PrioOnOffHelper clientHelperP20 (socketType, socketAddressP2);
-        clientHelperP20.SetAttribute ("Remote", AddressValue (socketAddressP2));
-        clientHelperP20.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP20.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP20.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP20.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP2.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP20.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP20.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps0.Add(clientHelperP20.Install (servers.Get(serverIndex)));
+        clientHelpersP2_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP2));
+        clientHelpersP2_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelpersP2_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelpersP2_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+        clientHelpersP2_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        // clientHelpersP2_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+        clientHelpersP2_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelpersP2_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        sourceApps_vector[j].Add(clientHelpersP2_vector[j].Install (servers.Get(serverIndex)));
 
-        PrioOnOffHelper clientHelperP30 (socketType, socketAddressP3);
-        clientHelperP30.SetAttribute ("Remote", AddressValue (socketAddressP3));
-        clientHelperP30.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP30.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP30.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP30.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP3.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP30.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP30.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps0.Add(clientHelperP30.Install (servers.Get(serverIndex)));
+        clientHelpersP3_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP3));
+        clientHelpersP3_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelpersP3_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelpersP3_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+        clientHelpersP3_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        // clientHelpersP3_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+        clientHelpersP3_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelpersP3_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        sourceApps_vector[j].Add(clientHelpersP3_vector[j].Install (servers.Get(serverIndex)));
 
-        PrioOnOffHelper clientHelperP40 (socketType, socketAddressP4);
-        clientHelperP40.SetAttribute ("Remote", AddressValue (socketAddressP4));
-        clientHelperP40.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP40.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP40.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP40.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP4.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP40.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP40.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps0.Add(clientHelperP40.Install (servers.Get(serverIndex)));
-
-        // for 2nd D value:
-        miceElephantProb = miceElephantProb_array[1]; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
-        // in this simulation it effects silence time ratio for the onoff application
-        miceOffTime = DoubleToString((1 - miceElephantProb) * miceOffTimeConst); // [sec]
-        elephantOffTime = DoubleToString(miceElephantProb * 4 * elephantOffTimeConst); // [sec]
-
-        PrioOnOffHelper clientHelperP01 (socketType, socketAddressP0);
-        clientHelperP01.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        clientHelperP01.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP01.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        clientHelperP01.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP01.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP01.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP01.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps1.Add(clientHelperP01.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP11 (socketType, socketAddressP1);
-        clientHelperP11.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP11.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP11.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP11.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP11.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP11.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP11.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps1.Add(clientHelperP11.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP21 (socketType, socketAddressP2);
-        clientHelperP21.SetAttribute ("Remote", AddressValue (socketAddressP2));
-        clientHelperP21.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP21.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP21.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP21.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP2.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP21.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP21.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps1.Add(clientHelperP21.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP31 (socketType, socketAddressP3);
-        clientHelperP31.SetAttribute ("Remote", AddressValue (socketAddressP3));
-        clientHelperP31.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP31.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP31.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP31.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP3.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP31.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP31.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps1.Add(clientHelperP31.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP41 (socketType, socketAddressP4);
-        clientHelperP41.SetAttribute ("Remote", AddressValue (socketAddressP4));
-        clientHelperP41.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP41.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP41.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP41.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP4.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP41.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP41.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps1.Add(clientHelperP41.Install (servers.Get(serverIndex)));
-
-        // for 3rd D value:
-        miceElephantProb = miceElephantProb_array[2]; // [0.1, 0.9] the probability to generate mice compared to elephant packets. 
-        // in this simulation it effects silence time ratio for the onoff application
-        miceOffTime = DoubleToString((1 - miceElephantProb) * miceOffTimeConst); // [sec]
-        elephantOffTime = DoubleToString(miceElephantProb * 4 * elephantOffTimeConst); // [sec]
-
-        PrioOnOffHelper clientHelperP02 (socketType, socketAddressP0);
-        clientHelperP02.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        clientHelperP02.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP02.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        clientHelperP02.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP02.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP02.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP02.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps2.Add(clientHelperP02.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP12 (socketType, socketAddressP1);
-        clientHelperP12.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP12.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP12.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP12.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP12.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP12.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelperP12.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        sourceApps2.Add(clientHelperP12.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP22 (socketType, socketAddressP2);
-        clientHelperP22.SetAttribute ("Remote", AddressValue (socketAddressP2));
-        clientHelperP22.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP22.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP22.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP22.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP2.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP22.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP22.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps2.Add(clientHelperP22.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP32 (socketType, socketAddressP3);
-        clientHelperP32.SetAttribute ("Remote", AddressValue (socketAddressP3));
-        clientHelperP32.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP32.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP32.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP32.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP3.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP32.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP32.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps2.Add(clientHelperP32.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP42 (socketType, socketAddressP4);
-        clientHelperP42.SetAttribute ("Remote", AddressValue (socketAddressP4));
-        clientHelperP42.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP42.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        clientHelperP42.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP42.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP4.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP42.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelperP42.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps2.Add(clientHelperP42.Install (servers.Get(serverIndex)));
+        clientHelpersP4_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP4));
+        clientHelpersP4_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelpersP4_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelpersP4_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+        clientHelpersP4_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        // clientHelpersP4_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+        clientHelpersP4_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+        clientHelpersP4_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        sourceApps_vector[j].Add(clientHelpersP4_vector[j].Install (servers.Get(serverIndex)));
       }
-      else 
-      {
-          std::cerr << "unknown app type: " << applicationType << std::endl;
-          exit(1);
-      }
-      // setup sinks
-      Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
-      Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
-      Address sinkLocalAddressP2 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P2));
-      Address sinkLocalAddressP3 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P3));
-      Address sinkLocalAddressP4 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P4));
-      PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP2 (socketType, sinkLocalAddressP2); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP3 (socketType, sinkLocalAddressP3); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP4 (socketType, sinkLocalAddressP4); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex))); 
-      sinkApps.Add(sinkP2.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP3.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
+    }
+    else 
+    {
+        std::cerr << "unknown app type: " << applicationType << std::endl;
+        exit(1);
+    }
+    // setup sinks
+    Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    Address sinkLocalAddressP2 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P2));
+    Address sinkLocalAddressP3 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P3));
+    Address sinkLocalAddressP4 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P4));
+    PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP2 (socketType, sinkLocalAddressP2); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP3 (socketType, sinkLocalAddressP3); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP4 (socketType, sinkLocalAddressP4); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex))); 
+    sinkApps.Add(sinkP2.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP3.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
   }
 
   double_t trafficGenDuration = 2; // for a single OnOff segment
-  double_t silenceDuration = 2; // time between OnOff segments
-  sourceApps0.Start (Seconds (1.0));
-  sourceApps0.Stop (Seconds(1.0 + trafficGenDuration));
-  sourceApps1.Start (Seconds (1.0 + trafficGenDuration + silenceDuration));
-  sourceApps1.Stop (Seconds(1.0 + 2*trafficGenDuration + silenceDuration));
-  sourceApps2.Start (Seconds (1.0 + 2*(trafficGenDuration + silenceDuration)));
-  sourceApps2.Stop (Seconds(1.0 + 3*trafficGenDuration + 2*silenceDuration));
+  double_t silenceDuration = 4; // time between OnOff segments
 
+  for (size_t i = 0; i < N; i++) // iterate over all D values to synchronize Start/Stop for all OnOffApps
+  {
+    sourceApps_vector[i].Start (Seconds (1.0 + i * (trafficGenDuration + silenceDuration)));
+    sourceApps_vector[i].Stop (Seconds (1.0 + (i + 1) * trafficGenDuration + i * silenceDuration));
+  }
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));

@@ -36,9 +36,9 @@ using namespace ns3;
 
 
 void
-CreateSingle2DPlotFile(std::string someUsedAlgorythm, std::string someImplementation)  // for a single plot with N data-sets
+CreateSingle2DPlotFile(std::string someImplementation, std::string onoff_traffic_mode, std::string someUsedAlgorythm)  // for a single plot with N data-sets
 {
-  std::string gnuPlotFileLocation = "./test_alphas_scripts/";
+  std::string gnuPlotFileLocation = "./test_alphas_scripts/GnuPlot_" + onoff_traffic_mode + "/";
 
   // // Set up some default values for the simulation.
   std::string trace_parameter = someUsedAlgorythm + "_TestAccumulativeStatistics";
@@ -52,24 +52,24 @@ CreateSingle2DPlotFile(std::string someUsedAlgorythm, std::string someImplementa
 // Function template to accept a reference to an array of any size
 template <size_t N>
 void
-CreateMultiple2DPlotFiles(const std::string (&someUsedAlgorythmArray)[N], std::string someImplementation)  // for a single plot with N data-sets
+CreateMultiple2DPlotFiles(std::string someImplementation, std::string onoff_traffic_mode, const std::string (&someUsedAlgorythmArray)[N])  // for a single plot with N data-sets
 {
   for (size_t i = 0; i < N; i++)
   {
-    CreateSingle2DPlotFile(someUsedAlgorythmArray[i], someImplementation);
+    CreateSingle2DPlotFile(someImplementation, onoff_traffic_mode, someUsedAlgorythmArray[i]);
   }
 }
 
 int main (int argc, char *argv[])
 { 
-                                        // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.4"/"FB_0.5"/"FB_0.6"/"FB_0.7"/"FB_0.8"/"FB_0.9"/"FB_VaryingDValues"
-  std::string usedAlgorythm = "FB_VaryingDValues";  // "DT"/"FB"/"All"/"FB_All_D"
   std::string implementation = "MQueue_2ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
-  CreateSingle2DPlotFile(usedAlgorythm, implementation);
+  std::string onOffTrafficMode = "Uniform"; // "Constant"/"Uniform"/"Normal"                                      
+  // for a single plot:                                                  
+  std::string usedAlgorythm = "FB_VaryingDValues";  // "DT"/"FB"/"FB_All_D"/"All"
+  // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.4"/"FB_0.5"/"FB_0.6"/"FB_0.7"/"FB_0.8"/"FB_0.9"/"FB_VaryingDValues"
+  // CreateSingle2DPlotFile(implementation, onOffTrafficMode, usedAlgorythm);
   
-  // for multiple different plots
-  // const int arraySize = 9; // insert the number of different elements to plot - not necessary
-  // std::array<std::string, arraySize> usedAlgorythmArray = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9"};  // - not necessary
+  // for multiple different plots:
   std::string usedAlgorythmArray[] = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9","FB_All_D"};
-  // CreateMultiple2DPlotFiles(usedAlgorythmArray, implementation);
+  CreateMultiple2DPlotFiles(implementation, onOffTrafficMode, usedAlgorythmArray);
 }

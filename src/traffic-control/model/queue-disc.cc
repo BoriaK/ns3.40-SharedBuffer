@@ -92,6 +92,10 @@ QueueDisc::Stats::Stats()
       nTotalSentBytes(0),
       nTotalEnqueuedPackets(0),
       nTotalEnqueuedBytes(0),
+      nTotalEnqueuedPackets_h(0),
+      nTotalEnqueuedBytes_h(0),
+      nTotalEnqueuedPackets_l(0),
+      nTotalEnqueuedBytes_l(0),
       nTotalDequeuedPackets(0),
       nTotalDequeuedBytes(0),
       nTotalDroppedPackets(0),
@@ -735,10 +739,14 @@ QueueDisc::PacketEnqueued(Ptr<const QueueDiscItem> item)
         if (flow_priority == 1)
         {
             m_nPackets_h++;
+            m_stats.nTotalEnqueuedPackets_h++;
+            m_stats.nTotalEnqueuedBytes_h += item->GetSize();
         }
         else
         {
             m_nPackets_l++;
+            m_stats.nTotalEnqueuedPackets_l++;
+            m_stats.nTotalEnqueuedBytes_l += item->GetSize();
         }
     }
 }

@@ -403,28 +403,32 @@ class TrafficControlLayer : public Object
     float_t GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uint8_t flow_riority, uint16_t queueIndex);
 
     /**
-     * \brief claculate the nesesarry learning rate as the normalized difference between the incoming traffic
-     *        in time t+Tau and t
-     * \returns mue(t, t+Tau) the learniing rate for the predictive model.
+     * \brief Iterate over all queues and aggrigate the total number of packets enqueued by all of them till this point,
+     * \returns the total number of enqueued packets.
      */
-    float_t GetLearningRate();
+    QueueSize GetNumOfTotalEnqueuedPacketsinQueues();
 
     /**
-     * \brief calculate the number of lost packets of priority P, during the time interval t: t+Tau if
-     *        FB with current alpha High/Low values is being used.
+     * \brief Iterate over all queues and aggrigate the total number of packets of priority P enqueued by all of them till this point,
      * \param queue_priority the priority of the queue that's currently being checked
-     * \returns the number of lost packets of priority P.
+     * \returns the total number of enqueued packets.
      */
-    float_t GetNumOfLostPackets(uint32_t queue_priority);
+    QueueSize GetNumOfTotalEnqueuedPriorityPacketsinQueues(uint32_t queue_priority);
 
     /**
-     * \brief delta Aplha is the optimal difference between alpha high and alpha low based on the predictive model.
-     * \param alpha_h the pre-determined hyperparameter alpha High
-     * \param alpha_l the pre-determined hyperparameter alpha Low
-     * \param queue_priority the priority of the queue that's currently being checked
-     * \returns return the new alpha_high - alpha_low value based on the predictive model.
+     * \brief calculate the total number of packets arriving to Shared Buffer,
+     * during the time interval t: t+Tau.
+     * \returns the total number of arriving packets.
      */
-    double_t GetNewDeltaAlpha(double_t alpha_h, double_t alpha_l, uint32_t queue_priority);
+    uint32_t GetNumOfArrivingPackets();
+
+    /**
+     * \brief calculate the number of packets of priority P, arriving to Shared Buffer
+     * during the time interval t: t+Tau.
+     * \param queue_priority the priority of the queue that's currently being checked
+     * \returns the total number of arriving packets.
+     */
+    uint32_t GetNumOfArrivingPriorityPackets(uint32_t queue_priority);
 
         /**
      * \brief returns the optimal Alpha High and Low values based on the D of the traffic.
@@ -464,6 +468,9 @@ class TrafficControlLayer : public Object
     uint32_t m_nBytes_Low_InSharedQueue; //!< Number of Low Priority packets in the queue ######## Added by me!######  
     TracedValue<uint32_t> m_nPackets_trace_High_InSharedQueue;
     TracedValue<uint32_t> m_nPackets_trace_Low_InSharedQueue;
+    // for predictive model:
+    uint32_t totalEnqueuedPacketsInQueueCounter = 0;
+    uint32_t totalEnqueuedBytesInQueueCounter = 0;
     // general parameters:
     TcPriomap m_tosPrioMap; // the priority map used by the Round Robin Prio-QueueDisc
     std::string m_usedAlgorythm; // the Traffic Controll algorythm to be used to manage traffic in shared buffer
@@ -485,16 +492,17 @@ class TrafficControlLayer : public Object
     float_t m_gamma;  //!< Normalized de-queue rate per port/queue in a single FIFO per port scenario.
     uint8_t m_nonEmpty; //!< number of non empty queues on each port.
     // Predictive queue disc parameters:
-    float_t m_mue;  //!< Normalized learning rate of the predictive queue managment algorythm.
-    float_t m_lostPackets;  //!< the number lost packets in SharedBuffer of priority P in the time inerval t:t+Tau.
+    double_t m_predictedArrivingTraffic; //!< the total predicted number of packets arriving to shared buffer in time interval t: t+Tau
+    double_t m_predictedArrivingHighPriorityTraffic; //!< the predicted number of High Priority packets arriving to shared buffer in time interval t: t+Tau
+    double_t m_predictedArrivingLowPriorityTraffic; //!< the predicted number of Low Priority packets arriving to shared buffer in time interval t: t+Tau
+    double_t m_predictedArrivingPriorityTraffic; //!< the predicted number of user defined Priority packets arriving to shared buffer in time interval t: t+Tau
+    double_t m_nTotalEnqueuedPacketsInSharedBuffer; //!< the total number of packets enqueued on shared buffer from the beginning of the simulation
     double_t predictedPacketsInSharedBuffer; //!< the predicted number of packets in shared buffer in time t+Tau
     double_t predictedHighPriorityPacketsInSharedBuffer; //!< the predicted number of High Priority packets in shared buffer in time t+Tau
     double_t predictedLowPriorityPacketsInSharedBuffer; //!< the predicted number of Low Priority packets in shared buffer in time t+Tau
-    double_t predictedPacketsLostInSharedBuffer; //!< the predicted number of packets Lost in shared buffer in time t+Tau
-    double_t predictedHighPriorityPacketsLostInSharedBuffer; //!< the predicted number of High Priority packets Lost in shared buffer in time t+Tau
-    double_t predictedLowPriorityPacketsLostInSharedBuffer; //!< the predicted number of Low Priority packets Lost in shared buffer in time t+Tau
-    double_t m_deltaAlpha; //!< the delta between the alpha parameters
-    double_t m_deltaAlphaUpdate; //!< the updated delta between the alpha parameters
+    double_t predictedPacketsDroppedBySharedBuffer; //!< the predicted number of packets Lost in shared buffer in time t+Tau
+    double_t predictedHighPriorityPacketsDroppedBySharedBuffer; //!< the predicted number of High Priority packets Lost in shared buffer in time t+Tau
+    double_t predictedLowPriorityPacketsDroppedBySharedBuffer; //!< the predicted number of Low Priority packets Lost in shared buffer in time t+Tau
     // uint8_t queue_priority;   //< the priority of the queue that's currently being checked
     uint32_t m_nConjestedQueues;   //!< number of queues that are conjested at current time instance
     uint32_t m_nConjestedQueues_p;   //!< number of queues of priority p that are conjested at current time instance

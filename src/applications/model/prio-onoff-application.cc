@@ -373,7 +373,7 @@ PrioOnOffApplication::ScheduleStartEvent()
     NS_LOG_FUNCTION(this);
 
     Time offInterval = Seconds(m_offTime->GetValue());
-    std::cout << "off time = " << offInterval << "[sec]" << std::endl;
+    // std::cout << "off time = " << offInterval << "[sec]" << std::endl;
     NS_LOG_LOGIC("start at " << offInterval.As(Time::S));
     m_startStopEvent = Simulator::Schedule(offInterval, &PrioOnOffApplication::StartSending, this);
 }
@@ -384,7 +384,7 @@ PrioOnOffApplication::ScheduleStopEvent()
     NS_LOG_FUNCTION(this);
 
     Time onInterval = Seconds(m_onTime->GetValue());
-    std::cout << "on time = " << onInterval << "[sec]" << std::endl;
+    // std::cout << "on time = " << onInterval << "[sec]" << std::endl;
     NS_LOG_LOGIC("stop at " << onInterval.As(Time::S));
     m_startStopEvent = Simulator::Schedule(onInterval, &PrioOnOffApplication::StopSending, this);
     // std::cout << "flow length: " << m_packetSeqCount << std::endl;

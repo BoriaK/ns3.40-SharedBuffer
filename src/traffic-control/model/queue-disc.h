@@ -200,6 +200,18 @@ class QueueDisc : public Object
         uint32_t nTotalEnqueuedPackets;
         /// Total enqueued bytes
         uint64_t nTotalEnqueuedBytes;
+        
+        ///////Added by me/////////////////////////
+        /// Number of the total enqueued High Priority packets (from the beginning of the simulation)
+        uint32_t nTotalEnqueuedPackets_h;
+        /// Number of the total enqueued Low Priority packets (from the beginning of the simulation)
+        uint32_t nTotalEnqueuedPackets_l;
+        /// Number of the total enqueued High Priority bytes (from the beginning of the simulation)
+        uint32_t nTotalEnqueuedBytes_h;  
+        /// Number of the total enqueued Low Priority packets (from the beginning of the simulation)
+        uint32_t nTotalEnqueuedBytes_l;  
+        ////////////////////////////////////////////
+        
         /// Total dequeued packets
         uint32_t nTotalDequeuedPackets;
         /// Total dequeued bytes
@@ -713,14 +725,16 @@ class QueueDisc : public Object
     std::vector<Ptr<PacketFilter>> m_filters;   //!< Packet filters
     std::vector<Ptr<QueueDiscClass>> m_classes; //!< Classes
 
-    TracedValue<uint32_t> m_nPackets;   //!< Number of packets in the queue
-    TracedValue<uint32_t> m_nBytes;     //!< Number of bytes in the queue
-    TracedValue<uint32_t> m_nPackets_h; //!< Number of High Priority packets in the queue ######## Added by me!######
-    TracedValue<uint32_t> m_nPackets_l; //!< Number of Low Priority packets in the queue ######## Added by me!######
-    TracedValue<uint32_t> m_nBytes_h;   //!< Number of High Priority packets in the queue ######## Added by me!######
-    TracedValue<uint32_t> m_nBytes_l;   //!< Number of Low Priority packets in the queue ######## Added by me!###### 
-    TracedCallback<Time> m_sojourn;     //!< Sojourn time of the latest dequeued packet
-    QueueSize m_maxSize;                //!< max queue size
+    TracedValue<uint32_t> m_nPackets;           //!< Number of packets in the queue
+    TracedValue<uint32_t> m_nBytes;             //!< Number of bytes in the queue
+    ///////////////////Added by me /////////////////////////////////////////////////////////
+    TracedValue<uint32_t> m_nPackets_h;         //!< Number of High Priority packets in the queue
+    TracedValue<uint32_t> m_nPackets_l;         //!< Number of Low Priority packets in the queue
+    TracedValue<uint32_t> m_nBytes_h;           //!< Number of High Priority packets in the queue
+    TracedValue<uint32_t> m_nBytes_l;           //!< Number of Low Priority packets in the queue
+    /////////////////////////////////////////////////////////////////////////////////////////
+    TracedCallback<Time> m_sojourn;             //!< Sojourn time of the latest dequeued packet
+    QueueSize m_maxSize;                        //!< max queue size
 
     Stats m_stats;                                //!< The collected statistics
     uint32_t m_quota;                             //!< Maximum number of packets dequeued in a qdisc run

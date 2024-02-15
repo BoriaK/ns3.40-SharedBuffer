@@ -177,14 +177,6 @@ TrafficControlLayer::DoDispose()
     m_node = nullptr;
     m_handlers.clear();
     m_netDevices.clear();
-    // added by me in attempt to fix the loop issue:
-    // m_stats.nTotalDroppedBytes = 0;
-    // m_stats.nTotalDroppedBytesHighPriority = 0;
-    // m_stats.nTotalDroppedBytesLowPriority = 0;
-    // m_stats.nTotalDroppedPackets = 0;
-    // m_stats.nTotalDroppedPacketsHighPriority = 0;
-    // m_stats.nTotalDroppedPacketsLowPriority = 0;
-    // /////////////////////////////////////////////
     Object::DoDispose();
 }
 
@@ -1065,79 +1057,201 @@ TrafficControlLayer::GetQueueThreshold_Predictive_FB_v1(
     }
 }
 
-float_t
-TrafficControlLayer::GetLearningRate()
+QueueSize
+TrafficControlLayer::GetNumOfTotalEnqueuedPriorityPacketsinQueues(uint32_t queue_priority)
 {
-    // retrieve the number of packets in shared buffer in time t+Tau from a saved file:
-    std::ifstream inputFile("Predictive_Packets_In_SharedBuffer.dat");
-    // double packetsInSharedBuffer, highPriorityPacketsInSharedBuffer,
-    // lowPriorityPacketsInSharedBuffer;
-    inputFile >> predictedPacketsInSharedBuffer >> predictedHighPriorityPacketsInSharedBuffer >>
-        predictedLowPriorityPacketsInSharedBuffer; // Read the values sequentially from the file
-    inputFile.close();
-    // std::cout << "Current Predictive Shared Buffer size is " << packetsInSharedBuffer <<
-    //         " out of: " << GetMaxSharedBufferSize().GetValue() << std::endl;
-    m_mue = 0;
-    if (GetCurrentSharedBufferSize().GetValue() > 0) // to prevent devide by 0
+    NS_LOG_FUNCTION(this);
+
+    /// Create a vector to hold pointers to all the NetDevices aggrigated to the Node
+    std::vector<Ptr<NetDevice>>
+        m_netDevicesList; // a List containing all the net devices on a speciffic Node
+    for (const auto& element : m_netDevices)
     {
-        m_mue = (predictedPacketsInSharedBuffer - GetCurrentSharedBufferSize().GetValue()) /
-                GetMaxSharedBufferSize().GetValue();
+        m_netDevicesList.push_back(element.first);
     }
 
-    return m_mue;
+    // calculate the total number of enqueued packets in the Shared Buffer (from the beginning of the simulation) as the sum of all packets ever enqueued in all the 
+    // sub queues
+
+    m_nTotalEnqueuedPacketsInSharedBuffer = 0;
+
+    /// calculate the number of the packets/bytes in the Shared Buffe
+    for (size_t i = 0; i < m_netDevicesList.size(); i++)
+    {
+        Ptr<NetDevice> ndev = m_netDevicesList[i];
+        std::string netDeviceName = Names::FindName(ndev); // Get the name of the net-device
+        if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
+        {
+            std::map<Ptr<NetDevice>, NetDeviceInfo>::iterator ndi = m_netDevices.find(ndev);
+            if (ndi == m_netDevices.end() || !ndi->second.m_rootQueueDisc) // if no root-queue-disc is installed on the net-device not relevat at the moment
+            {
+                   break;
+            //     Ptr<PointToPointNetDevice> p2pndev = DynamicCast<PointToPointNetDevice>(ndev);
+            //     Ptr<Queue<Packet>> queue = p2pndev->GetQueue();
+            //     totalEnqueuedPacketsInQueueCounter = queue->Get;
+            }
+            else // if we use a queue-disc on NetDevice as port
+            {
+                if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() > 1) // if we use multiple queues/port
+                {
+                    for (size_t j = 0; j < ndi->second.m_rootQueueDisc->GetNQueueDiscClasses(); j++)
+                    {
+                        Ptr<QueueDisc> qDisc = ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
+                        if (queue_priority == 1) // 1 is high priority
+                        {
+                            totalEnqueuedPacketsInQueueCounter = qDisc->GetStats().nTotalEnqueuedPackets_h;
+                            m_nTotalEnqueuedPacketsInSharedBuffer += totalEnqueuedPacketsInQueueCounter;
+                        }
+                        else if (queue_priority == 2) // 2 is low priority
+                        {
+                            totalEnqueuedPacketsInQueueCounter = qDisc->GetStats().nTotalEnqueuedPackets_l;
+                            m_nTotalEnqueuedPacketsInSharedBuffer += totalEnqueuedPacketsInQueueCounter;
+                        }  
+                    }
+                }
+                else // if we use single queue/port
+                {
+                    Ptr<QueueDisc> qDisc = ndi->second.m_rootQueueDisc;
+                    if (queue_priority == 1) // 1 is high priority
+                    {
+                        totalEnqueuedPacketsInQueueCounter = qDisc->GetStats().nTotalEnqueuedPackets_h;
+                        m_nTotalEnqueuedPacketsInSharedBuffer += totalEnqueuedPacketsInQueueCounter;
+                    }
+                    else if (queue_priority == 2) // 2 is low priority
+                    {
+                        totalEnqueuedPacketsInQueueCounter = qDisc->GetStats().nTotalEnqueuedPackets_l;
+                        m_nTotalEnqueuedPacketsInSharedBuffer += totalEnqueuedPacketsInQueueCounter;
+                    } 
+                }
+            }
+        }
+    }
+    if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::PACKETS)
+    {
+        return QueueSize(QueueSizeUnit::PACKETS, m_nTotalEnqueuedPacketsInSharedBuffer);
+    }
+    NS_ABORT_MSG("Unknown queue size unit");
 }
 
-float_t
-TrafficControlLayer::GetNumOfLostPackets(uint32_t queue_priority)
+QueueSize
+TrafficControlLayer::GetNumOfTotalEnqueuedPacketsinQueues()
 {
-    // the total number of lost packets of priority P by the time t+Tau:
+    NS_LOG_FUNCTION(this);
+
+    /// Create a vector to hold pointers to all the NetDevices aggrigated to the Node
+    std::vector<Ptr<NetDevice>>
+        m_netDevicesList; // a List containing all the net devices on a speciffic Node
+    for (const auto& element : m_netDevices)
+    {
+        m_netDevicesList.push_back(element.first);
+    }
+
+    // calculate the total number of enqueued packets in the Shared Buffer (from the beginning of the simulation) as the sum of all packets ever enqueued in all the 
+    // sub queues
+
+    m_nTotalEnqueuedPacketsInSharedBuffer = 0;
+
+    /// calculate the number of the packets/bytes in the Shared Buffe
+    for (size_t i = 0; i < m_netDevicesList.size(); i++)
+    {
+        Ptr<NetDevice> ndev = m_netDevicesList[i];
+        std::string netDeviceName = Names::FindName(ndev); // Get the name of the net-device
+        if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
+        {
+            std::map<Ptr<NetDevice>, NetDeviceInfo>::iterator ndi = m_netDevices.find(ndev);
+            if (ndi == m_netDevices.end() || !ndi->second.m_rootQueueDisc) // if no root-queue-disc is installed on the net-device not relevat at the moment
+            {
+                   break;
+            //     Ptr<PointToPointNetDevice> p2pndev = DynamicCast<PointToPointNetDevice>(ndev);
+            //     Ptr<Queue<Packet>> queue = p2pndev->GetQueue();
+            //     totalEnqueuedPacketsInQueueCounter = queue->Get;
+            }
+            else // if we use a queue-disc on NetDevice as port
+            {
+                if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() > 1) // if we use multiple queues/port
+                {
+                    for (size_t j = 0; j < ndi->second.m_rootQueueDisc->GetNQueueDiscClasses(); j++)
+                    {
+                        Ptr<QueueDisc> qDisc = ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
+                        totalEnqueuedPacketsInQueueCounter = qDisc->GetStats().nTotalEnqueuedPackets;
+                        m_nTotalEnqueuedPacketsInSharedBuffer += totalEnqueuedPacketsInQueueCounter;
+                    }
+                }
+                else // if we use single queue/port
+                {
+                    Ptr<QueueDisc> qDisc = ndi->second.m_rootQueueDisc;
+                    totalEnqueuedPacketsInQueueCounter = qDisc->GetStats().nTotalEnqueuedPackets;
+                    m_nTotalEnqueuedPacketsInSharedBuffer += totalEnqueuedPacketsInQueueCounter;
+                }
+            }
+        }
+    }
+    if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::PACKETS)
+    {
+        return QueueSize(QueueSizeUnit::PACKETS, m_nTotalEnqueuedPacketsInSharedBuffer);
+    }
+    NS_ABORT_MSG("Unknown queue size unit");
+}
+
+uint32_t
+TrafficControlLayer::GetNumOfArrivingPackets()
+{
+    // the total number of packets arriving to Shared Buffer during the time window t + Tau - t:
+
+    // retrieve the total number of lost packets of priority P in shared buffer by time t+Tau from a
+    // saved file:
+    std::ifstream inputFile("Predictive_Packets_Dropped_by_SharedBuffer.dat");
+    // double packetsLostInSharedBuffer, highPriorityPacketsLostInSharedBuffer,
+    // lowPriorityPacketsLostInSharedBuffer;
+    inputFile >> predictedPacketsDroppedBySharedBuffer >>
+        predictedHighPriorityPacketsDroppedBySharedBuffer >>
+        predictedLowPriorityPacketsDroppedBySharedBuffer; // Read the values sequentially from the file
+    inputFile.close();
+
+    m_predictedArrivingTraffic = 0;
+    
+    m_predictedArrivingTraffic = predictedPacketsDroppedBySharedBuffer - m_stats.nTotalDroppedPackets - GetNumOfTotalEnqueuedPacketsinQueues().GetValue();
+    
+    // for debug:
+    // std::cout << "Predicted packets dropped by shared buffer: " << predictedPacketsDroppedBySharedBuffer << std::endl;
+    // std::cout << "current Total Dropped Packets: " << m_stats.nTotalDroppedPackets << std::endl;
+    // std::cout << "current Total enqueued Packets: " << GetNumOfTotalEnqueuedPacketsinQueues().GetValue() << std::endl;
+    
+    return m_predictedArrivingTraffic;
+}
+
+uint32_t
+TrafficControlLayer::GetNumOfArrivingPriorityPackets(uint32_t queue_priority)
+{
+    // the number of packets of priority P arriving to Shared Buffer during the time window t: t + Tau:
     // m_stats.nTotalDroppedPackets;
     // m_stats.nTotalDroppedPacketsHighPriority;
     // m_stats.nTotalDroppedPacketsLowPriority;
 
     // retrieve the total number of lost packets of priority P in shared buffer by time t+Tau from a
     // saved file:
-    std::ifstream inputFile("Predictive_Packets_Lost_In_SharedBuffer.dat");
+    std::ifstream inputFile("Predictive_Packets_Dropped_by_SharedBuffer.dat");
     // double packetsLostInSharedBuffer, highPriorityPacketsLostInSharedBuffer,
     // lowPriorityPacketsLostInSharedBuffer;
-    inputFile >> predictedPacketsLostInSharedBuffer >>
-        predictedHighPriorityPacketsLostInSharedBuffer >>
-        predictedLowPriorityPacketsLostInSharedBuffer; // Read the values sequentially from the file
+    inputFile >> predictedPacketsDroppedBySharedBuffer >>
+        predictedHighPriorityPacketsDroppedBySharedBuffer >>
+        predictedLowPriorityPacketsDroppedBySharedBuffer; // Read the values sequentially from the file
     inputFile.close();
 
-    m_lostPackets = 0;
-    if (predictedPacketsLostInSharedBuffer > 0) // to prevent devide by 0
+    m_predictedArrivingPriorityTraffic = 0;
+
+    if (queue_priority == 1) // 1 is high priority
     {
-        if (queue_priority == 1) // 1 is high priority
-        {
-            // m_lostPackets = (highPriorityPacketsLostInSharedBuffer -
-            // m_stats.nTotalDroppedPacketsHighPriority) / packetsLostInSharedBuffer;
-            m_lostPackets = (predictedHighPriorityPacketsLostInSharedBuffer -
-                             m_stats.nTotalDroppedPacketsHighPriority) /
-                            (predictedPacketsLostInSharedBuffer - m_stats.nTotalDroppedPackets);
-        }
-        else if (queue_priority == 2) // 2 is low priority
-        {
-            // m_lostPackets = (lowPriorityPacketsLostInSharedBuffer -
-            // m_stats.nTotalDroppedPacketsLowPriority) / packetsLostInSharedBuffer;
-            m_lostPackets = (predictedLowPriorityPacketsLostInSharedBuffer -
-                             m_stats.nTotalDroppedPacketsLowPriority) /
-                            (predictedPacketsLostInSharedBuffer - m_stats.nTotalDroppedPackets);
-        }
+        m_predictedArrivingPriorityTraffic = predictedHighPriorityPacketsDroppedBySharedBuffer -
+        m_stats.nTotalDroppedPacketsHighPriority - GetNumOfTotalEnqueuedPriorityPacketsinQueues(queue_priority).GetValue();
+    }
+    else if (queue_priority == 2) // 2 is low priority
+    {
+        m_predictedArrivingPriorityTraffic = predictedLowPriorityPacketsDroppedBySharedBuffer -
+        m_stats.nTotalDroppedPacketsLowPriority - GetNumOfTotalEnqueuedPriorityPacketsinQueues(queue_priority).GetValue();
     }
 
-    return m_lostPackets;
-}
-
-double_t
-TrafficControlLayer::GetNewDeltaAlpha(double_t alpha_h, double_t alpha_l, uint32_t queue_priority)
-{
-    // initilize Delta Alpha to be Alpha_high - Alpha_low:
-    m_deltaAlpha = alpha_h - alpha_l;
-    // update Delta Alpha according to predictive model:
-    m_deltaAlpha = m_deltaAlpha + (GetLearningRate() * GetNumOfLostPackets(queue_priority));
-
-    return m_deltaAlpha;
+    return m_predictedArrivingPriorityTraffic;
 }
 
 std::pair<double_t, double_t>
@@ -1274,7 +1388,7 @@ TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
     if (nodeName.compare("RouterPredict") == 0)
     {
         // for Predictive model store values in a .dat file:
-        std::ofstream outputFile("Predictive_Packets_Lost_In_SharedBuffer.dat",
+        std::ofstream outputFile("Predictive_Packets_Dropped_by_SharedBuffer.dat",
                                  std::ios::out); // Replace with your desired file path
         outputFile << m_stats.nTotalDroppedPackets << std::endl;
         outputFile << m_stats.nTotalDroppedPacketsHighPriority << std::endl;
@@ -1876,8 +1990,19 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
         {
             std::string nodeName = Names::FindName(m_node); // Get the name of the Node
             std::cout << "Node Name is: " << nodeName << std::endl;
-            // if (nodeName.compare("Router") == 0)
-            if (nodeName.find("Router") == 0)
+            if (nodeName.compare("RouterPredict") == 0)
+            {
+                // for Predictive model store values in a .dat file:
+                std::ofstream outputFile("Predictive_Packets_In_SharedBuffer.dat",
+                                            std::ios::out); // Replace with your desired file path
+                outputFile << m_traceSharedBufferPackets.Get() << std::endl;
+                outputFile << m_nPackets_trace_High_InSharedQueue.Get() << std::endl;
+                outputFile << m_nPackets_trace_Low_InSharedQueue.Get() << std::endl;
+                outputFile.close();
+
+                DropBeforeEnqueue(item);
+            }
+            else if (nodeName.find("Router") == 0)
             {
                 std::cout << "Current Shared Buffer size is "
                           << GetCurrentSharedBufferSize().GetValue()
@@ -1889,17 +2014,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     GetNumOfHighPriorityPacketsInSharedQueue().GetValue();
                 m_nPackets_trace_Low_InSharedQueue =
                     GetNumOfLowPriorityPacketsInSharedQueue().GetValue();
-
-                if (nodeName.compare("RouterPredict") == 0)
-                {
-                    // for Predictive model store values in a .dat file:
-                    std::ofstream outputFile("Predictive_Packets_In_SharedBuffer.dat",
-                                             std::ios::out); // Replace with your desired file path
-                    outputFile << m_traceSharedBufferPackets.Get() << std::endl;
-                    outputFile << m_nPackets_trace_High_InSharedQueue.Get() << std::endl;
-                    outputFile << m_nPackets_trace_Low_InSharedQueue.Get() << std::endl;
-                    outputFile.close();
-                }
 
                 // determine the port index of current net-device:
                 std::string netDeviceName = Names::FindName(device); // Get the name of the net-device
@@ -2036,7 +2150,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                                     gamma_i)
                                 .GetValue())
                         {
-
                             // to trace Threshold per port
                             if (nodeName.compare("Router") == 0)
                             {
@@ -2073,38 +2186,43 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     }
                     else if (m_usedAlgorythm.compare("PredictiveFB") == 0)
                     {
-                        // get the learnig rate mue(t;t+Tau) in real time:
-                        std::cout << "the learning rate for predictive model is: "
-                                  << GetLearningRate() << std::endl;
-                        // get the lost Packets of priority P in the time interval t:t+Tau:
-                        std::cout << "the normalized number of High Priority lost packets during "
-                                     "the time interval t:t+Tau is: "
-                                  << GetNumOfLostPackets(m_flow_priority) << std::endl;
-                        // calculate the desired deltaAlpha for PredictiveFB:
-                        std::cout << "the calculated delta alpha is: "
-                                  << GetNewDeltaAlpha(m_alpha_h, m_alpha_l, m_flow_priority)
-                                  << std::endl;
+                        // // get the learnig rate mue(t;t+Tau) in real time:
+                        // std::cout << "the learning rate for predictive model is: "
+                        //           << GetLearningRate() << std::endl;
+                        // // get the lost Packets of priority P in the time interval t:t+Tau:
+                        // std::cout << "the normalized number of High Priority lost packets during "
+                        //              "the time interval t:t+Tau is: "
+                        //           << GetNumOfLostPackets(m_flow_priority) << std::endl;
+                        // // calculate the desired deltaAlpha for PredictiveFB:
+                        // std::cout << "the calculated delta alpha is: "
+                        //           << GetNewDeltaAlpha(m_alpha_h, m_alpha_l, m_flow_priority)
+                        //           << std::endl;
+
+                        //print the High/Low Priority and the total number of packets that's expected in the time interval t: t+Tau
+                        std::cout << "the number of High Priority packets during the time interval"
+                                     " t:t+Tau is: "
+                                  << GetNumOfArrivingPriorityPackets(1) << std::endl;
+                        std::cout << "the number of Low Priority packets during the time interval"
+                                     " t:t+Tau is: "
+                                  << GetNumOfArrivingPriorityPackets(2) << std::endl;
+                        std::cout << "the total number of packets during the time interval"
+                                     " t:t+Tau is: "
+                                  << GetNumOfArrivingPackets() << std::endl;
 
                         // step 1: calculate the Normalized dequeue BW of the designated queue:
                         float gamma_i = GetNormalizedDequeueBandWidth_v1(device, subQueueIndex);
-                        // for debug:
-                        std::cout << "the normalized dequeue rate on port: " << device
-                                  << " is: " << gamma_i << std::endl;
                         // step 2: get the total number of conjested queues in shared buffer
                         int conjestedQueues = 0; // initilize to 0
                         conjestedQueues =
                             GetNumOfPriorityConjestedQueuesInSharedQueue(m_flow_priority);
-                        // for debug:
-                        std::cout << "Num of congested queues of priority: " << int(m_flow_priority)
-                                  << " is: " << conjestedQueues << std::endl;
                         // step 3: use calculated gamma_i(t) and Np(t) to calculate the
                         // FB_Threshold_c(t)
                         if (internal_qDisc->GetNumOfHighPrioPacketsInQueue().GetValue() <
-                            GetQueueThreshold_Predictive_FB_v1(m_flow_priority,
-                                                               m_alpha_l,
-                                                               m_alpha_h,
-                                                               conjestedQueues,
-                                                               gamma_i)
+                            GetQueueThreshold_FB_v2(m_alpha,
+                                                    m_alpha_l,
+                                                    m_alpha_h,
+                                                    conjestedQueues,
+                                                    gamma_i)
                                 .GetValue())
                         {
                             // to trace Threshold per port
@@ -2264,21 +2382,29 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     }
                     else if (m_usedAlgorythm.compare("PredictiveFB") == 0)
                     {
-                        // get the learnig rate mue(t;t+Tau) in real time:
-                        std::cout << "the learning rate for predictive model is: "
-                                  << GetLearningRate() << std::endl;
-                        // get the lost Packets of priority P in the time interval t:t+Tau:
-                        std::cout << "the  normalized number of Low Priority lost packets during "
-                                     "the time interval t:t+Tau is: "
-                                  << GetNumOfLostPackets(m_flow_priority) << std::endl;
-                        // calculate the desired deltaAlpha for PredictiveFB:
-                        std::cout << "the calculated delta alpha is: "
-                                  << GetNewDeltaAlpha(m_alpha_h, m_alpha_l, m_flow_priority)
-                                  << std::endl;
-                        // calculate new Alphas:
-                        // m_deltaAlphaUpdate = GetNewDeltaAlpha(m_alpha_h, m_alpha_l,
-                        // m_flow_priority) - (m_alpha_h - m_alpha_l); m_alpha_h = m_alpha_h +
-                        // m_deltaAlphaUpdate / 2; m_alpha_l = m_alpha_l - m_deltaAlphaUpdate / 2;
+                        // // get the learnig rate mue(t;t+Tau) in real time:
+                        // std::cout << "the learning rate for predictive model is: "
+                        //           << GetLearningRate() << std::endl;
+                        // // get the lost Packets of priority P in the time interval t:t+Tau:
+                        // std::cout << "the  normalized number of Low Priority lost packets during "
+                        //              "the time interval t:t+Tau is: "
+                        //           << GetNumOfLostPackets(m_flow_priority) << std::endl;
+                        // // calculate the desired deltaAlpha for PredictiveFB:
+                        // std::cout << "the calculated delta alpha is: "
+                        //           << GetNewDeltaAlpha(m_alpha_h, m_alpha_l, m_flow_priority)
+                        //           << std::endl;
+                       
+                        //print the High/Low Priority and the total number of packets that's expected in the time interval t: t+Tau
+                        std::cout << "the number of High Priority packets during the time interval"
+                                     " t:t+Tau is: "
+                                  << GetNumOfArrivingPriorityPackets(1) << std::endl;
+                        std::cout << "the number of Low Priority packets during the time interval"
+                                     " t:t+Tau is: "
+                                  << GetNumOfArrivingPriorityPackets(2) << std::endl;
+                        std::cout << "the total number of packets during the time interval"
+                                     " t:t+Tau is: "
+                                  << GetNumOfArrivingPackets() << std::endl;
+
                         // step 1: calculate the Normalized dequeue BW of the designated queue:
                         float gamma_i = GetNormalizedDequeueBandWidth_v1(device, subQueueIndex);
                         // step 2: get the total number of conjested queues in shared buffer

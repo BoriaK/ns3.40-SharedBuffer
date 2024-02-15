@@ -97,6 +97,14 @@ NDevicePointerToString (Ptr<NetDevice> ndevpointer)
 }
 
 std::string
+IntToString (u_int32_t value)
+{
+  std::stringstream ss;
+  ss << value;
+  return ss.str();
+}
+
+std::string
 ToString (uint32_t value)
 {
   std::stringstream ss;
@@ -408,6 +416,10 @@ int main (int argc, char *argv[])
         NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
     }
 
+    for (size_t i = 0; i < switchDevicesOut.GetN(); i++)
+    {     
+      Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
+    }
 
     // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
     NS_LOG_INFO ("Install Internet stacks");
@@ -458,7 +470,7 @@ int main (int argc, char *argv[])
     Ptr<TrafficControlLayer> tcPredict;
     tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
     tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
-    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
     tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
     tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
     tcPredict->SetAttribute("TrafficControllAlgorythm", StringValue ("FB"));  // use FB for predictive model for now

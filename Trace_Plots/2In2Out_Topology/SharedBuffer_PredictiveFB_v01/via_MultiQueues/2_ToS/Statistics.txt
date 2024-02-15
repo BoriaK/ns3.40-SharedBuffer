@@ -1,0 +1,47 @@
+Topology: 2In2Out
+Queueing Algorithm: SharedBuffer_PredictiveFB_v01
+Implementation Method: via_MultiQueues/2_ToS
+Alpha High = 10 Alpha Low = 2
+Application: prioOnOff
+
+*** Flow monitor statistics ***
+  Tx Packets/Bytes:   1590 / 1672680
+  Rx Packets/Bytes:   874 / 919448
+  Packets/Bytes Dropped by Queue Disc:   362 / 380824
+  Packets/Bytes Dropped by NetDevice:   0 / 0
+  Throughput: 2.03074 Mbps
+
+*** TC Layer statistics ***
+
+Packets/Bytes dropped by Traffic Control Layer: 354 / 372408
+High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 354 / 372408
+
+
+*** QueueDisc Layer statistics ***
+Queue Disceplene 0:
+
+Packets/Bytes received: 618 / 650136
+Packets/Bytes enqueued: 437 / 459724
+Packets/Bytes dequeued: 437 / 459724
+Packets/Bytes requeued: 0 / 0
+Packets/Bytes dropped: 181 / 190412
+Packets/Bytes dropped before enqueue: 181 / 190412
+  (Dropped by child queue disc) Queue disc limit exceeded: 181 / 190412
+Packets/Bytes dropped after dequeue: 0 / 0
+Packets/Bytes sent: 437 / 459724
+Packets/Bytes marked: 0 / 0
+
+Queue Disceplene 1:
+
+Packets/Bytes received: 618 / 650136
+Packets/Bytes enqueued: 437 / 459724
+Packets/Bytes dequeued: 437 / 459724
+Packets/Bytes requeued: 0 / 0
+Packets/Bytes dropped: 181 / 190412
+Packets/Bytes dropped before enqueue: 181 / 190412
+  (Dropped by child queue disc) Queue disc limit exceeded: 181 / 190412
+Packets/Bytes dropped after dequeue: 0 / 0
+Packets/Bytes sent: 437 / 459724
+Packets/Bytes marked: 0 / 0
+

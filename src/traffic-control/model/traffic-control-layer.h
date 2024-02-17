@@ -341,18 +341,18 @@ class TrafficControlLayer : public Object
      * \param gamma_i the normalized dequeue rate on port i
      * \returns the maximum number of packets allowed in the queue.
      */
-    QueueSize GetQueueThreshold_FB_v2 (double_t alpha, double_t alpha_h, double_t alpha_l, int conjestedQueues, float gamma_i);
+    QueueSize GetQueueThreshold_FB (double_t alpha, double_t alpha_h, double_t alpha_l, int conjestedQueues, float gamma_i);
 
-    /**
-     * \brief Get the queueing limit of the current queue for each priority alpha, for FB Algorithm. v2 excepts Np(t) as an external variable
-     * \param queue_priority the priority of the queue that's currently being checked
-     * \param alpha_h the pre-determined hyperparameter alpha High
-     * \param alpha_l the pre-determined hyperparameter alpha Low
-     * \param conjestedQueues
-     * \param gamma_i the normalized dequeue rate on port i
-     * \returns the maximum number of packets allowed in the queue.
-     */
-    QueueSize GetQueueThreshold_Predictive_FB_v1 (uint32_t queue_priority, double_t alpha_h, double_t alpha_l, int conjestedQueues, float gamma_i);
+    // /**
+    //  * \brief Get the queueing limit of the current queue for each priority alpha, for FB Algorithm. v2 excepts Np(t) as an external variable
+    //  * \param queue_priority the priority of the queue that's currently being checked
+    //  * \param alpha_h the pre-determined hyperparameter alpha High
+    //  * \param alpha_l the pre-determined hyperparameter alpha Low
+    //  * \param conjestedQueues
+    //  * \param gamma_i the normalized dequeue rate on port i
+    //  * \returns the maximum number of packets allowed in the queue.
+    //  */
+    // QueueSize GetQueueThreshold_Predictive_FB_v1 (uint32_t queue_priority, double_t alpha_h, double_t alpha_l, int conjestedQueues, float gamma_i);
 
     /**
      * \brief Get the current number of High Priority Packets in the net-device (port) queue that the current packet is sent to, 
@@ -420,7 +420,7 @@ class TrafficControlLayer : public Object
      * during the time interval t: t+Tau.
      * \returns the total number of arriving packets.
      */
-    uint32_t GetNumOfArrivingPackets();
+    double_t GetNumOfArrivingPackets();
 
     /**
      * \brief calculate the number of packets of priority P, arriving to Shared Buffer
@@ -428,16 +428,28 @@ class TrafficControlLayer : public Object
      * \param queue_priority the priority of the queue that's currently being checked
      * \returns the total number of arriving packets.
      */
-    uint32_t GetNumOfArrivingPriorityPackets(uint32_t queue_priority);
+    double_t GetNumOfArrivingPriorityPackets(uint32_t queue_priority);
 
-        /**
+    /**
+     * \brief round some double to one decimal point precission.
+     * \returns the 1 decimal precission value of num.
+     */
+    double_t roundToOneDecimal(double_t num);
+    
+    /**
+     * \brief calculate the new local mouse/elephant probability d from the predicted traffic in the time interval t: t+Tau.
+     * \returns the upcomming d value.
+     */
+    double_t CalculateNewLocalD();
+
+    /**
      * \brief returns the optimal Alpha High and Low values based on the D of the traffic.
-     * \param miceElephantProbVal the mice/elephant probability (D) assigned at the OnOff Application
+     * \param mice_elephant_prob_val the mice/elephant probability (D) assigned at the OnOff Application
      * \param device the NetDevice that's currently being used as Tx Port.
      * \returns return the new alpha_high and alpha_low value based on the optimization done prior.
      */
-    std::pair<double_t, double_t> GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t miceElephantProbVal);
-    // double_t GetNewAlphaHighAndLow(uint32_t miceElephantProbVal, uint32_t queue_priority);
+    std::pair<double_t, double_t> GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_elephant_prob_val);
+    // double_t GetNewAlphaHighAndLow(uint32_t mice_elephant_prob_val, uint32_t queue_priority);
   //////////////////////////////////////////////////////////////////////////////
     /**
      * \brief Perform the actions required when the queue disc is notified of
@@ -468,9 +480,6 @@ class TrafficControlLayer : public Object
     uint32_t m_nBytes_Low_InSharedQueue; //!< Number of Low Priority packets in the queue ######## Added by me!######  
     TracedValue<uint32_t> m_nPackets_trace_High_InSharedQueue;
     TracedValue<uint32_t> m_nPackets_trace_Low_InSharedQueue;
-    // for predictive model:
-    uint32_t totalEnqueuedPacketsInQueueCounter = 0;
-    uint32_t totalEnqueuedBytesInQueueCounter = 0;
     // general parameters:
     TcPriomap m_tosPrioMap; // the priority map used by the Round Robin Prio-QueueDisc
     std::string m_usedAlgorythm; // the Traffic Controll algorythm to be used to manage traffic in shared buffer
@@ -487,19 +496,22 @@ class TrafficControlLayer : public Object
     double_t m_alpha;  //!< The selected alpha parameter for the arriving packet
     double_t m_alpha_h; //!< The pre-determined alpha parameter for high priority packets
     double_t m_alpha_l;  //!< The pre-determined alpha parameter for low priority packets
+    std::pair<double_t, double_t> alphas; //!< a new pair of Alpha High/Low assigned by the algorythm
     bool m_adjustableAlphas; // !< True if apply optimal Alpha High/Low values based on current "D"
     // FB queue disc parameters:
     float_t m_gamma;  //!< Normalized de-queue rate per port/queue in a single FIFO per port scenario.
     uint8_t m_nonEmpty; //!< number of non empty queues on each port.
     // Predictive queue disc parameters:
+    double_t m_predicted_mice_elephant_prob;  //!< the predicted d value of the upcomming traffic returned by the function
+    double_t predictedMiceElephantProbVal;  //!< the predicted d value of the upcomming traffic
+    uint32_t totalEnqueuedPacketsInQueueCounter = 0;
+    uint32_t totalEnqueuedBytesInQueueCounter = 0;
     double_t m_predictedArrivingTraffic; //!< the total predicted number of packets arriving to shared buffer in time interval t: t+Tau
-    double_t m_predictedArrivingHighPriorityTraffic; //!< the predicted number of High Priority packets arriving to shared buffer in time interval t: t+Tau
-    double_t m_predictedArrivingLowPriorityTraffic; //!< the predicted number of Low Priority packets arriving to shared buffer in time interval t: t+Tau
     double_t m_predictedArrivingPriorityTraffic; //!< the predicted number of user defined Priority packets arriving to shared buffer in time interval t: t+Tau
     double_t m_nTotalEnqueuedPacketsInSharedBuffer; //!< the total number of packets enqueued on shared buffer from the beginning of the simulation
-    double_t predictedPacketsInSharedBuffer; //!< the predicted number of packets in shared buffer in time t+Tau
-    double_t predictedHighPriorityPacketsInSharedBuffer; //!< the predicted number of High Priority packets in shared buffer in time t+Tau
-    double_t predictedLowPriorityPacketsInSharedBuffer; //!< the predicted number of Low Priority packets in shared buffer in time t+Tau
+    // double_t predictedPacketsInSharedBuffer; //!< the predicted number of packets in shared buffer in time t+Tau
+    // double_t predictedHighPriorityPacketsInSharedBuffer; //!< the predicted number of High Priority packets in shared buffer in time t+Tau
+    // double_t predictedLowPriorityPacketsInSharedBuffer; //!< the predicted number of Low Priority packets in shared buffer in time t+Tau
     double_t predictedPacketsDroppedBySharedBuffer; //!< the predicted number of packets Lost in shared buffer in time t+Tau
     double_t predictedHighPriorityPacketsDroppedBySharedBuffer; //!< the predicted number of High Priority packets Lost in shared buffer in time t+Tau
     double_t predictedLowPriorityPacketsDroppedBySharedBuffer; //!< the predicted number of Low Priority packets Lost in shared buffer in time t+Tau

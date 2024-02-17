@@ -59,10 +59,10 @@
 #define SWITCH_COUNT 1
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  2000000              // Total Leaf-Spine Capacity 2Mbps
-#define SERVER_SWITCH_CAPACITY 20000000         // Total Serever-Leaf Capacity 20Mbps
-#define LINK_LATENCY MicroSeconds(20)             // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 100                           // Buffer Size (for each queue) 100 Packets
+#define SWITCH_RECIEVER_CAPACITY  500000        // Leaf-Spine Capacity 500Kbps/queue/port
+#define SERVER_SWITCH_CAPACITY 5000000          // Total Serever-Leaf Capacity 5Mbps/queue/port
+#define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
+#define BUFFER_SIZE 500                         // Shared Buffer Size for a single queue per port. 500 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -291,7 +291,7 @@ int main (int argc, char *argv[])
     }
     else
     {
-      queue_capacity = ToString(BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+      queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
     }
   
     // client type dependant parameters:
@@ -349,15 +349,15 @@ int main (int argc, char *argv[])
     PointToPointHelper n2s, s2r, n2sPredict, s2rPredict;
     NS_LOG_INFO ("Configuring channels for all the Nodes");
     // Setting servers
-    uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY / SERVER_COUNT;
-    n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
-    n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
-    n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
-    // setting routers
-    uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / RECIEVER_COUNT;
-    s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
-    s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
-    s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+  uint64_t serverSwitchCapacity =  2 * SERVER_SWITCH_CAPACITY;
+  n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
+  n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+  // setting routers
+  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
+  s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
+  s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
 
     //create additional system identical to the original Buffer to simulate traffic for predictive analitics
     NS_LOG_INFO ("Configuring Predictive Nodes");
@@ -369,7 +369,6 @@ int main (int argc, char *argv[])
     s2rPredict.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
     s2rPredict.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
     s2rPredict.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
-
 
     NS_LOG_INFO ("Create NetDevices");
     NetDeviceContainer serverDevices;
@@ -398,9 +397,7 @@ int main (int argc, char *argv[])
         switchDevicesInPredict.Add(tempNetDevicePredict.Get(1));
     }
     
-
     NS_LOG_INFO ("Configuring switches");
-
 
     for (int i = 0; i < RECIEVER_COUNT; i++)
     {
@@ -446,7 +443,7 @@ int main (int argc, char *argv[])
     QueueDiscContainer qdiscsPredict = tch.Install(switchDevicesOutPredict);
 
 
-///////// set the Traffic Controll layer to be a shared buffer////////////////////////
+    ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
     TcPriomap tcPrioMap = TcPriomap{prioArray};
     Ptr<TrafficControlLayer> tc;
     tc = router.Get(0)->GetObject<TrafficControlLayer>();
@@ -473,14 +470,10 @@ int main (int argc, char *argv[])
     tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
     tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
     tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-    tcPredict->SetAttribute("TrafficControllAlgorythm", StringValue ("FB"));  // use FB for predictive model for now
+    // tcPredict->SetAttribute("TrafficControllAlgorythm", StringValue ("FB"));  // use FB for predictive model for now
     tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
-    // for debug: monitor the predicted traffic in the queue:
-    tcPredict->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPredictPacketsInSharedQueueTrace));
-    tcPredict->TraceConnectWithoutContext("HighPriorityPacketsInQueue", MakeCallback (&TrafficControlPredictHighPriorityPacketsInSharedQueueTrace));
-    tcPredict->TraceConnectWithoutContext("LowPriorityPacketsInQueue", MakeCallback (&TrafficControlPredictLowPriorityPacketsInSharedQueueTrace));
 
-//////////////Monitor data from q-disc//////////////////////////////////////////
+    ///////////Monitor data from q-disc//////////////////////////////////////////
     for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
     {
         for (size_t j = 0; j < qdiscs.Get (i)->GetNQueueDiscClasses(); j++)  // over all the queues per port
@@ -491,7 +484,6 @@ int main (int argc, char *argv[])
           queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityQueueDiscPacketsInQueueTrace, i, j)); 
         }
     }
-////////////////////////////////////////////////////////////////////////////////
 
     NS_LOG_INFO ("Setup IPv4 Addresses");
 

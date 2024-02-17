@@ -230,6 +230,8 @@ PrioOnOffApplication::StartApplication() // Called at time specified by Start
 {
     NS_LOG_FUNCTION(this);
 
+    // AssignStreams(1);
+
     // Create the socket if not already
     if (!m_socket)
     {
@@ -373,7 +375,8 @@ PrioOnOffApplication::ScheduleStartEvent()
     NS_LOG_FUNCTION(this);
 
     Time offInterval = Seconds(m_offTime->GetValue());
-    // std::cout << "off time = " << offInterval << "[sec]" << std::endl;
+    std::cout << "stream = " << m_offTime->GetStream() << std::endl;
+    std::cout << "off time = " << offInterval << "[sec]" << std::endl;
     NS_LOG_LOGIC("start at " << offInterval.As(Time::S));
     m_startStopEvent = Simulator::Schedule(offInterval, &PrioOnOffApplication::StartSending, this);
 }
@@ -384,7 +387,8 @@ PrioOnOffApplication::ScheduleStopEvent()
     NS_LOG_FUNCTION(this);
 
     Time onInterval = Seconds(m_onTime->GetValue());
-    // std::cout << "on time = " << onInterval << "[sec]" << std::endl;
+    std::cout << "stream = " << m_onTime->GetStream() << std::endl;
+    std::cout << "on time = " << onInterval << "[sec]" << std::endl;
     NS_LOG_LOGIC("stop at " << onInterval.As(Time::S));
     m_startStopEvent = Simulator::Schedule(onInterval, &PrioOnOffApplication::StopSending, this);
     // std::cout << "flow length: " << m_packetSeqCount << std::endl;
@@ -427,7 +431,7 @@ PrioOnOffApplication::SendPacket()
     if (!m_miceElephantProb.empty())
     {
         // double miceElephantProbValue = StringToDouble(m_miceElephantProb);
-        int32_t miceElephantProbValueDecInt = StringToDecInt(m_miceElephantProb);
+        int32_t miceElephantProbValueDecInt = StringToDecInt(m_miceElephantProb); // a Tag has to be an Integer!
         
         miceElephantProbTag.SetSimpleValue(miceElephantProbValueDecInt);
         // store the tag in a packet.
@@ -435,50 +439,37 @@ PrioOnOffApplication::SendPacket()
     }
 
     SocketIpTosTag ipTosTag;  // used in the switch loop, and in the end of the function
-    int setPriorityMode = 2;
+    int setPriorityMode = 1;
     switch (setPriorityMode)
     {
         ////////////////// option 1: set the priority tag arbitrarly from a user requested param
-        case 2:
-            ////////////////// option 2: add priority tag to packet
-            // create a tag.
-            // set Tag value to depend on the number of previously sent packets
-            // if m_packetSeqCount < m_threshold: TagValue->0x1 (High Priority)
-            // if m_packetSeqCount >= m_threshold: TagValue->0x2 (Low Priority)
-            if (m_userSetPriority)
-            {
-                m_priority = m_userSetPriority;
-            }
-            else
-            {
-                if (m_packetSeqCount < m_threshold)
-                {
-                m_priority = 0x1;
-                // flowPrioTag.SetSimpleValue (0x1);
-                }
-                else 
-                m_priority = 0x2;
-                // flowPrioTag.SetSimpleValue (0x2);
-            }
-
-            flowPrioTag.SetSimpleValue (m_priority);
-            // store the tag in a packet.
-            packet->AddPacketTag (flowPrioTag);
+        case 1:
+        {
+            m_priority = m_userSetPriority;
             break;
-        /////////////////////// option 3: add sequence conter tag to packet. Currently not used!
-        //   // create a tag.
-        //   MyTag flowPacketCounterTag;
-        // // add a Flow Packet Counter Tag to each packet in Tx
-        // // Rx can asign priority based on sequence length
-
-        //   flowPacketCounterTag.SetSimpleValue(m_packetSeqCount);
-        //   // store the tag in a packet.
-        //   packet->AddPacketTag (flowPacketCounterTag);
-        // ///////////////////////////
-        case 4:
-            /////////////////////// option 4: add a priority to a packet based on ToS value.
-            // Tos 0x0 -> Low Priority -> TagValue->0x2 (Low Priority)
-            // ToS 0x6 -> High Priority -> TagValue->0x1 (High Priority)
+        }
+        ////////////////// option 2: add priority tag to packet
+        // create a tag.
+        // set Tag value to depend on the number of previously sent packets
+        // if m_packetSeqCount < m_threshold: TagValue->0x1 (High Priority)
+        // if m_packetSeqCount >= m_threshold: TagValue->0x2 (Low Priority)
+        case 2:
+        {
+            if (m_packetSeqCount < m_threshold)
+            {
+            m_priority = 0x1;
+            // flowPrioTag.SetSimpleValue (0x1);
+            }
+            else 
+            m_priority = 0x2;
+            // flowPrioTag.SetSimpleValue (0x2);
+            break;
+        }
+        /////////////////////// option 3: add a priority to a packet based on ToS value.
+        // Tos 0x0 -> Low Priority -> TagValue->0x2 (Low Priority)
+        // ToS 0x6 -> High Priority -> TagValue->0x1 (High Priority)
+        case 3:
+        {
             if (packet->PeekPacketTag(ipTosTag))
             {
                 if (ipTosTag.GetTos() == 0x10)
@@ -491,9 +482,14 @@ PrioOnOffApplication::SendPacket()
                 }
             }
             break;
+        }
         default:
-        break;
+            break;
     }
+
+    flowPrioTag.SetSimpleValue (m_priority);
+    // store the tag in a packet.
+    packet->AddPacketTag (flowPrioTag);
 
     int actual = m_socket->Send(packet);
     if ((unsigned)actual == m_pktSize)

@@ -247,7 +247,7 @@ SojournTimeTrace (Time sojournTime)
 
 
 void
-viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double_t miceElephantProb, double_t alpha_high, double_t alpha_low, bool accumulateStats)
+viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -412,10 +412,10 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   //////////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)
   {
-      Ptr<QueueDisc> queue = qdiscs.Get (i); // look at the router queue
-      queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&QueueDiscPacketsInQueueTrace, i));
-      queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityQueueDiscPacketsInQueueTrace, i)); 
-      queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityQueueDiscPacketsInQueueTrace, i)); 
+    Ptr<QueueDisc> queue = qdiscs.Get (i); // look at the router queue
+    queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&QueueDiscPacketsInQueueTrace, i));
+    queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityQueueDiscPacketsInQueueTrace, i)); 
+    queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityQueueDiscPacketsInQueueTrace, i)); 
   }
 
   NS_LOG_INFO ("Setup IPv4 Addresses");
@@ -439,28 +439,28 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
 
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(serverDevices.Get(i));
-      tempNetDevice.Add(switchDevicesIn.Get(i));
-      Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
-      serverIFs.Add(ifcServers.Get(0));
-      switchInIFs.Add(ifcServers.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
 
-      server2switchIPs.NewNetwork ();
+    server2switchIPs.NewNetwork ();
   }
 
   NS_LOG_INFO ("Configuring switch");
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(switchDevicesOut.Get(i));
-      tempNetDevice.Add(recieverDevices.Get(i));
-      Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
-      switchOutIFs.Add(ifcSwitch.Get(0));
-      recieverIFs.Add(ifcSwitch.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
 
-      switch2recieverIPs.NewNetwork ();    
+    switch2recieverIPs.NewNetwork ();    
   }
 
   // and setup ip routing tables to get total ip-level connectivity.
@@ -523,14 +523,14 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
     // std::string miceOnTime = "0.05"; // [sec]
     // std::string elephantOnTime = "0.5"; // [sec]
     // std::string offTime = "0.1"; // [sec]
-    // std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-    // std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+    // std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+    // std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
     // need to try:
-    std::string miceOffTime = DoubleToString((1 - miceElephantProb) * miceOffTimeConst); // [sec]
-    std::string elephantOffTime = DoubleToString(miceElephantProb * elephantOffTimeConst); // [sec]
+    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * miceOffTimeConst); // [sec]
+    std::string elephantOffTime = DoubleToString(mice_elephant_prob * elephantOffTimeConst); // [sec]
     // for RNG:
-    std::string miceOffTimeMax = DoubleToString(2 * (1 - miceElephantProb) * miceOffTimeConst); // [sec]
-    std::string elephantOffTimeMax = DoubleToString(2 * miceElephantProb * elephantOffTimeConst); // [sec]
+    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * miceOffTimeConst); // [sec]
+    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * elephantOffTimeConst); // [sec]
 
     // create and install Client apps:    
     if (applicationType.compare("standardClient") == 0) 
@@ -856,13 +856,13 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   NS_LOG_INFO ("Stop simulation");
 
   // if chose to acumulate statistics:
-  if (accumulateStats)
+  if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dirToSave + "/TestStats/" + implementation + "/" + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
+    if (!(std::filesystem::exists(dirToSave + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dirToSave + "/TestStats/"+ implementation + "/").c_str ());
-      std::ofstream testAccumulativeStats (dirToSave + "/TestStats/" + implementation + "/" + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      system (("mkdir -p " + dirToSave + "/TestStats/" + traffic_control_type + "/" + implementation + "/").c_str ());
+      std::ofstream testAccumulativeStats (dirToSave + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
       << tcStats.nTotalDroppedPackets << " " 
@@ -873,7 +873,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dirToSave + "/TestStats/" + implementation + "/" + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      std::fstream testAccumulativeStats (dirToSave + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
       << tcStats.nTotalDroppedPackets << " " 
@@ -886,7 +886,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
 
 
 void
-viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode, double_t miceElephantProb, double_t alpha_high, double_t alpha_low, bool accumulateStats)
+viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -903,11 +903,11 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
   if (traffic_control_type.compare("SharedBuffer_DT_v01") == 0)
   {
-      usedAlgorythm = "DT";
+    usedAlgorythm = "DT";
   }
   else if (traffic_control_type.compare("SharedBuffer_FB_v01") == 0)
   {
-      usedAlgorythm = "FB";
+    usedAlgorythm = "FB";
   }
 
   NS_LOG_INFO ("Config parameters");
@@ -935,19 +935,19 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   // select the desired components to output data
   if (applicationType.compare("standardClient") == 0 && transportProt.compare ("TCP") == 0)
   {
-      LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
   }
   else if (applicationType.compare("standardClient") == 0 && transportProt.compare ("UDP") == 0)
   {
-      LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0)&& transportProt.compare ("Tcp") == 0)
   {
-      LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0) && transportProt.compare ("Udp") == 0)
   {
-      LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
 
   LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
@@ -990,11 +990,11 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   NS_LOG_INFO ("Configuring Servers");
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NS_LOG_INFO ("Server " << i << " is connected to switch");
+    NS_LOG_INFO ("Server " << i << " is connected to switch");
 
-      NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
-      serverDevices.Add(tempNetDevice.Get(0));
-      switchDevicesIn.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
+    serverDevices.Add(tempNetDevice.Get(0));
+    switchDevicesIn.Add(tempNetDevice.Get(1));
   }
   
 
@@ -1003,11 +1003,11 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
-      switchDevicesOut.Add(tempNetDevice.Get(0));
-      recieverDevices.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
+    switchDevicesOut.Add(tempNetDevice.Get(0));
+    recieverDevices.Add(tempNetDevice.Get(1));
 
-      NS_LOG_INFO ("Switch is connected to Reciever " << i << " at capacity: " << switchRecieverCapacity);     
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << " at capacity: " << switchRecieverCapacity);     
   }
   
   for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
@@ -1035,8 +1035,6 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   tch.AddChildQueueDisc(handle, cid[1], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[1] is < cid[0]
 
   QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
-
-  
 
   ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
@@ -1093,28 +1091,28 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(serverDevices.Get(i));
-      tempNetDevice.Add(switchDevicesIn.Get(i));
-      Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
-      serverIFs.Add(ifcServers.Get(0));
-      switchInIFs.Add(ifcServers.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
 
-      server2switchIPs.NewNetwork ();
+    server2switchIPs.NewNetwork ();
   }
 
   NS_LOG_INFO ("Configuring switch");
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(switchDevicesOut.Get(i));
-      tempNetDevice.Add(recieverDevices.Get(i));
-      Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
-      switchOutIFs.Add(ifcSwitch.Get(0));
-      recieverIFs.Add(ifcSwitch.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
 
-      switch2recieverIPs.NewNetwork ();    
+    switch2recieverIPs.NewNetwork ();    
   }
 
 
@@ -1131,178 +1129,178 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   
   for (size_t i = 0; i < 2; i++)
   {
-      int serverIndex = i;
-      int recieverIndex = i;
-      // create sockets
-      ns3::Ptr<ns3::Socket> sockptr;
+    int serverIndex = i;
+    int recieverIndex = i;
+    // create sockets
+    ns3::Ptr<ns3::Socket> sockptr;
 
-      if (transportProt.compare("TCP") == 0) 
-      {
-      // setup source socket
-      sockptr =
-          ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                  ns3::TcpSocketFactory::GetTypeId());
-      ns3::Ptr<ns3::TcpSocket> tcpsockptr =
-          ns3::DynamicCast<ns3::TcpSocket> (sockptr);
-      } 
-      else if (transportProt.compare("UDP") == 0) 
-      {
-      // setup source socket
-      sockptr =
-          ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                  ns3::UdpSocketFactory::GetTypeId());
-          ////////Added by me///////////////        
-          ns3::Ptr<ns3::UdpSocket> udpsockptr =
-              ns3::DynamicCast<ns3::UdpSocket> (sockptr);
-          //////////////////////////////////
-      } 
-      else 
-      {
-      std::cerr << "unknown transport type: " <<
-          transportProt << std::endl;
-      exit(1);
-      }
+    if (transportProt.compare("TCP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::TcpSocketFactory::GetTypeId());
+    ns3::Ptr<ns3::TcpSocket> tcpsockptr =
+        ns3::DynamicCast<ns3::TcpSocket> (sockptr);
+    } 
+    else if (transportProt.compare("UDP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::UdpSocketFactory::GetTypeId());
+        ////////Added by me///////////////        
+        ns3::Ptr<ns3::UdpSocket> udpsockptr =
+            ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+        //////////////////////////////////
+    } 
+    else 
+    {
+    std::cerr << "unknown transport type: " <<
+        transportProt << std::endl;
+    exit(1);
+    }
+    
+    InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
+
+
+    // time interval values for OnOff Aplications
+    // std::string miceOnTime = "0.05"; // [sec]
+    // std::string miceOnTime = "0.5"; // [sec]
+    // std::string elephantOnTime = "0.5"; // [sec]
+    // std::string offTime = "0.1"; // [sec]
+    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+    std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    // for RNG:
+    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    // create and install Client apps:    
+    if (applicationType.compare("standardClient") == 0) 
+    {
+      // Install UDP application on the sender 
+      // send packet flows from servers with even indexes to spine 0, and from servers with odd indexes to spine 1.
+
+      UdpClientHelper clientHelperP0 (socketAddressP0);
+      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      UdpClientHelper clientHelperP1 (socketAddressP1);
+      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    } 
+    else if (applicationType.compare("OnOff") == 0) 
+    {
+      // Create the OnOff applications to send TCP/UDP to the server
+      OnOffHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
+      clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      OnOffHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
+      clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    } 
+    else if (applicationType.compare("prioClient") == 0)
+    {
+      UdpPrioClientHelper clientHelperP0 (socketAddressP0);
+      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
       
-      InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
-      socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
-      InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
-      socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
+      UdpPrioClientHelper clientHelperP1 (socketAddressP1);
+      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    }
+    else if (applicationType.compare("prioOnOff") == 0) 
+    {
+      // Create the OnOff applications to send TCP/UDP to the server
 
-
-      // time interval values for OnOff Aplications
-      // std::string miceOnTime = "0.05"; // [sec]
-      // std::string miceOnTime = "0.5"; // [sec]
-      // std::string elephantOnTime = "0.5"; // [sec]
-      // std::string offTime = "0.1"; // [sec]
-      std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-      std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
-      // for RNG:
-      std::string miceOffTimeMax = DoubleToString(2 * (1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-      std::string elephantOffTimeMax = DoubleToString(2 * miceElephantProb * 2 * elephantOffTimeConst); // [sec]
-      // create and install Client apps:    
-      if (applicationType.compare("standardClient") == 0) 
+      PrioOnOffHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      // make On time shorter to make high priority flows shorter
+      if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        // Install UDP application on the sender 
-        // send packet flows from servers with even indexes to spine 0, and from servers with odd indexes to spine 1.
-
-        UdpClientHelper clientHelperP0 (socketAddressP0);
-        clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-        UdpClientHelper clientHelperP1 (socketAddressP1);
-        clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-      } 
-      else if (applicationType.compare("OnOff") == 0) 
-      {
-        // Create the OnOff applications to send TCP/UDP to the server
-        OnOffHelper clientHelperP0 (socketType, socketAddressP0);
-        clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-        OnOffHelper clientHelperP1 (socketType, socketAddressP1);
-        clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-      } 
-      else if (applicationType.compare("prioClient") == 0)
-      {
-        UdpPrioClientHelper clientHelperP0 (socketAddressP0);
-        clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-        
-        UdpPrioClientHelper clientHelperP1 (socketAddressP1);
-        clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
       }
-      else if (applicationType.compare("prioOnOff") == 0) 
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        // Create the OnOff applications to send TCP/UDP to the server
-
-        PrioOnOffHelper clientHelperP0 (socketType, socketAddressP0);
-        clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        if (onoff_traffic_mode.compare("Constant") == 0)
-        {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Uniform") == 0)
-        {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Normal") == 0)
-        {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
-        }
-        else 
-        {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
-        }
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
-        clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        if (onoff_traffic_mode.compare("Constant") == 0)
-        {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Uniform") == 0)
-        {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Normal") == 0)
-        {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
-        }
-        else 
-        {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
-        }
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
       }
       else 
       {
-          std::cerr << "unknown app type: " << applicationType << std::endl;
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
           exit(1);
       }
-      // setup sinks
-      Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
-      Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
-      PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+          exit(1);
+      }
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    }
+    else 
+    {
+        std::cerr << "unknown app type: " << applicationType << std::endl;
+        exit(1);
+    }
+    // setup sinks
+    Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
   }
   
   double_t trafficGenDuration = 2; // initilize for a single OnOff segment
@@ -1318,7 +1316,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
   // Create a new directory to store the output of the program
   // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -1326,9 +1324,9 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   
   if (eraseOldData == true)
   {
-      system (("rm " + dirToSave + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
-      system (("rm " + dirToSave + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
-      std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
+    system (("rm " + dirToSave + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
+    system (("rm " + dirToSave + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
+    std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
   }
 
   NS_LOG_INFO ("Start simulation");
@@ -1340,7 +1338,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
-  std::cout << std::endl << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
+  std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
   std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
@@ -1400,7 +1398,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   for (size_t i = 1; i <= flowStats.size(); i++)
   // stats indexing needs to start from 1
   {
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+    TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
   }
   std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
                                   
@@ -1408,7 +1406,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   double AVGDelay = 0;
   for (size_t i = 1; i <= flowStats.size(); i++)
   {
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+    AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
   }
   AVGDelay = AVGDelaySum / flowStats.size();
   std::cout << "  Mean delay:   " << AVGDelay << std::endl;
@@ -1417,7 +1415,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   double AVGJitter = 0;
   for (size_t i = 1; i <= flowStats.size(); i++)
   {
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
+    AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
   }
   AVGJitter = AVGJitterSum / flowStats.size();
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
@@ -1430,7 +1428,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   uint64_t totalBytesRx = 0;
   for (size_t i = 0; i < sinkApps.GetN(); i++)
   {
-      totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
+    totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
   }
 
   goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
@@ -1444,8 +1442,8 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   std::cout << std::endl << "*** QueueDisc statistics ***" << std::endl;
   for (size_t i = 0; i < qdiscs.GetN(); i++)
   {
-      std::cout << "Queue Disceplene " << i << ":" << std::endl;
-      std::cout << qdiscs.Get(i)->GetStats () << std::endl;
+    std::cout << "Queue Disceplene " << i << ":" << std::endl;
+    std::cout << qdiscs.Get(i)->GetStats () << std::endl;
   }
 
   
@@ -1454,7 +1452,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
-  testFlowStatistics << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
+  testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
   testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl;
@@ -1472,8 +1470,8 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;
   for (size_t i = 0; i < qdiscs.GetN(); i++)
   {
-      testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
-      testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
+    testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
+    testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
   }
   
   testFlowStatistics.close ();
@@ -1485,14 +1483,14 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
 
   // if chose to acumulate statistics:
-  if (accumulateStats)
+  if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" 
+    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" 
+      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -1504,7 +1502,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" 
+      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -1528,7 +1526,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
 template <size_t N>
 void
-viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traffic_mode, const std::double_t(&miceElephantProb_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulateStats)
+viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traffic_mode, const std::double_t(&mice_elephant_prob_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulate_stats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -1575,19 +1573,19 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   // select the desired components to output data
   if (applicationType.compare("standardClient") == 0 && transportProt.compare ("TCP") == 0)
   {
-      LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
   }
   else if (applicationType.compare("standardClient") == 0 && transportProt.compare ("UDP") == 0)
   {
-      LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0)&& transportProt.compare ("Tcp") == 0)
   {
-      LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0) && transportProt.compare ("Udp") == 0)
   {
-      LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
 
   LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
@@ -1630,11 +1628,11 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   NS_LOG_INFO ("Configuring Servers");
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NS_LOG_INFO ("Server " << i << " is connected to switch");
+    NS_LOG_INFO ("Server " << i << " is connected to switch");
 
-      NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
-      serverDevices.Add(tempNetDevice.Get(0));
-      switchDevicesIn.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
+    serverDevices.Add(tempNetDevice.Get(0));
+    switchDevicesIn.Add(tempNetDevice.Get(1));
   }
   
 
@@ -1643,11 +1641,11 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
-      switchDevicesOut.Add(tempNetDevice.Get(0));
-      recieverDevices.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
+    switchDevicesOut.Add(tempNetDevice.Get(0));
+    recieverDevices.Add(tempNetDevice.Get(1));
 
-      NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
   }
 
   for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
@@ -1734,28 +1732,28 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
 
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(serverDevices.Get(i));
-      tempNetDevice.Add(switchDevicesIn.Get(i));
-      Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
-      serverIFs.Add(ifcServers.Get(0));
-      switchInIFs.Add(ifcServers.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
 
-      server2switchIPs.NewNetwork ();
+    server2switchIPs.NewNetwork ();
   }
 
   NS_LOG_INFO ("Configuring switch");
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(switchDevicesOut.Get(i));
-      tempNetDevice.Add(recieverDevices.Get(i));
-      Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
-      switchOutIFs.Add(ifcSwitch.Get(0));
-      recieverIFs.Add(ifcSwitch.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
 
-      switch2recieverIPs.NewNetwork ();    
+    switch2recieverIPs.NewNetwork ();    
   }
 
 
@@ -1836,13 +1834,13 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
       
       for (size_t j = 0; j < N; j++) // iterate over all D values to configure and install OnOff Application for each Client
       {
-        double_t miceElephantProb = miceElephantProb_array[j];
+        double_t mice_elephant_prob = mice_elephant_prob_array[j];
         // in this simulation it effects silence time ratio for the onoff application
-        std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+        std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+        std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
         // for RNG:
-        std::string miceOffTimeMax = DoubleToString(2 * (1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTimeMax = DoubleToString(2 * miceElephantProb * 2 * elephantOffTimeConst); // [sec]
+        std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+        std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
 
         clientHelpersP0_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP0));
         if (onoff_traffic_mode.compare("Constant") == 0)
@@ -1869,7 +1867,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
         clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelpersP0_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP0_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps_vector[j].Add(clientHelpersP0_vector[j].Install (servers.Get(serverIndex)));
 
         clientHelpersP1_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP1));
@@ -1897,7 +1895,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
         clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelpersP1_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP1_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps_vector[j].Add(clientHelpersP1_vector[j].Install (servers.Get(serverIndex)));
       }
     }
@@ -1949,9 +1947,9 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
-  std::cout << std::endl << "Used D value: [" + DoubleToString(miceElephantProb_array[0]) + ", " +
-                                                DoubleToString(miceElephantProb_array[1]) + ", " + 
-                                                DoubleToString(miceElephantProb_array[2]) + "]" << std::endl;
+  std::cout << std::endl << "Used D value: [" + DoubleToString(mice_elephant_prob_array[0]) + ", " +
+                                                DoubleToString(mice_elephant_prob_array[1]) + ", " + 
+                                                DoubleToString(mice_elephant_prob_array[2]) + "]" << std::endl;
   if (adjustableAlphas)
   {
     std::cout << std::endl << "Adjustable Alpha High/Low values" << std::endl;
@@ -1975,10 +1973,10 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   for (size_t i = 1; i <= flowStats.size(); i++)
   // stats indexing needs to start from 1
   {
-      statTxPackets = statTxPackets + flowStats[i].txPackets;
-      statTxBytes = statTxBytes + flowStats[i].txBytes;
-      statRxPackets = statRxPackets + flowStats[i].rxPackets;
-      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+    statTxPackets = statTxPackets + flowStats[i].txPackets;
+    statTxBytes = statTxBytes + flowStats[i].txBytes;
+    statRxPackets = statRxPackets + flowStats[i].rxPackets;
+    statRxBytes = statRxBytes + flowStats[i].rxBytes;
   }
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
@@ -1991,11 +1989,11 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   for (size_t i = 1; i <= flowStats.size(); i++)
   // stats indexing needs to start from 1
   {
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-      {
-      packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-      bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-      }
+    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+    {
+    packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+    bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+    }
   }
   std::cout << "  Packets/Bytes Dropped by Queue Disc:   " << packetsDroppedByQueueDisc
               << " / " << bytesDroppedByQueueDisc << std::endl;
@@ -2005,11 +2003,11 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   for (size_t i = 1; i <= flowStats.size(); i++)
   // stats indexing needs to start from 1
   {
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-      {
-          packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-          bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-      }
+    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+    {
+        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+    }
   }
   std::cout << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
               << " / " << bytesDroppedByNetDevice << std::endl;
@@ -2018,7 +2016,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   for (size_t i = 1; i <= flowStats.size(); i++)
   // stats indexing needs to start from 1
   {
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+    TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
   }
   std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
                                   
@@ -2026,7 +2024,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   double AVGDelay = 0;
   for (size_t i = 1; i <= flowStats.size(); i++)
   {
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+    AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
   }
   AVGDelay = AVGDelaySum / flowStats.size();
   std::cout << "  Mean delay:   " << AVGDelay << std::endl;
@@ -2035,7 +2033,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   double AVGJitter = 0;
   for (size_t i = 1; i <= flowStats.size(); i++)
   {
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
+    AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
   }
   AVGJitter = AVGJitterSum / flowStats.size();
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
@@ -2048,7 +2046,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   uint64_t totalBytesRx = 0;
   for (size_t i = 0; i < sinkApps.GetN(); i++)
   {
-      totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
+    totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
   }
 
   goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
@@ -2062,8 +2060,8 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   std::cout << std::endl << "*** QueueDisc statistics ***" << std::endl;
   for (size_t i = 0; i < qdiscs.GetN(); i++)
   {
-      std::cout << "Queue Disceplene " << i << ":" << std::endl;
-      std::cout << qdiscs.Get(i)->GetStats () << std::endl;
+    std::cout << "Queue Disceplene " << i << ":" << std::endl;
+    std::cout << qdiscs.Get(i)->GetStats () << std::endl;
   }
 
   
@@ -2072,9 +2070,9 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
-  testFlowStatistics << "Used D value: [" + DoubleToString(miceElephantProb_array[0]) + ", " +
-                                            DoubleToString(miceElephantProb_array[1]) + ", " + 
-                                            DoubleToString(miceElephantProb_array[2]) + "]" << std::endl;
+  testFlowStatistics << "Used D value: [" + DoubleToString(mice_elephant_prob_array[0]) + ", " +
+                                            DoubleToString(mice_elephant_prob_array[1]) + ", " + 
+                                            DoubleToString(mice_elephant_prob_array[2]) + "]" << std::endl;
   if (adjustableAlphas)
   {
     testFlowStatistics << "Adjustable Alpha High/Low values" << std::endl;
@@ -2099,8 +2097,8 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;
   for (size_t i = 0; i < qdiscs.GetN(); i++)
   {
-      testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
-      testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
+    testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
+    testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
   }
   
   testFlowStatistics.close ();
@@ -2124,14 +2122,14 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   }
 
   // if choose to acumulate statistics:
-  if (accumulateStats)
+  if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
+      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -2155,7 +2153,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -2180,27 +2178,29 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   
   // clear all statistics for this simulation itteration
   flowStats.clear();
-  // delete tcStats;  doesn't work!
   tcStats.reset();
   tcStats.~TCStats();
 
-  // Simulator::Cancel();
   Simulator::Destroy ();
   NS_LOG_INFO ("Stop simulation");
 }
 
 void
-viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode, double_t miceElephantProb, double_t alpha_high, double_t alpha_low, bool accumulateStats)
+viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, bool accumulate_stats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
-  std::string implementation = "via_MultiQueues/5_ToS";
-  std::string usedAlgorythm;
+  std::string implementation = "via_MultiQueues/2_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
+
+  std::string usedAlgorythm;  // "DT"/"FB"/"PredictiveFB"
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
+
   std::string transportProt = "UDP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
+
   bool eraseOldData = true; // true/false
+
   if (traffic_control_type.compare("SharedBuffer_DT_v01") == 0)
   {
       usedAlgorythm = "DT";
@@ -2208,6 +2208,10 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   else if (traffic_control_type.compare("SharedBuffer_FB_v01") == 0)
   {
       usedAlgorythm = "FB";
+  }
+  else if (traffic_control_type.compare("SharedBuffer_PredictiveFB_v01") == 0)
+  {
+      usedAlgorythm = "PredictiveFB";
   }
 
   NS_LOG_INFO ("Config parameters");
@@ -2235,19 +2239,19 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   // select the desired components to output data
   if (applicationType.compare("standardClient") == 0 && transportProt.compare ("TCP") == 0)
   {
-      LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
   }
   else if (applicationType.compare("standardClient") == 0 && transportProt.compare ("UDP") == 0)
   {
-      LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0)&& transportProt.compare ("Tcp") == 0)
   {
-      LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0) && transportProt.compare ("Udp") == 0)
   {
-      LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
 
   LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
@@ -2257,18 +2261,23 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   recievers.Create (RECIEVER_COUNT);
   NodeContainer router;
   router.Create (SWITCH_COUNT);
-  // for loop use. make sure name "Router" is not stored in Names map///
-  Names::Clear();
-  /////////////////////////////////////////////////////////
+  Names::Clear(); // for loop use. make sure name "Router" is not stored in Names map
   Names::Add("Router", router.Get(0));  // Add a Name to the router node
   NodeContainer servers;
   servers.Create (SERVER_COUNT);
 
+  // for predictive model
+  NodeContainer recieversPredict;
+  recieversPredict.Create (RECIEVER_COUNT);
+  NodeContainer routerPredict;
+  routerPredict.Create (SWITCH_COUNT);
+  Names::Add("RouterPredict", routerPredict.Get(0));  // Add a Name to the router node
+  NodeContainer serversPredict;
+  serversPredict.Create (SERVER_COUNT);
 
-  // NS_LOG_INFO ("Install channels and assign addresses");
-
-  PointToPointHelper n2s, s2r;
+  PointToPointHelper n2s, s2r, n2sPredict, s2rPredict;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
+
   // Setting servers
   uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
@@ -2280,36 +2289,60 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
 
+  //create additional system identical to the original Buffer to simulate traffic for predictive analitics
+  NS_LOG_INFO ("Configuring Predictive Nodes");
+  // Setting servers
+  n2sPredict.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
+  n2sPredict.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  n2sPredict.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+  // setting routers
+  s2rPredict.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
+  s2rPredict.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  s2rPredict.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+
   NS_LOG_INFO ("Create NetDevices");
   NetDeviceContainer serverDevices;
   NetDeviceContainer switchDevicesIn;
   NetDeviceContainer switchDevicesOut;
   NetDeviceContainer recieverDevices;
+  // for predictive model:
+  NetDeviceContainer serverDevicesPredict;
+  NetDeviceContainer switchDevicesInPredict;
+  NetDeviceContainer switchDevicesOutPredict;
+  NetDeviceContainer recieverDevicesPredict;
 
   NS_LOG_INFO ("Install NetDevices on all Nodes");
   NS_LOG_INFO ("Configuring Servers");
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NS_LOG_INFO ("Server " << i << " is connected to switch");
+    NS_LOG_INFO ("Server " << i << " is connected to switch");
 
-      NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
-      serverDevices.Add(tempNetDevice.Get(0));
-      switchDevicesIn.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
+    serverDevices.Add(tempNetDevice.Get(0));
+    switchDevicesIn.Add(tempNetDevice.Get(1));
+
+    // for predictive model:
+    NetDeviceContainer tempNetDevicePredict = n2sPredict.Install (serversPredict.Get (i), routerPredict.Get(0));
+    serverDevicesPredict.Add(tempNetDevicePredict.Get(0));
+    switchDevicesInPredict.Add(tempNetDevicePredict.Get(1));
   }
   
-
   NS_LOG_INFO ("Configuring switches");
-
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
-      switchDevicesOut.Add(tempNetDevice.Get(0));
-      recieverDevices.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
+    switchDevicesOut.Add(tempNetDevice.Get(0));
+    recieverDevices.Add(tempNetDevice.Get(1));
 
-      NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
+    // for predictive model:
+    NetDeviceContainer tempNetDevicePredict = s2rPredict.Install (routerPredict.Get(0), recieversPredict.Get (i));
+    switchDevicesOutPredict.Add(tempNetDevicePredict.Get(0));
+    recieverDevicesPredict.Add(tempNetDevicePredict.Get(1));
+
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << " at capacity: " << switchRecieverCapacity);     
   }
-
+  
   for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
   {     
     Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
@@ -2324,21 +2357,19 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
   TrafficControlHelper tch;
   // priomap with low priority for class "0" and high priority for rest of the 15 classes (1-15). Technically not nesessary for RoundRobinPrioQueue
-  std::array<uint16_t, 16> prioArray = {4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::array<uint16_t, 16> prioArray = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   
   // Priomap prioMap = Priomap{prioArray};
   TosMap tosMap = TosMap{prioArray};
-  // uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinPrioQueueDisc", "Priomap", PriomapValue(prioMap));
   uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinTosQueueDisc", "TosMap", TosMapValue(tosMap));
 
-  TrafficControlHelper::ClassIdList cid = tch.AddQueueDiscClasses(handle, 5, "ns3::QueueDiscClass");
+  TrafficControlHelper::ClassIdList cid = tch.AddQueueDiscClasses(handle, 2, "ns3::QueueDiscClass");
   tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
   tch.AddChildQueueDisc(handle, cid[1], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[1] is < cid[0]
-  tch.AddChildQueueDisc(handle, cid[2], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[2] is < cid[1]
-  tch.AddChildQueueDisc(handle, cid[3], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[3] is < cid[2]
-  tch.AddChildQueueDisc(handle, cid[4], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[4] is < cid[3]
 
   QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  // for predictive model Install Traffic Control Helper on the Predictive model
+  QueueDiscContainer qdiscsPredict = tch.Install(switchDevicesOutPredict);
 
   ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
@@ -2346,8 +2377,8 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   tc = router.Get(0)->GetObject<TrafficControlLayer>();
   tc->SetAttribute("SharedBuffer", BooleanValue(true));
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-  tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
-  tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
+  // tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+  // tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
   tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
@@ -2360,20 +2391,27 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   tc->TraceConnectWithoutContext("EnqueueingThreshold_High_1", MakeBoundCallback (&TrafficControlThresholdHighTrace, 1));
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_1", MakeBoundCallback (&TrafficControlThresholdLowTrace, 1));
 
-/////////////////////////////////////////////////////////////////////////////
+  // for predictive model
+  Ptr<TrafficControlLayer> tcPredict;
+  tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
+  tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
+  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
+  // tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+  // tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
+  // tcPredict->SetAttribute("TrafficControllAlgorythm", StringValue ("FB"));  // use FB for predictive model for now
+  tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
-//////////////Monitor data from q-disc//////////////////////////////////////////
+  ///////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
   {
-      for (size_t j = 0; j < qdiscs.Get (i)->GetNQueueDiscClasses(); j++)  // over all the queues per port
-      {
-        Ptr<QueueDisc> queue = qdiscs.Get (i)->GetQueueDiscClass(j)->GetQueueDisc();
-        queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&MultiQueueDiscPacketsInQueueTrace, i, j));
-        // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
-        // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
-      }
+    for (size_t j = 0; j < qdiscs.Get (i)->GetNQueueDiscClasses(); j++)  // over all the queues per port
+    {
+      Ptr<QueueDisc> queue = qdiscs.Get (i)->GetQueueDiscClass(j)->GetQueueDisc();
+      queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&MultiQueueDiscPacketsInQueueTrace, i, j));
+      // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+      // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+    }
   }
-////////////////////////////////////////////////////////////////////////////////
 
   NS_LOG_INFO ("Setup IPv4 Addresses");
 
@@ -2387,7 +2425,11 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   Ipv4InterfaceContainer switchInIFs;
   Ipv4InterfaceContainer switchOutIFs;
   Ipv4InterfaceContainer recieverIFs;
-
+  // for predictive model
+  Ipv4InterfaceContainer serverIFsPredict;
+  Ipv4InterfaceContainer switchInIFsPredict;
+  Ipv4InterfaceContainer switchOutIFsPredict;
+  Ipv4InterfaceContainer recieverIFsPredict;
 
 
   NS_LOG_INFO ("Install IPv4 addresses on all NetDevices");
@@ -2396,28 +2438,44 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(serverDevices.Get(i));
-      tempNetDevice.Add(switchDevicesIn.Get(i));
-      Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
-      serverIFs.Add(ifcServers.Get(0));
-      switchInIFs.Add(ifcServers.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
+    server2switchIPs.NewNetwork ();
 
-      server2switchIPs.NewNetwork ();
+    //for prdictive model
+    NetDeviceContainer tempNetDevicePredict;
+    tempNetDevicePredict.Add(serverDevicesPredict.Get(i));
+    tempNetDevicePredict.Add(switchDevicesInPredict.Get(i));
+    Ipv4InterfaceContainer ifcServersPredict = server2switchIPs.Assign(tempNetDevicePredict);
+    serverIFsPredict.Add(ifcServersPredict.Get(0));
+    switchInIFsPredict.Add(ifcServersPredict.Get(1));
+    server2switchIPs.NewNetwork ();
   }
 
   NS_LOG_INFO ("Configuring switch");
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(switchDevicesOut.Get(i));
-      tempNetDevice.Add(recieverDevices.Get(i));
-      Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
-      switchOutIFs.Add(ifcSwitch.Get(0));
-      recieverIFs.Add(ifcSwitch.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
+    switch2recieverIPs.NewNetwork ();
 
-      switch2recieverIPs.NewNetwork ();    
+    //for prdictive model        
+    NetDeviceContainer tempNetDevicePredict;
+    tempNetDevicePredict.Add(switchDevicesOutPredict.Get(i));
+    tempNetDevicePredict.Add(recieverDevicesPredict.Get(i));
+    Ipv4InterfaceContainer ifcSwitchPredict = switch2recieverIPs.Assign(tempNetDevicePredict);
+    switchOutIFsPredict.Add(ifcSwitchPredict.Get(0));
+    recieverIFsPredict.Add(ifcSwitchPredict.Get(1));
+    switch2recieverIPs.NewNetwork ();    
   }
 
 
@@ -2428,297 +2486,272 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
   uint32_t ipTos_HP = 0x10;  //High priority: Maximize Throughput
   uint32_t ipTos_LP1 = 0x00; //(Low) priority 0: Best Effort
-  uint32_t ipTos_LP2 = 0x02; //(Low) priority 0: Best Effort
-  uint32_t ipTos_LP3 = 0x04; //(Low) priority 0: Best Effort
-  uint32_t ipTos_LP4 = 0x06; //(Low) priority 0: Best Effort
   
   
-  ApplicationContainer sinkApps, sourceApps;
+  ApplicationContainer sinkApps, sourceApps, sourceAppsPredict;
   
   for (size_t i = 0; i < 2; i++)
   {
-      int serverIndex = i;
-      int recieverIndex = i;
-      // create sockets
-      ns3::Ptr<ns3::Socket> sockptr;
+    int serverIndex = i;
+    int recieverIndex = i;
+    // create sockets
+    ns3::Ptr<ns3::Socket> sockptr, sockptrPredict;
 
-      if (transportProt.compare("TCP") == 0) 
-      {
+    if (transportProt.compare("TCP") == 0) 
+    {
       // setup source socket
       sockptr =
           ns3::Socket::CreateSocket(servers.Get(serverIndex),
                   ns3::TcpSocketFactory::GetTypeId());
       ns3::Ptr<ns3::TcpSocket> tcpsockptr =
           ns3::DynamicCast<ns3::TcpSocket> (sockptr);
-      } 
-      else if (transportProt.compare("UDP") == 0) 
-      {
+
+      // setup source socket for predictive model
+      sockptrPredict =
+          ns3::Socket::CreateSocket(serversPredict.Get(serverIndex),
+                  ns3::TcpSocketFactory::GetTypeId());
+      ns3::Ptr<ns3::TcpSocket> tcpsockptrPredict =
+          ns3::DynamicCast<ns3::TcpSocket> (sockptrPredict);
+    } 
+    else if (transportProt.compare("UDP") == 0) 
+    {
       // setup source socket
       sockptr =
           ns3::Socket::CreateSocket(servers.Get(serverIndex),
                   ns3::UdpSocketFactory::GetTypeId());
-          ////////Added by me///////////////        
-          ns3::Ptr<ns3::UdpSocket> udpsockptr =
-              ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+      ////////Added by me///////////////        
+      ns3::Ptr<ns3::UdpSocket> udpsockptr =
+          ns3::DynamicCast<ns3::UdpSocket> (sockptr);
           //////////////////////////////////
-      } 
-      else 
-      {
-      std::cerr << "unknown transport type: " <<
-          transportProt << std::endl;
-      exit(1);
-      }
       
-      InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
-      socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
-      InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
-      socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
-      InetSocketAddress socketAddressP2 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P2);
-      socketAddressP2.SetTos(ipTos_LP2);  // ToS 0x02 -> Low priority
-      InetSocketAddress socketAddressP3 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P3);
-      socketAddressP3.SetTos(ipTos_LP3);  // ToS 0x04 -> Low priority
-      InetSocketAddress socketAddressP4 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P4);
-      socketAddressP4.SetTos(ipTos_LP4);  // ToS 0x06 -> Low priority
+      // setup source socket for predictive model
+      sockptrPredict =
+          ns3::Socket::CreateSocket(serversPredict.Get(serverIndex),
+                  ns3::UdpSocketFactory::GetTypeId());
+      ////////Added by me///////////////        
+      ns3::Ptr<ns3::UdpSocket> udpsockptrPredict =
+          ns3::DynamicCast<ns3::UdpSocket> (sockptrPredict);
+      //////////////////////////////////
 
-      // // time interval values for OnOff Aplications
-      // // std::string miceOnTime = "0.05"; // [sec]
-      // std::string miceOnTime = "0.5"; // [sec]
-      // std::string elephantOnTime = "0.5"; // [sec]
-      // std::string offTime = "0.1"; // [sec]
+    }  
+    else 
+    {
+    std::cerr << "unknown transport type: " <<
+        transportProt << std::endl;
+    exit(1);
+    }
+    
+    InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
 
-      // std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * (1/4) * miceOffTimeConst); // [sec]
-      // std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
-      std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-      std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * 4 * elephantOffTimeConst); // [sec]
-      // for debug:
-      std::cout << "miceOffTime: " << miceOffTime << "[sec]" << std::endl;
-      std::cout << "elephantOffTime: " << elephantOffTime << "[sec]" << std::endl;
-      // for RNG:
-      std::string miceOffTimeMax = DoubleToString(2 * (1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-      std::string elephantOffTimeMax = DoubleToString(2 * miceElephantProb * 2 * 4 * elephantOffTimeConst); // [sec]
+    // for preddictive model
+    InetSocketAddress socketAddressP0Predict = InetSocketAddress (recieverIFsPredict.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0Predict.SetTos(ipTos_HP);  // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1Predict = InetSocketAddress (recieverIFsPredict.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1Predict.SetTos(ipTos_LP1);  // ToS 0x0 -> Low priority
 
-      // create and install Client apps:    
-      if (applicationType.compare("standardClient") == 0) 
+    // time interval values for OnOff Aplications
+    // std::string miceOnTime = "0.05"; // [sec]
+    // std::string miceOnTime = "0.5"; // [sec]
+    // std::string elephantOnTime = "0.5"; // [sec]
+    // std::string offTime = "0.1"; // [sec]
+    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+    std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    // for RNG:
+    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    // create and install Client apps:    
+    if (applicationType.compare("standardClient") == 0) 
+    {
+      // Install UDP application on the sender 
+      // send packet flows from servers with even indexes to spine 0, and from servers with odd indexes to spine 1.
+
+      UdpClientHelper clientHelperP0 (socketAddressP0);
+      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      UdpClientHelper clientHelperP1 (socketAddressP1);
+      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    } 
+    else if (applicationType.compare("OnOff") == 0) 
+    {
+      // Create the OnOff applications to send TCP/UDP to the server
+      OnOffHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
+      clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      OnOffHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
+      clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    } 
+    else if (applicationType.compare("prioClient") == 0)
+    {
+      UdpPrioClientHelper clientHelperP0 (socketAddressP0);
+      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+      
+      UdpPrioClientHelper clientHelperP1 (socketAddressP1);
+      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    }
+    else if (applicationType.compare("prioOnOff") == 0) 
+    {
+      // Create the OnOff applications to send TCP/UDP to the server
+
+      PrioOnOffHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      // make On time shorter to make high priority flows shorter
+      if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        // Install UDP application on the sender 
-        // send packet flows from servers with even indexes to spine 0, and from servers with odd indexes to spine 1.
-
-        UdpClientHelper clientHelperP0 (socketAddressP0);
-        clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-        UdpClientHelper clientHelperP1 (socketAddressP1);
-        clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-      } 
-      else if (applicationType.compare("OnOff") == 0) 
-      {
-        // Create the OnOff applications to send TCP/UDP to the server
-        OnOffHelper clientHelperP0 (socketType, socketAddressP0);
-        clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-        OnOffHelper clientHelperP1 (socketType, socketAddressP1);
-        clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-      } 
-      else if (applicationType.compare("prioClient") == 0)
-      {
-        UdpPrioClientHelper clientHelperP0 (socketAddressP0);
-        clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-        
-        UdpPrioClientHelper clientHelperP1 (socketAddressP1);
-        clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
       }
-      else if (applicationType.compare("prioOnOff") == 0) 
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        // Create the OnOff applications to send TCP/UDP to the server
-
-        PrioOnOffHelper clientHelperP0 (socketType, socketAddressP0);
-        clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
-        // make On time shorter to make high priority flows shorter
-        if (onoff_traffic_mode.compare("Constant") == 0)
-        {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Uniform") == 0)
-        {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Normal") == 0)
-        {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
-        }
-        else 
-        {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
-        }
-        clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
-        clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
-        if (onoff_traffic_mode.compare("Constant") == 0)
-        {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Uniform") == 0)
-        {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Normal") == 0)
-        {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
-        }
-        else 
-        {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
-        }
-        clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP2 (socketType, socketAddressP2);
-        clientHelperP2.SetAttribute ("Remote", AddressValue (socketAddressP2));
-        if (onoff_traffic_mode.compare("Constant") == 0)
-        {
-          clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Uniform") == 0)
-        {
-          clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Normal") == 0)
-        {
-          clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
-        }
-        else 
-        {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
-        }
-        clientHelperP2.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP2.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP2.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP2.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP2.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP3 (socketType, socketAddressP3);
-        clientHelperP3.SetAttribute ("Remote", AddressValue (socketAddressP3));
-        if (onoff_traffic_mode.compare("Constant") == 0)
-        {
-          clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Uniform") == 0)
-        {
-          clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Normal") == 0)
-        {
-          clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
-        }
-        else 
-        {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
-        }
-        clientHelperP3.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP3.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP3.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP3.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP3.Install (servers.Get(serverIndex)));
-
-        PrioOnOffHelper clientHelperP4 (socketType, socketAddressP4);
-        clientHelperP4.SetAttribute ("Remote", AddressValue (socketAddressP4));
-        if (onoff_traffic_mode.compare("Constant") == 0)
-        {
-          clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Uniform") == 0)
-        {
-          clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
-        }
-        else if (onoff_traffic_mode.compare("Normal") == 0)
-        {
-          clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
-        }
-        else 
-        {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
-        }
-        clientHelperP4.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP4.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-        // clientHelperP4.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelperP4.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        sourceApps.Add(clientHelperP4.Install (servers.Get(serverIndex)));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
       }
       else 
       {
-          std::cerr << "unknown app type: " << applicationType << std::endl;
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
           exit(1);
       }
-      // setup sinks
-      Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
-      Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
-      Address sinkLocalAddressP2 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P2));
-      Address sinkLocalAddressP3 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P3));
-      Address sinkLocalAddressP4 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P4));
-      PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP2 (socketType, sinkLocalAddressP2); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP3 (socketType, sinkLocalAddressP3); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      PacketSinkHelper sinkP4 (socketType, sinkLocalAddressP4); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
-      sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex))); 
-      sinkApps.Add(sinkP2.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP3.Install (recievers.Get(recieverIndex)));
-      sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
-  }
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
 
-  double_t trafficGenDuration = 2; // for a single OnOff segment
+      PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+          exit(1);
+      }
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+
+      // for predicting traffic in queue
+      PrioOnOffHelper clientHelperP0Predict (socketType, socketAddressP0Predict);
+      clientHelperP0Predict.SetAttribute ("Remote", AddressValue (socketAddressP0Predict));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+          exit(1);
+      }
+      clientHelperP0Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0Predict.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceAppsPredict.Add(clientHelperP0Predict.Install (serversPredict.Get(serverIndex)));
+
+      PrioOnOffHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
+      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+          exit(1);
+      }
+      clientHelperP1Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
+    }
+    else 
+    {
+      std::cerr << "unknown app type: " << applicationType << std::endl;
+      exit(1);
+    }
+    // setup sinks
+    Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
+  }
+  
+  double_t trafficGenDuration = 2; // initilize for a single OnOff segment
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
+  // Tau = 20 [msec]. start predictive model at t0 - Tau
+  double_t tau = 0.2;
+  sourceAppsPredict.Start (Seconds (1.0 - tau));
+  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - tau));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -2728,7 +2761,9 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  // dir = "./Trace_Plots/test_Alphas/"
+  // std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -2736,9 +2771,9 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   
   if (eraseOldData == true)
   {
-      system (("rm " + dirToSave + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
-      system (("rm " + dirToSave + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
-      std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
+    system (("rm " + dirToSave + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
+    system (("rm " + dirToSave + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
+    std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
   }
 
   NS_LOG_INFO ("Start simulation");
@@ -2749,8 +2784,8 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
-  std::cout << std::endl << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
-  std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
+  // std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
   std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
   std::cout << std::endl << "traffic Mode " + onoff_traffic_mode + "Random" << std::endl;
@@ -2832,7 +2867,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
 
   // Simulator::Destroy ();
-  
+
   std::cout << std::endl << "*** Application statistics ***" << std::endl;
   double goodTpT = 0;
 
@@ -2863,8 +2898,8 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
-  testFlowStatistics << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
-  testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
+  // testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
   testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl;
   testFlowStatistics << "traffic Mode " + onoff_traffic_mode + "Random" << std::endl; 
@@ -2881,8 +2916,8 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;
   for (size_t i = 0; i < qdiscs.GetN(); i++)
   {
-      testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
-      testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
+    testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
+    testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
   }
   
   testFlowStatistics.close ();
@@ -2894,17 +2929,17 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
 
   // if chose to acumulate statistics:
-  if (accumulateStats)
+  if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" 
+    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" 
+      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
-      << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
+      // << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
       << tcStats.nTotalDroppedPackets << " " 
       << tcStats.nTotalDroppedPacketsHighPriority << " " 
       << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
@@ -2913,19 +2948,21 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(miceElephantProb) + "/" 
+      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
-      << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
+      // << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
       << tcStats.nTotalDroppedPackets << " " 
       << tcStats.nTotalDroppedPacketsHighPriority << " " 
       << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
       testAccumulativeStats.close ();
     }
   }
+  
   // clear all statistics for this simulation itteration
   flowStats.clear();
   // delete tcStats;  doesn't work!
+  tcStats.reset();
   tcStats.~TCStats();
 
   // Simulator::Cancel();
@@ -2933,10 +2970,8 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   NS_LOG_INFO ("Stop simulation");
 }
 
-
-template <size_t N>
 void
-viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traffic_mode, const std::double_t(&miceElephantProb_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulateStats)
+viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -2946,14 +2981,14 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   std::string transportProt = "UDP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
-
+  bool eraseOldData = true; // true/false
   if (traffic_control_type.compare("SharedBuffer_DT_v01") == 0)
   {
-      usedAlgorythm = "DT";
+    usedAlgorythm = "DT";
   }
   else if (traffic_control_type.compare("SharedBuffer_FB_v01") == 0)
   {
-      usedAlgorythm = "FB";
+    usedAlgorythm = "FB";
   }
 
   NS_LOG_INFO ("Config parameters");
@@ -2981,19 +3016,19 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   // select the desired components to output data
   if (applicationType.compare("standardClient") == 0 && transportProt.compare ("TCP") == 0)
   {
-      LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
   }
   else if (applicationType.compare("standardClient") == 0 && transportProt.compare ("UDP") == 0)
   {
-      LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
+    LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0)&& transportProt.compare ("Tcp") == 0)
   {
-      LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
   else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0) && transportProt.compare ("Udp") == 0)
   {
-      LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
 
   LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
@@ -3036,11 +3071,11 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   NS_LOG_INFO ("Configuring Servers");
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NS_LOG_INFO ("Server " << i << " is connected to switch");
+    NS_LOG_INFO ("Server " << i << " is connected to switch");
 
-      NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
-      serverDevices.Add(tempNetDevice.Get(0));
-      switchDevicesIn.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
+    serverDevices.Add(tempNetDevice.Get(0));
+    switchDevicesIn.Add(tempNetDevice.Get(1));
   }
   
 
@@ -3049,11 +3084,757 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
-      switchDevicesOut.Add(tempNetDevice.Get(0));
-      recieverDevices.Add(tempNetDevice.Get(1));
+    NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
+    switchDevicesOut.Add(tempNetDevice.Get(0));
+    recieverDevices.Add(tempNetDevice.Get(1));
 
-      NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
+  }
+
+  for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
+  {     
+    Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
+  }
+
+  // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
+  NS_LOG_INFO ("Install Internet stacks");
+  InternetStackHelper internet;
+  internet.InstallAll ();
+
+  NS_LOG_INFO ("Install QueueDisc");
+
+  TrafficControlHelper tch;
+  // priomap with low priority for class "0" and high priority for rest of the 15 classes (1-15). Technically not nesessary for RoundRobinPrioQueue
+  std::array<uint16_t, 16> prioArray = {4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  
+  // Priomap prioMap = Priomap{prioArray};
+  TosMap tosMap = TosMap{prioArray};
+  // uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinPrioQueueDisc", "Priomap", PriomapValue(prioMap));
+  uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinTosQueueDisc", "TosMap", TosMapValue(tosMap));
+
+  TrafficControlHelper::ClassIdList cid = tch.AddQueueDiscClasses(handle, 5, "ns3::QueueDiscClass");
+  tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
+  tch.AddChildQueueDisc(handle, cid[1], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[1] is < cid[0]
+  tch.AddChildQueueDisc(handle, cid[2], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[2] is < cid[1]
+  tch.AddChildQueueDisc(handle, cid[3], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[3] is < cid[2]
+  tch.AddChildQueueDisc(handle, cid[4], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[4] is < cid[3]
+
+  QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+
+  ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
+  TcPriomap tcPrioMap = TcPriomap{prioArray};
+  Ptr<TrafficControlLayer> tc;
+  tc = router.Get(0)->GetObject<TrafficControlLayer>();
+  tc->SetAttribute("SharedBuffer", BooleanValue(true));
+  tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+  tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+  tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
+  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
+
+  // monitor the packets in the Shared Buffer in Traffic Control Layer:
+  tc->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPacketsInSharedQueueTrace));
+  tc->TraceConnectWithoutContext("HighPriorityPacketsInQueue", MakeCallback (&TrafficControlHighPriorityPacketsInSharedQueueTrace));
+  tc->TraceConnectWithoutContext("LowPriorityPacketsInQueue", MakeCallback (&TrafficControlLowPriorityPacketsInSharedQueueTrace));
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_High_0", MakeBoundCallback (&TrafficControlThresholdHighTrace, 0));
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_0", MakeBoundCallback (&TrafficControlThresholdLowTrace, 0));  
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_High_1", MakeBoundCallback (&TrafficControlThresholdHighTrace, 1));
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_1", MakeBoundCallback (&TrafficControlThresholdLowTrace, 1));
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  //////////////Monitor data from q-disc//////////////////////////////////////////
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
+  {
+    for (size_t j = 0; j < qdiscs.Get (i)->GetNQueueDiscClasses(); j++)  // over all the queues per port
+    {
+      Ptr<QueueDisc> queue = qdiscs.Get (i)->GetQueueDiscClass(j)->GetQueueDisc();
+      queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&MultiQueueDiscPacketsInQueueTrace, i, j));
+      // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+      // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+    }
+  }
+  ////////////////////////////////////////////////////////////////////////////////
+
+  NS_LOG_INFO ("Setup IPv4 Addresses");
+
+  ns3::Ipv4AddressHelper server2switchIPs =
+      ns3::Ipv4AddressHelper("10.1.0.0", "255.255.255.0");
+  ns3::Ipv4AddressHelper switch2recieverIPs =
+      ns3::Ipv4AddressHelper("10.2.0.0", "255.255.255.0");
+
+
+  Ipv4InterfaceContainer serverIFs;
+  Ipv4InterfaceContainer switchInIFs;
+  Ipv4InterfaceContainer switchOutIFs;
+  Ipv4InterfaceContainer recieverIFs;
+
+
+
+  NS_LOG_INFO ("Install IPv4 addresses on all NetDevices");
+  
+  NS_LOG_INFO ("Configuring servers");
+
+  for (int i = 0; i < SERVER_COUNT; i++)
+  {
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
+
+    server2switchIPs.NewNetwork ();
+  }
+
+  NS_LOG_INFO ("Configuring switch");
+
+  for (int i = 0; i < RECIEVER_COUNT; i++)
+  {
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
+
+    switch2recieverIPs.NewNetwork ();    
+  }
+
+
+  // and setup ip routing tables to get total ip-level connectivity.
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  NS_LOG_INFO ("Create Sockets, Applications and Sinks");
+
+  uint32_t ipTos_HP = 0x10;  //High priority: Maximize Throughput
+  uint32_t ipTos_LP1 = 0x00; //(Low) priority 0: Best Effort
+  uint32_t ipTos_LP2 = 0x02; //(Low) priority 0: Best Effort
+  uint32_t ipTos_LP3 = 0x04; //(Low) priority 0: Best Effort
+  uint32_t ipTos_LP4 = 0x06; //(Low) priority 0: Best Effort
+  
+  
+  ApplicationContainer sinkApps, sourceApps;
+  
+  for (size_t i = 0; i < 2; i++)
+  {
+    int serverIndex = i;
+    int recieverIndex = i;
+    // create sockets
+    ns3::Ptr<ns3::Socket> sockptr;
+
+    if (transportProt.compare("TCP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::TcpSocketFactory::GetTypeId());
+    ns3::Ptr<ns3::TcpSocket> tcpsockptr =
+        ns3::DynamicCast<ns3::TcpSocket> (sockptr);
+    } 
+    else if (transportProt.compare("UDP") == 0) 
+    {
+    // setup source socket
+    sockptr =
+        ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                ns3::UdpSocketFactory::GetTypeId());
+        ////////Added by me///////////////        
+        ns3::Ptr<ns3::UdpSocket> udpsockptr =
+            ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+        //////////////////////////////////
+    } 
+    else 
+    {
+    std::cerr << "unknown transport type: " <<
+        transportProt << std::endl;
+    exit(1);
+    }
+    
+    InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0.SetTos(ipTos_HP);   // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1.SetTos(ipTos_LP1);  // ToS 0x00 -> Low priority
+    InetSocketAddress socketAddressP2 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P2);
+    socketAddressP2.SetTos(ipTos_LP2);  // ToS 0x02 -> Low priority
+    InetSocketAddress socketAddressP3 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P3);
+    socketAddressP3.SetTos(ipTos_LP3);  // ToS 0x04 -> Low priority
+    InetSocketAddress socketAddressP4 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P4);
+    socketAddressP4.SetTos(ipTos_LP4);  // ToS 0x06 -> Low priority
+
+    // // time interval values for OnOff Aplications
+    // // std::string miceOnTime = "0.05"; // [sec]
+    // std::string miceOnTime = "0.5"; // [sec]
+    // std::string elephantOnTime = "0.5"; // [sec]
+    // std::string offTime = "0.1"; // [sec]
+
+    // std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * (1/4) * miceOffTimeConst); // [sec]
+    // std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+    std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
+    // for debug:
+    std::cout << "miceOffTime: " << miceOffTime << "[sec]" << std::endl;
+    std::cout << "elephantOffTime: " << elephantOffTime << "[sec]" << std::endl;
+    // for RNG:
+    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
+
+    // create and install Client apps:    
+    if (applicationType.compare("standardClient") == 0) 
+    {
+      // Install UDP application on the sender 
+      // send packet flows from servers with even indexes to spine 0, and from servers with odd indexes to spine 1.
+
+      UdpClientHelper clientHelperP0 (socketAddressP0);
+      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      UdpClientHelper clientHelperP1 (socketAddressP1);
+      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    } 
+    else if (applicationType.compare("OnOff") == 0) 
+    {
+      // Create the OnOff applications to send TCP/UDP to the server
+      OnOffHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
+      clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      OnOffHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
+      clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    } 
+    else if (applicationType.compare("prioClient") == 0)
+    {
+      UdpPrioClientHelper clientHelperP0 (socketAddressP0);
+      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+      
+      UdpPrioClientHelper clientHelperP1 (socketAddressP1);
+      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+    }
+    else if (applicationType.compare("prioOnOff") == 0) 
+    {
+      // Create the OnOff applications to send TCP/UDP to the server
+
+      PrioOnOffHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      // make On time shorter to make high priority flows shorter
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
+      }
+      else 
+      {
+        std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+        exit(1);
+      }
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+        std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+        exit(1);
+      }
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+
+      PrioOnOffHelper clientHelperP2 (socketType, socketAddressP2);
+      clientHelperP2.SetAttribute ("Remote", AddressValue (socketAddressP2));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+        std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+        exit(1);
+      }
+      clientHelperP2.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP2.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP2.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP2.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP2.Install (servers.Get(serverIndex)));
+
+      PrioOnOffHelper clientHelperP3 (socketType, socketAddressP3);
+      clientHelperP3.SetAttribute ("Remote", AddressValue (socketAddressP3));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+        std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+        exit(1);
+      }
+      clientHelperP3.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP3.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP3.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP3.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP3.Install (servers.Get(serverIndex)));
+
+      PrioOnOffHelper clientHelperP4 (socketType, socketAddressP4);
+      clientHelperP4.SetAttribute ("Remote", AddressValue (socketAddressP4));
+      if (onoff_traffic_mode.compare("Constant") == 0)
+      {
+        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
+        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Uniform") == 0)
+      {
+        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
+        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+      }
+      else if (onoff_traffic_mode.compare("Normal") == 0)
+      {
+        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
+        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+      }
+      else 
+      {
+        std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+        exit(1);
+      }
+      clientHelperP4.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP4.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      // clientHelperP4.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP4.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+      sourceApps.Add(clientHelperP4.Install (servers.Get(serverIndex)));
+    }
+    else 
+    {
+      std::cerr << "unknown app type: " << applicationType << std::endl;
+      exit(1);
+    }
+    // setup sinks
+    Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    Address sinkLocalAddressP2 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P2));
+    Address sinkLocalAddressP3 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P3));
+    Address sinkLocalAddressP4 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P4));
+    PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP2 (socketType, sinkLocalAddressP2); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP3 (socketType, sinkLocalAddressP3); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP4 (socketType, sinkLocalAddressP4); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex))); 
+    sinkApps.Add(sinkP2.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP3.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
+  }
+
+  double_t trafficGenDuration = 2; // for a single OnOff segment
+  sourceApps.Start (Seconds (1.0));
+  sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
+
+  sinkApps.Start (Seconds (START_TIME));
+  sinkApps.Stop (Seconds (END_TIME + 0.1));
+  
+  NS_LOG_INFO ("Enabling flow monitor");
+  FlowMonitorHelper flowmon;
+  Ptr<FlowMonitor> monitor = flowmon.InstallAll();
+
+  // Create a new directory to store the output of the program
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
+  {
+    system (("mkdir -p " + dirToSave).c_str ());
+  }
+  
+  if (eraseOldData == true)
+  {
+    system (("rm " + dirToSave + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
+    system (("rm " + dirToSave + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
+    std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
+  }
+
+  NS_LOG_INFO ("Start simulation");
+  Simulator::Stop (Seconds (END_TIME + 10));
+  Simulator::Run ();
+
+  // print the tested scenario at the top of the terminal: Topology, Queueing Algorithm and Application.
+  std::cout << std::endl << "Topology: 2In2Out" << std::endl;
+  std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
+  std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
+  std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
+  std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
+  std::cout << std::endl << "Application: " + applicationType << std::endl;
+  std::cout << std::endl << "traffic Mode " + onoff_traffic_mode + "Random" << std::endl;
+
+  Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
+  std::map<FlowId, FlowMonitor::FlowStats> flowStats = monitor->GetFlowStats ();
+  std::cout << std::endl << "*** Flow monitor statistics ***" << std::endl;
+  // a loop to sum the Tx/Rx Packets/Bytes from all nodes
+  uint32_t statTxPackets = 0; 
+  uint64_t statTxBytes = 0;
+  uint32_t statRxPackets = 0; 
+  uint64_t statRxBytes = 0;
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  // stats indexing needs to start from 1
+  {
+    statTxPackets = statTxPackets + flowStats[i].txPackets;
+    statTxBytes = statTxBytes + flowStats[i].txBytes;
+    statRxPackets = statRxPackets + flowStats[i].rxPackets;
+    statRxBytes = statRxBytes + flowStats[i].rxBytes;
+  }
+
+  std::cout << "  Tx Packets/Bytes:   " << statTxPackets
+              << " / " << statTxBytes << std::endl;
+  std::cout << "  Rx Packets/Bytes:   " << statRxPackets
+              << " / " << statRxBytes << std::endl;
+
+  uint32_t packetsDroppedByQueueDisc = 0;
+  uint64_t bytesDroppedByQueueDisc = 0;
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  // stats indexing needs to start from 1
+  {
+    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+    {
+      packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+      bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+    }
+  }
+  std::cout << "  Packets/Bytes Dropped by Queue Disc:   " << packetsDroppedByQueueDisc
+              << " / " << bytesDroppedByQueueDisc << std::endl;
+  
+  uint32_t packetsDroppedByNetDevice = 0;
+  uint64_t bytesDroppedByNetDevice = 0;
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  // stats indexing needs to start from 1
+  {
+    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+    {
+      packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+      bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+    }
+  }
+  std::cout << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
+              << " / " << bytesDroppedByNetDevice << std::endl;
+  
+  double TpT = 0;
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  // stats indexing needs to start from 1
+  {
+    TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+  }
+  std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
+                                  
+  double AVGDelaySum = 0;
+  double AVGDelay = 0;
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  {
+    AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+  }
+  AVGDelay = AVGDelaySum / flowStats.size();
+  std::cout << "  Mean delay:   " << AVGDelay << std::endl;
+  
+  double AVGJitterSum = 0;
+  double AVGJitter = 0;
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  {
+    AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
+  }
+  AVGJitter = AVGJitterSum / flowStats.size();
+  std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
+
+  // Simulator::Destroy ();
+  
+  std::cout << std::endl << "*** Application statistics ***" << std::endl;
+  double goodTpT = 0;
+
+  uint64_t totalBytesRx = 0;
+  for (size_t i = 0; i < sinkApps.GetN(); i++)
+  {
+    totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
+  }
+
+  goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
+  std::cout << "  Rx Bytes: " << totalBytesRx << std::endl;
+  std::cout << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;
+
+  TrafficControlLayer::TCStats tcStats = tc->GetStats();
+  std::cout << std::endl << "*** TC Layer statistics ***" << std::endl;
+  std::cout << tcStats << std::endl;
+  
+  std::cout << std::endl << "*** QueueDisc statistics ***" << std::endl;
+  for (size_t i = 0; i < qdiscs.GetN(); i++)
+  {
+    std::cout << "Queue Disceplene " << i << ":" << std::endl;
+    std::cout << qdiscs.Get(i)->GetStats () << std::endl;
+  }
+
+  
+  // Added to create a .txt file with the summary of the tested scenario statistics
+  std::ofstream testFlowStatistics (dirToSave + "/Statistics.txt", std::ios::out | std::ios::app);
+  testFlowStatistics << "Topology: 2In2Out" << std::endl;
+  testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
+  testFlowStatistics << "Implementation Method: " + implementation << std::endl;
+  testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
+  testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
+  testFlowStatistics << "Application: " + applicationType << std::endl;
+  testFlowStatistics << "traffic Mode " + onoff_traffic_mode + "Random" << std::endl; 
+  testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
+  testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;
+  testFlowStatistics << "  Rx Packets/Bytes:   " << statRxPackets << " / " << statRxBytes << std::endl;
+  testFlowStatistics << "  Packets/Bytes Dropped by Queue Disc:   " << packetsDroppedByQueueDisc
+                      << " / " << bytesDroppedByQueueDisc << std::endl;
+  testFlowStatistics << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
+                      << " / " << bytesDroppedByNetDevice << std::endl;
+  testFlowStatistics << "  Throughput: " << TpT << " Mbps" << std::endl;                   
+  testFlowStatistics << std::endl << "*** TC Layer statistics ***" << std::endl;
+  testFlowStatistics << tcStats << std::endl;
+  testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;
+  for (size_t i = 0; i < qdiscs.GetN(); i++)
+  {
+    testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
+    testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
+  }
+  
+  testFlowStatistics.close ();
+
+  // move all the produced .dat files to a directory based on the Alpha values
+  std::string newDir = dirToSave;
+  system (("mkdir -p " + newDir).c_str ());
+  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
+  // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
+
+  // if chose to acumulate statistics:
+  if (accumulate_stats)
+  {
+    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+                                  + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
+    {
+      // If the file doesn't exist, create it and write initial statistics
+      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+                                            + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      testAccumulativeStats
+      << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
+      << tcStats.nTotalDroppedPackets << " " 
+      << tcStats.nTotalDroppedPacketsHighPriority << " " 
+      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      testAccumulativeStats.close ();
+    }
+    else
+    {
+      // Open the file in append mode
+      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+                                          + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      testAccumulativeStats
+      << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
+      << tcStats.nTotalDroppedPackets << " " 
+      << tcStats.nTotalDroppedPacketsHighPriority << " " 
+      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      testAccumulativeStats.close ();
+    }
+  }
+  // clear all statistics for this simulation itteration
+  flowStats.clear();
+  // delete tcStats;  doesn't work!
+  tcStats.~TCStats();
+
+  // Simulator::Cancel();
+  Simulator::Destroy ();
+  NS_LOG_INFO ("Stop simulation");
+}
+
+
+template <size_t N>
+void
+viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traffic_mode, const std::double_t(&mice_elephant_prob_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulate_stats)
+{
+  LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
+
+  std::string implementation = "via_MultiQueues/5_ToS";
+  std::string usedAlgorythm;
+  std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
+  std::string transportProt = "UDP"; // "UDP"/"TCP"
+  std::string socketType;
+  std::string queue_capacity;
+
+  if (traffic_control_type.compare("SharedBuffer_DT_v01") == 0)
+  {
+    usedAlgorythm = "DT";
+  }
+  else if (traffic_control_type.compare("SharedBuffer_FB_v01") == 0)
+  {
+    usedAlgorythm = "FB";
+  }
+
+  NS_LOG_INFO ("Config parameters");
+  // Application type dependent parameters
+  if (applicationType.compare("standardClient") == 0 || applicationType.compare("prioClient") == 0)
+  {
+    queue_capacity = "20p"; // B, the total space on the buffer.
+  }
+  else
+  {
+    queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+  }
+
+  // client type dependant parameters:
+  if (transportProt.compare ("TCP") == 0)
+  {
+    socketType = "ns3::TcpSocketFactory";
+  }
+  else
+  {
+    socketType = "ns3::UdpSocketFactory";
+  }
+
+  // Application and Client type dependent parameters
+  // select the desired components to output data
+  if (applicationType.compare("standardClient") == 0 && transportProt.compare ("TCP") == 0)
+  {
+    LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
+  }
+  else if (applicationType.compare("standardClient") == 0 && transportProt.compare ("UDP") == 0)
+  {
+    LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
+  }
+  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0)&& transportProt.compare ("Tcp") == 0)
+  {
+    LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
+  }
+  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0) && transportProt.compare ("Udp") == 0)
+  {
+    LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
+  }
+
+  LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
+  
+  NS_LOG_INFO ("Create nodes");
+  NodeContainer recievers;
+  recievers.Create (RECIEVER_COUNT);
+  NodeContainer router;
+  router.Create (SWITCH_COUNT);
+  // for loop use. make sure name "Router" is not stored in Names map///
+  Names::Clear();
+  /////////////////////////////////////////////////////////
+  Names::Add("Router", router.Get(0));  // Add a Name to the router node
+  NodeContainer servers;
+  servers.Create (SERVER_COUNT);
+
+
+  // NS_LOG_INFO ("Install channels and assign addresses");
+
+  PointToPointHelper n2s, s2r;
+  NS_LOG_INFO ("Configuring channels for all the Nodes");
+  // Setting servers
+  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
+  n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
+  n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+  // setting routers
+  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
+  s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
+  s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+
+  NS_LOG_INFO ("Create NetDevices");
+  NetDeviceContainer serverDevices;
+  NetDeviceContainer switchDevicesIn;
+  NetDeviceContainer switchDevicesOut;
+  NetDeviceContainer recieverDevices;
+
+  NS_LOG_INFO ("Install NetDevices on all Nodes");
+  NS_LOG_INFO ("Configuring Servers");
+  for (int i = 0; i < SERVER_COUNT; i++)
+  {
+    NS_LOG_INFO ("Server " << i << " is connected to switch");
+
+    NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
+    serverDevices.Add(tempNetDevice.Get(0));
+    switchDevicesIn.Add(tempNetDevice.Get(1));
+  }
+  
+
+  NS_LOG_INFO ("Configuring switches");
+
+
+  for (int i = 0; i < RECIEVER_COUNT; i++)
+  {
+    NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
+    switchDevicesOut.Add(tempNetDevice.Get(0));
+    recieverDevices.Add(tempNetDevice.Get(1));
+
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
   }
 
   for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
@@ -3145,28 +3926,28 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
 
   for (int i = 0; i < SERVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(serverDevices.Get(i));
-      tempNetDevice.Add(switchDevicesIn.Get(i));
-      Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
-      serverIFs.Add(ifcServers.Get(0));
-      switchInIFs.Add(ifcServers.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
 
-      server2switchIPs.NewNetwork ();
+    server2switchIPs.NewNetwork ();
   }
 
   NS_LOG_INFO ("Configuring switch");
 
   for (int i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(switchDevicesOut.Get(i));
-      tempNetDevice.Add(recieverDevices.Get(i));
-      Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
-      switchOutIFs.Add(ifcSwitch.Get(0));
-      recieverIFs.Add(ifcSwitch.Get(1));
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
 
-      switch2recieverIPs.NewNetwork ();    
+    switch2recieverIPs.NewNetwork ();    
   }
 
   // and setup ip routing tables to get total ip-level connectivity.
@@ -3261,15 +4042,15 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
       
       for (size_t j = 0; j < N; j++) // iterate over all D values to configure and install OnOff Application for each Client
       {
-        double_t miceElephantProb = miceElephantProb_array[j];
+        double_t mice_elephant_prob = mice_elephant_prob_array[j];
         // in this simulation it effects silence time ratio for the onoff application
-        // std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * (1/4) * miceOffTimeConst); // [sec]
-        // std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * elephantOffTimeConst); // [sec]
-        std::string miceOffTime = DoubleToString((1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTime = DoubleToString(miceElephantProb * 2 * 4 * elephantOffTimeConst); // [sec]
+        // std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * (1/4) * miceOffTimeConst); // [sec]
+        // std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+        std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+        std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
         // for RNG:
-        std::string miceOffTimeMax = DoubleToString(2 * (1 - miceElephantProb) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTimeMax = DoubleToString(2 * miceElephantProb * 2 * 4 * elephantOffTimeConst); // [sec]
+        std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
+        std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
 
         clientHelpersP0_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP0));
         if (onoff_traffic_mode.compare("Constant") == 0)
@@ -3296,7 +4077,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelpersP0_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP0_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps_vector[j].Add(clientHelpersP0_vector[j].Install (servers.Get(serverIndex)));
 
         clientHelpersP1_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP1));
@@ -3324,7 +4105,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelpersP1_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP1_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps_vector[j].Add(clientHelpersP1_vector[j].Install (servers.Get(serverIndex)));
 
         clientHelpersP2_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP2));
@@ -3345,14 +4126,14 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         }
         else 
         {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+          exit(1);
         }
         clientHelpersP2_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpersP2_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelpersP2_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP2_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelpersP2_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersP2_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps_vector[j].Add(clientHelpersP2_vector[j].Install (servers.Get(serverIndex)));
 
         clientHelpersP3_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP3));
@@ -3373,14 +4154,14 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         }
         else 
         {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+          exit(1);
         }
         clientHelpersP3_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpersP3_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelpersP3_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP3_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelpersP3_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersP3_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps_vector[j].Add(clientHelpersP3_vector[j].Install (servers.Get(serverIndex)));
 
         clientHelpersP4_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP4));
@@ -3401,21 +4182,21 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         }
         else 
         {
-            std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
-            exit(1);
+          std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
+          exit(1);
         }
         clientHelpersP4_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpersP4_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
         // clientHelpersP4_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP4_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-        clientHelpersP4_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersP4_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps_vector[j].Add(clientHelpersP4_vector[j].Install (servers.Get(serverIndex)));
       }
     }
     else 
     {
-        std::cerr << "unknown app type: " << applicationType << std::endl;
-        exit(1);
+      std::cerr << "unknown app type: " << applicationType << std::endl;
+      exit(1);
     }
     // setup sinks
     Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
@@ -3467,9 +4248,9 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
-  std::cout << std::endl << "Used D value: [" + DoubleToString(miceElephantProb_array[0]) + ", " +
-                                                DoubleToString(miceElephantProb_array[1]) + ", " + 
-                                                DoubleToString(miceElephantProb_array[2]) + "]" << std::endl;
+  std::cout << std::endl << "Used D value: [" + DoubleToString(mice_elephant_prob_array[0]) + ", " +
+                                                DoubleToString(mice_elephant_prob_array[1]) + ", " + 
+                                                DoubleToString(mice_elephant_prob_array[2]) + "]" << std::endl;
   if (adjustableAlphas)
   {
     std::cout << std::endl << "Adjustable Alpha High/Low values" << std::endl;
@@ -3493,10 +4274,10 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   for (size_t i = 1; i <= flowStats.size(); i++)
   // stats indexing needs to start from 1
   {
-      statTxPackets = statTxPackets + flowStats[i].txPackets;
-      statTxBytes = statTxBytes + flowStats[i].txBytes;
-      statRxPackets = statRxPackets + flowStats[i].rxPackets;
-      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+    statTxPackets = statTxPackets + flowStats[i].txPackets;
+    statTxBytes = statTxBytes + flowStats[i].txBytes;
+    statRxPackets = statRxPackets + flowStats[i].rxPackets;
+    statRxBytes = statRxBytes + flowStats[i].rxBytes;
   }
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
@@ -3536,7 +4317,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   for (size_t i = 1; i <= flowStats.size(); i++)
   // stats indexing needs to start from 1
   {
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+    TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
   }
   std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
                                   
@@ -3544,7 +4325,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   double AVGDelay = 0;
   for (size_t i = 1; i <= flowStats.size(); i++)
   {
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+    AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
   }
   AVGDelay = AVGDelaySum / flowStats.size();
   std::cout << "  Mean delay:   " << AVGDelay << std::endl;
@@ -3553,7 +4334,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   double AVGJitter = 0;
   for (size_t i = 1; i <= flowStats.size(); i++)
   {
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
+    AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
   }
   AVGJitter = AVGJitterSum / flowStats.size();
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
@@ -3566,7 +4347,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   uint64_t totalBytesRx = 0;
   for (size_t i = 0; i < sinkApps.GetN(); i++)
   {
-      totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
+    totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
   }
 
   goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
@@ -3580,8 +4361,8 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   std::cout << std::endl << "*** QueueDisc statistics ***" << std::endl;
   for (size_t i = 0; i < qdiscs.GetN(); i++)
   {
-      std::cout << "Queue Disceplene " << i << ":" << std::endl;
-      std::cout << qdiscs.Get(i)->GetStats () << std::endl;
+    std::cout << "Queue Disceplene " << i << ":" << std::endl;
+    std::cout << qdiscs.Get(i)->GetStats () << std::endl;
   }
 
   
@@ -3590,9 +4371,9 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
-  testFlowStatistics << "Used D value: [" + DoubleToString(miceElephantProb_array[0]) + ", " +
-                                            DoubleToString(miceElephantProb_array[1]) + ", " + 
-                                            DoubleToString(miceElephantProb_array[2]) + "]" << std::endl;
+  testFlowStatistics << "Used D value: [" + DoubleToString(mice_elephant_prob_array[0]) + ", " +
+                                            DoubleToString(mice_elephant_prob_array[1]) + ", " + 
+                                            DoubleToString(mice_elephant_prob_array[2]) + "]" << std::endl;
   if (adjustableAlphas)
   {
     testFlowStatistics << "Adjustable Alpha High/Low values" << std::endl;
@@ -3617,8 +4398,8 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;
   for (size_t i = 0; i < qdiscs.GetN(); i++)
   {
-      testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
-      testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
+    testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
+    testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
   }
   
   testFlowStatistics.close ();
@@ -3642,14 +4423,14 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   }
 
 // if choose to acumulate statistics:
-  if (accumulateStats)
+  if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
+      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -3673,7 +4454,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {

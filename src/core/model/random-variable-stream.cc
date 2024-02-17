@@ -715,6 +715,7 @@ double
 NormalRandomVariable::GetValue(double mean, double variance, double bound)
 {
     NS_LOG_FUNCTION(this << mean << variance << bound);
+    m_nextValid = false; // added by me to make sure Normal destribution returns the same random number series for 
     if (m_nextValid)
     { // use previously generated
         m_nextValid = false;

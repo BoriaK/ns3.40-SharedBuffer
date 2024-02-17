@@ -44,35 +44,58 @@ constantRandomVariableChecker(double_t rand_var)
 void
 uniformRandomVariableChecker(double_t min_uni, double_t max_uni)
 {
+  RngSeedManager::SetSeed(12);
+  // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
+  
   Ptr<UniformRandomVariable> uniformRandomVariable = ns3::CreateObject<ns3::UniformRandomVariable>();
   uniformRandomVariable->SetAttribute("Min", DoubleValue(min_uni));
   uniformRandomVariable->SetAttribute("Max", DoubleValue(max_uni));
 
-  double uniVar0, uniVar1, uniVar2;
-  uniVar0 = uniformRandomVariable->GetValue();
-  uniVar1 = uniformRandomVariable->GetValue();
-  uniVar2 = uniformRandomVariable->GetValue();
+  // RngSeedManager::SetRun(1);
+  // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
 
-  std::cout << "the numbers drawn from the Uniform distrebution returned by the RNG are: " << uniVar0 << " ,"
-                                                                                           << uniVar1 << " ,"
-                                                                                           << uniVar2 << std::endl;
+  double uniVar0, uniVar1, uniVar2;
+  for (size_t i = 0; i < 3; i++)
+  { 
+    uniformRandomVariable->SetStream(5);
+    // std::cout << "the stream number for the RngStream " << uniformRandomVariable->GetStream() << std::endl;
+    
+    uniVar0 = uniformRandomVariable->GetValue();
+    uniVar1 = uniformRandomVariable->GetValue();
+    uniVar2 = uniformRandomVariable->GetValue();
+
+    std::cout << "the numbers drawn from the Uniform distrebution returned by the RNG are: " << uniVar0 << " ,"
+                                                                                             << uniVar1 << " ,"
+                                                                                             << uniVar2 << std::endl;
+  }
 }
 
 void
 normalRandomVariableChecker(double_t mean_norm, double_t variance_norm)
 {
+  RngSeedManager::SetSeed(12);
+  // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
+  RngSeedManager::SetRun(1);
+  // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
+
   Ptr<NormalRandomVariable> normalRandomVariable = ns3::CreateObject<ns3::NormalRandomVariable>();
   normalRandomVariable->SetAttribute("Mean", DoubleValue(mean_norm));
   normalRandomVariable->SetAttribute("Variance", DoubleValue(variance_norm));
 
   double normVar0, normVar1, normVar2;
-  normVar0 = normalRandomVariable->GetValue();
-  normVar1 = normalRandomVariable->GetValue();
-  normVar2 = normalRandomVariable->GetValue();
+  for (size_t i = 0; i < 3; i++)
+  { 
+    normalRandomVariable->SetStream(5);
+    // std::cout << "the stream number for the RngStream " << normalRandomVariable->GetStream() << std::endl;
 
-  std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << normVar0 << " ,"
-                                                                                          << normVar1 << " ,"
-                                                                                          << normVar2 << std::endl;
+    normVar0 = normalRandomVariable->GetValue();
+    normVar1 = normalRandomVariable->GetValue();
+    normVar2 = normalRandomVariable->GetValue();
+
+    std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << normVar0 << " ,"
+                                                                                            << normVar1 << " ,"
+                                                                                            << normVar2 << std::endl;
+  }
 }
 
 int main (int argc, char *argv[])

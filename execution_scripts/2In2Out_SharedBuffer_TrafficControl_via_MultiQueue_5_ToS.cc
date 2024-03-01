@@ -59,10 +59,10 @@
 #define SWITCH_COUNT 1
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  2000000              // Total Leaf-Spine Capacity 2Mbps
-#define SERVER_SWITCH_CAPACITY 20000000         // Total Serever-Leaf Capacity 20Mbps
-#define LINK_LATENCY MicroSeconds(20)             // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 1000                           // Buffer Size (for each queue) 1000 Packets
+#define SWITCH_RECIEVER_CAPACITY  500000        // Leaf-Spine Capacity 500Kbps/queue/port
+#define SERVER_SWITCH_CAPACITY 5000000          // Total Serever-Leaf Capacity 5Mbps/queue/port
+#define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
+#define BUFFER_SIZE 500                         // Shared Buffer Size for a single queue per port. 500 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -121,8 +121,8 @@ StringCombine (std::string A, std::string B, std::string C)
 double_t alpha_high = 20;
 double_t alpha_low = 0.5;
 
-// std::string dir = "./Trace_Plots/2In2Out_Topology/test_Alphas/" + ToString(alpha_high) + "_" + ToString(alpha_low) + "/";
-std::string dir = "./Trace_Plots/2In2Out_Topology/";
+// std::string dir = "./Trace_Plots/2In2Out/test_Alphas/" + ToString(alpha_high) + "_" + ToString(alpha_low) + "/";
+std::string dir = "./Trace_Plots/2In2Out/";
 std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "DT"/"FB"
@@ -264,7 +264,7 @@ int main (int argc, char *argv[])
     }
     else
     {
-      queue_capacity = ToString(BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+      queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
     }
   
     // client type dependant parameters:
@@ -313,12 +313,12 @@ int main (int argc, char *argv[])
     PointToPointHelper n2s, s2r;
     NS_LOG_INFO ("Configuring channels for all the Nodes");
     // Setting servers
-    uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY / SERVER_COUNT;
+    uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
     n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
     n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
     n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
     // setting routers
-    uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / RECIEVER_COUNT;
+    uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
     s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
     s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
     s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -527,9 +527,10 @@ int main (int argc, char *argv[])
 
       // time interval values for OnOff Aplications
       std::string miceOnTime = "0.05"; // [sec]
-      std::string miceOffTime = "0.01"; // [sec]
       std::string elephantOnTime = "0.5"; // [sec]
-      std::string elephantOffTime = "0.1"; // [sec] 
+      std::string miceOffTime = "0.01"; // [sec]
+      // std::string elephantOffTime = "0.1"; // [sec] 
+      std::string elephantOffTime = "0.4"; // [sec] 
       
       // create and install Client apps:    
       if (applicationType.compare("standardClient") == 0) 

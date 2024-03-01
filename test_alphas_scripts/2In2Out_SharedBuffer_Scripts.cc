@@ -70,16 +70,19 @@ Time prevTime = Seconds (0);
 
 std::string dir = "./Trace_Plots/test_Alphas/";
 
-// time interval values for OnOff Aplications
-std::string miceOnTime = "0.05"; // [sec] for ~12 packets/flow
-// std::string miceOnTime = "0.5"; // [sec]
-std::string elephantOnTime = "0.5"; // [sec] for ~125 packets/flow
-// std::string offTime = "0.1"; // [sec]
+// for OnOff Aplications
+uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
+// time interval values 
+double_t trafficGenDuration = 2; // [sec] initilize for a single OnOff segment
+int32_t numOfTotalPackets = 795; // [packets] number of total generated packets for a single OnOff Pair (High and Low)
+double_t miceOnTime = 0.05; // [sec] for ~12 packets/flow
+double_t elephantOnTime = 0.5; // [sec] for ~125 packets/flow
+
 double_t miceOffTimeConst = 0.01; // [sec]
 double_t elephantOffTimeConst = 0.1; // [sec]
 // for RNG:
-std::string miceOnTimeMax = "0.1"; // [sec]
-std::string elephantOnTimeMax = "1.0"; // [sec]
+double_t miceOnTimeMax = 0.1; // [sec]
+double_t elephantOnTimeMax = 1.0; // [sec]
 
 NS_LOG_COMPONENT_DEFINE ("2In2Out");
 
@@ -245,6 +248,166 @@ SojournTimeTrace (Time sojournTime)
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
 }
 
+double_t
+CalculateMiceOffTime (double_t traffic_gen_duration, double_t mice_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
+{
+  double_t off_time = 0;
+  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
+  double_t correctionFactor = 0;
+  switch (miceElephantProbIndex)
+  {
+  case 1:
+    correctionFactor = 0.15;
+    break;
+  case 2:
+    correctionFactor = 0.07;
+    break;
+  case 3:
+    correctionFactor = 0.05;
+    break;
+  case 4:
+    correctionFactor = 0.03;
+    break;    
+  case 5:
+    correctionFactor = 0.02;
+    break;
+  case 6:
+    correctionFactor = 0.018;
+    break;
+  case 7:
+    correctionFactor = 0.013;
+    break;
+  case 8:
+    correctionFactor = 0.012;
+    break;
+
+  default:
+    break;
+  }
+  
+  off_time = ((traffic_gen_duration * mice_on_time * data_rate * 1e6) / (8 * 1024 * mice_elephant_prob * total_num_of_packets)) - mice_on_time + correctionFactor;
+  
+  return off_time;
+}
+
+double_t
+MiceOffTimeLUT (double_t mice_elephant_prob)
+{
+  double_t off_time = 0;
+  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
+  switch (miceElephantProbIndex)
+  {
+  case 1:
+    off_time = 0.407095126;
+    break;
+  case 2:
+    off_time = 0.173547563;
+    break;
+  case 3:
+    off_time = 0.102365042;
+    break;
+  case 4:
+    off_time = 0.056773781;
+    break;    
+  case 5:
+    off_time = 0.031419025;
+    break;
+  case 6:
+    off_time = 0.019182521;
+    break;
+  case 7:
+    off_time = 0.006870732;
+    break;
+  case 8:
+    off_time = 0.000386891;
+    break;
+
+  default:
+    break;
+  }
+  
+  return off_time;
+}
+
+double_t
+CalculateElephantOffTime (double_t traffic_gen_duration, double_t elephant_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
+{
+  double_t off_time = 0;
+  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
+  double_t correctionFactor = 0;
+  switch (miceElephantProbIndex)
+  {
+  case 1:
+    correctionFactor = 0.16;
+    break;
+  case 2:
+    correctionFactor = 0.17;
+    break;
+  case 3:
+    correctionFactor = 0.2;
+    break;
+  case 4:
+    correctionFactor = 0.2;
+    break;    
+  case 5:
+    correctionFactor = 0.2;
+    break;
+  case 6:
+    correctionFactor = 0.25;
+    break;
+  case 7:
+    correctionFactor = 0.3;
+    break;
+  case 8:
+    correctionFactor = 0.45;
+    break;
+
+  default:
+    break;
+  }
+  
+  off_time = ((traffic_gen_duration * elephant_on_time * data_rate * 1e6) / (8 * 1024 * (1 - mice_elephant_prob) * total_num_of_packets)) - elephant_on_time + correctionFactor;
+  return off_time;
+}
+
+double_t
+ElephantOffTimeLUT (double_t mice_elephant_prob)
+{
+  double_t off_time = 0;
+  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
+  switch (miceElephantProbIndex)
+  {
+  case 1:
+    off_time = 0.001216806;
+    break;
+  case 2:
+    off_time = 0.053868907;
+    break;
+  case 3:
+    off_time = 0.138707323;
+    break;
+  case 4:
+    off_time = 0.21182521;
+    break;    
+  case 5:
+    off_time = 0.314190252;
+    break;
+  case 6:
+    off_time = 0.517737814;
+    break;
+  case 7:
+    off_time = 0.823650419;
+    break;
+  case 8:
+    off_time = 1.485475629;
+    break;
+
+  default:
+    break;
+  }
+  
+  return off_time;
+}
 
 void
 viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
@@ -519,18 +682,12 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
     InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
     socketAddressP1.SetTos(ipTos_LP);  // ToS 0x0 -> Low priority
 
-    // time interval values for OnOff Aplications
-    // std::string miceOnTime = "0.05"; // [sec]
-    // std::string elephantOnTime = "0.5"; // [sec]
-    // std::string offTime = "0.1"; // [sec]
-    // std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-    // std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
-    // need to try:
-    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * miceOffTimeConst); // [sec]
-    std::string elephantOffTime = DoubleToString(mice_elephant_prob * elephantOffTimeConst); // [sec]
+    // for OnOff Aplications:
+    double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+    double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
     // for RNG:
-    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * miceOffTimeConst); // [sec]
-    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * elephantOffTimeConst); // [sec]
+    double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
+    double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
 
     // create and install Client apps:    
     if (applicationType.compare("standardClient") == 0) 
@@ -563,7 +720,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
         clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
         clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
         clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
       }
       else if (i==1)
@@ -573,7 +730,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
         clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
         clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
         clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
       }
     } 
@@ -607,18 +764,18 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
         clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
+          clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+          clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
         }
         else 
         {
@@ -626,7 +783,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
             exit(1);
         }
         clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
         sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
@@ -637,18 +794,18 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
         clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+          clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
         }
         else 
         {
@@ -656,7 +813,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
             exit(1);
         }
         clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
         sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
@@ -680,7 +837,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   }
 
   sourceApps.Start (Seconds (1.0));
-  sourceApps.Stop (Seconds(3.0));
+  sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -690,21 +847,19 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  std::string dirToSave = dir;
+  // dir = "./Trace_Plots/test_Alphas/"
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
   }
-
-  // perhaps a better way:
-  // if (system (("mkdir -p " + dirToSave).c_str ()) == -1)
-  // {
-  //     exit (1);
-  // }  
-
-  // due to BUG:
-  // system (("mkdir -p " + dirToSave).c_str ());
-  //////////////////////////////////////////////////////
+  
+  if (eraseOldData == true)
+  {
+    system (("rm " + dirToSave + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
+    system (("rm " + dirToSave + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
+    std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
+  }
 
   NS_LOG_INFO ("Start simulation");
   Simulator::Stop (Seconds (END_TIME + 10));
@@ -821,7 +976,8 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
 
   
   // Added to create a .txt file with the summary of the tested scenario statistics
-  std::ofstream testFlowStatistics (dir + traffic_control_type + "/" + implementation + "/Statistics.txt", std::ios::out | std::ios::app);
+  // std::ofstream testFlowStatistics (dir + traffic_control_type + "/" + implementation + "/Statistics.txt", std::ios::out | std::ios::app);
+  std::ofstream testFlowStatistics (dirToSave + "/Statistics.txt", std::ios::out | std::ios::app);
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
@@ -846,11 +1002,11 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   
   testFlowStatistics.close ();
 
-  // move all the produced files to a directory based on the Alpha values
-  std::string newDir = dirToSave + traffic_control_type + "/" + implementation + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  // move all the produced .dat files to a directory based on the Alpha values
+  std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
-  system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
+  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
+  // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
 
   Simulator::Destroy ();
   NS_LOG_INFO ("Stop simulation");
@@ -1168,15 +1324,14 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
 
     // time interval values for OnOff Aplications
-    // std::string miceOnTime = "0.05"; // [sec]
-    // std::string miceOnTime = "0.5"; // [sec]
-    // std::string elephantOnTime = "0.5"; // [sec]
-    // std::string offTime = "0.1"; // [sec]
-    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-    std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+    double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+    // double_t miceOffTime = MiceOffTimeLUT(mice_elephant_prob);
+    // double_t elephantOffTime = ElephantOffTimeLUT(mice_elephant_prob);
+
     // for RNG:
-    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
+    double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
     // create and install Client apps:    
     if (applicationType.compare("standardClient") == 0) 
     {
@@ -1201,7 +1356,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
       clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
       clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
 
       OnOffHelper clientHelperP1 (socketType, socketAddressP1);
@@ -1209,7 +1364,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
       clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
       clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
     } 
     else if (applicationType.compare("prioClient") == 0)
@@ -1237,18 +1392,18 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       // make On time shorter to make high priority flows shorter
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
       }
       else 
       {
@@ -1256,7 +1411,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
           exit(1);
       }
       clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
@@ -1265,18 +1420,18 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
       }
       else 
       {
@@ -1284,7 +1439,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
           exit(1);
       }
       clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
@@ -1303,7 +1458,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
     sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
   }
   
-  double_t trafficGenDuration = 2; // initilize for a single OnOff segment
+  // double_t trafficGenDuration = 2; // initilize for a single OnOff segment
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
@@ -1836,27 +1991,27 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
       {
         double_t mice_elephant_prob = mice_elephant_prob_array[j];
         // in this simulation it effects silence time ratio for the onoff application
-        std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+        double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+        double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
         // for RNG:
-        std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+        double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
+        double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
 
         clientHelpersP0_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP0));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
         }
         else 
         {
@@ -1864,7 +2019,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
             exit(1);
         }
         clientHelpersP0_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersP0_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP0_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
         clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
@@ -1873,18 +2028,18 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
         clientHelpersP1_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP1));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
         }
         else 
         {
@@ -1892,7 +2047,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
             exit(1);
         }
         clientHelpersP1_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersP1_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP1_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
         clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
@@ -1914,7 +2069,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
     sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
   }
 
-  double_t trafficGenDuration = 2; // for a single OnOff segment
+  // double_t trafficGenDuration = 2; // for a single OnOff segment
   double_t silenceDuration = 4; // time between OnOff segments
 
   for (size_t i = 0; i < N; i++) // iterate over all D values to synchronize Start/Stop for all OnOffApps
@@ -2553,15 +2708,12 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
     socketAddressP1Predict.SetTos(ipTos_LP1);  // ToS 0x0 -> Low priority
 
     // time interval values for OnOff Aplications
-    // std::string miceOnTime = "0.05"; // [sec]
-    // std::string miceOnTime = "0.5"; // [sec]
-    // std::string elephantOnTime = "0.5"; // [sec]
-    // std::string offTime = "0.1"; // [sec]
-    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-    std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+    double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
     // for RNG:
-    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
+    double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
+    double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
+    
     // create and install Client apps:    
     if (applicationType.compare("standardClient") == 0) 
     {
@@ -2586,7 +2738,7 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
       clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
       clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
       clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
 
       OnOffHelper clientHelperP1 (socketType, socketAddressP1);
@@ -2594,7 +2746,7 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
       clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
       clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
       clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
     } 
     else if (applicationType.compare("prioClient") == 0)
@@ -2622,18 +2774,18 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
       // make On time shorter to make high priority flows shorter
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
       }
       else 
       {
@@ -2641,27 +2793,28 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
           exit(1);
       }
       clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+      clientHelperP0.AssignStreams(servers.Get(serverIndex), 0);
 
       PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
       clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
       }
       else 
       {
@@ -2669,28 +2822,29 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
           exit(1);
       }
       clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+      clientHelperP1.AssignStreams(servers.Get(serverIndex), 0);
 
       // for predicting traffic in queue
       PrioOnOffHelper clientHelperP0Predict (socketType, socketAddressP0Predict);
       clientHelperP0Predict.SetAttribute ("Remote", AddressValue (socketAddressP0Predict));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
       }
       else 
       {
@@ -2698,27 +2852,28 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
           exit(1);
       }
       clientHelperP0Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0Predict.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP0Predict.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceAppsPredict.Add(clientHelperP0Predict.Install (serversPredict.Get(serverIndex)));
+      clientHelperP0Predict.AssignStreams(serversPredict.Get(serverIndex), 0);
 
       PrioOnOffHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
       clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
       }
       else 
       {
@@ -2726,16 +2881,23 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
           exit(1);
       }
       clientHelperP1Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1Predict.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
+      clientHelperP1Predict.AssignStreams(serversPredict.Get(serverIndex), 0);
     }
     else 
     {
       std::cerr << "unknown app type: " << applicationType << std::endl;
       exit(1);
     }
+    // assign streams for RNG:
+    // clientHelperP0.AssignStreams(servers, 1);
+    // clientHelperP1.AssignStreams(servers, 1);
+    // clientHelperP0Predict.AssignStreams(serversPredict, 1);
+    // clientHelperP1Predict.AssignStreams(serversPredict, 1);
+
     // setup sinks
     Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
     Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
@@ -2745,11 +2907,11 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
     sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));    
   }
   
-  double_t trafficGenDuration = 2; // initilize for a single OnOff segment
+  // double_t trafficGenDuration = 2; // initilize for a single OnOff segment
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
-  // Tau = 20 [msec]. start predictive model at t0 - Tau
-  double_t tau = 0.2;
+  // Tau = 100 [msec]. start predictive model at t0 - Tau
+  double_t tau = 0.1;
   sourceAppsPredict.Start (Seconds (1.0 - tau));
   sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - tau));
 
@@ -3262,21 +3424,14 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
     socketAddressP4.SetTos(ipTos_LP4);  // ToS 0x06 -> Low priority
 
     // // time interval values for OnOff Aplications
-    // // std::string miceOnTime = "0.05"; // [sec]
-    // std::string miceOnTime = "0.5"; // [sec]
-    // std::string elephantOnTime = "0.5"; // [sec]
-    // std::string offTime = "0.1"; // [sec]
-
-    // std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * (1/4) * miceOffTimeConst); // [sec]
-    // std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
-    std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-    std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
+    double_t miceOffTime = (1 - mice_elephant_prob) * 2 * miceOffTimeConst; // [sec]
+    double_t elephantOffTime = mice_elephant_prob * 2 * 4 * elephantOffTimeConst; // [sec]
     // for debug:
     std::cout << "miceOffTime: " << miceOffTime << "[sec]" << std::endl;
     std::cout << "elephantOffTime: " << elephantOffTime << "[sec]" << std::endl;
     // for RNG:
-    std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-    std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
+    double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
+    double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
 
     // create and install Client apps:    
     if (applicationType.compare("standardClient") == 0) 
@@ -3302,7 +3457,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
       clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
       clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
 
       OnOffHelper clientHelperP1 (socketType, socketAddressP1);
@@ -3310,7 +3465,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.5]"));
       clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
       clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
     } 
     else if (applicationType.compare("prioClient") == 0)
@@ -3338,18 +3493,18 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       // make On time shorter to make high priority flows shorter
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
+        clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
       }
       else 
       {
@@ -3357,7 +3512,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
         exit(1);
       }
       clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
@@ -3366,18 +3521,18 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
       }
       else 
       {
@@ -3385,7 +3540,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
         exit(1);
       }
       clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
@@ -3394,18 +3549,18 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP2.SetAttribute ("Remote", AddressValue (socketAddressP2));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP2.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP2.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
       }
       else 
       {
@@ -3413,7 +3568,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
         exit(1);
       }
       clientHelperP2.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP2.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP2.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP2.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP2.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP2.Install (servers.Get(serverIndex)));
@@ -3422,18 +3577,18 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP3.SetAttribute ("Remote", AddressValue (socketAddressP3));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP3.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP3.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
       }
       else 
       {
@@ -3441,7 +3596,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
         exit(1);
       }
       clientHelperP3.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP3.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP3.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP3.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP3.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP3.Install (servers.Get(serverIndex)));
@@ -3450,18 +3605,18 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
       clientHelperP4.SetAttribute ("Remote", AddressValue (socketAddressP4));
       if (onoff_traffic_mode.compare("Constant") == 0)
       {
-        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
       }
       else if (onoff_traffic_mode.compare("Uniform") == 0)
       {
-        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
       }
       else if (onoff_traffic_mode.compare("Normal") == 0)
       {
-        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+        clientHelperP4.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+        clientHelperP4.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
       }
       else 
       {
@@ -3469,7 +3624,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
         exit(1);
       }
       clientHelperP4.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP4.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP4.SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
       // clientHelperP4.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP4.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       sourceApps.Add(clientHelperP4.Install (servers.Get(serverIndex)));
@@ -3497,7 +3652,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
     sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
   }
 
-  double_t trafficGenDuration = 2; // for a single OnOff segment
+  // double_t trafficGenDuration = 2; // for a single OnOff segment
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
@@ -4045,28 +4200,28 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         double_t mice_elephant_prob = mice_elephant_prob_array[j];
         // in this simulation it effects silence time ratio for the onoff application
         // std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * (1/4) * miceOffTimeConst); // [sec]
-        // std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * elephantOffTimeConst); // [sec]
-        std::string miceOffTime = DoubleToString((1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTime = DoubleToString(mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
+        // double_t elephantOffTime = mice_elephant_prob * 2 * elephantOffTimeConst; // [sec]
+        double_t miceOffTime = (1 - mice_elephant_prob) * 2 * miceOffTimeConst; // [sec]
+        double_t elephantOffTime = mice_elephant_prob * 2 * 4 * elephantOffTimeConst; // [sec]
         // for RNG:
-        std::string miceOffTimeMax = DoubleToString(2 * (1 - mice_elephant_prob) * 2 * miceOffTimeConst); // [sec]
-        std::string elephantOffTimeMax = DoubleToString(2 * mice_elephant_prob * 2 * 4 * elephantOffTimeConst); // [sec]
+        double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
+        double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
 
         clientHelpersP0_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP0));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOnTime + "]"));
-          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + miceOffTime + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOnTimeMax + "]"));
-          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + miceOffTimeMax + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOnTime + "|Variance=" + miceOnTime + "|Bound=" + miceOnTime + "]"));
-          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + miceOffTime + "|Variance=" + miceOffTime + "|Bound=" + miceOffTime + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+          clientHelpersP0_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
         }
         else 
         {
@@ -4074,7 +4229,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
             exit(1);
         }
         clientHelpersP0_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpersP0_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersP0_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP0_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
         clientHelpersP0_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
@@ -4083,18 +4238,18 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         clientHelpersP1_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP1));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP1_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
         }
         else 
         {
@@ -4102,7 +4257,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
             exit(1);
         }
         clientHelpersP1_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpersP1_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersP1_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP1_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
         clientHelpersP1_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
@@ -4111,18 +4266,18 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         clientHelpersP2_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP2));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelpersP2_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelpersP2_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+          clientHelpersP2_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP2_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelpersP2_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelpersP2_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+          clientHelpersP2_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+          clientHelpersP2_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelpersP2_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelpersP2_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+          clientHelpersP2_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP2_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
         }
         else 
         {
@@ -4130,7 +4285,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
           exit(1);
         }
         clientHelpersP2_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpersP2_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpersP2_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersP2_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP2_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
         clientHelpersP2_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
@@ -4139,18 +4294,18 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         clientHelpersP3_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP3));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelpersP3_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelpersP3_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+          clientHelpersP3_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP3_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelpersP3_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelpersP3_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+          clientHelpersP3_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+          clientHelpersP3_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelpersP3_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelpersP3_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+          clientHelpersP3_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP3_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
         }
         else 
         {
@@ -4158,7 +4313,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
           exit(1);
         }
         clientHelpersP3_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpersP3_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpersP3_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersP3_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP3_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
         clientHelpersP3_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
@@ -4167,18 +4322,18 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
         clientHelpersP4_vector[j].SetAttribute ("Remote", AddressValue (socketAddressP4));
         if (onoff_traffic_mode.compare("Constant") == 0)
         {
-          clientHelpersP4_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOnTime + "]"));
-          clientHelpersP4_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + elephantOffTime + "]"));
+          clientHelpersP4_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP4_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
         }
         else if (onoff_traffic_mode.compare("Uniform") == 0)
         {
-          clientHelpersP4_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOnTimeMax + "]"));
-          clientHelpersP4_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + elephantOffTimeMax + "]"));
+          clientHelpersP4_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
+          clientHelpersP4_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
         }
         else if (onoff_traffic_mode.compare("Normal") == 0)
         {
-          clientHelpersP4_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOnTime + "|Variance=" + elephantOnTime + "|Bound=" + elephantOnTime + "]"));
-          clientHelpersP4_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + elephantOffTime + "|Variance=" + elephantOffTime + "|Bound=" + elephantOffTime + "]"));
+          clientHelpersP4_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+          clientHelpersP4_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
         }
         else 
         {
@@ -4186,7 +4341,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
           exit(1);
         }
         clientHelpersP4_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpersP4_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpersP4_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersP4_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersP4_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
         clientHelpersP4_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
@@ -4216,7 +4371,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
     sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
   }
 
-  double_t trafficGenDuration = 2; // for a single OnOff segment
+  // double_t trafficGenDuration = 2; // for a single OnOff segment
   double_t silenceDuration = 4; // time between OnOff segments
 
   for (size_t i = 0; i < N; i++) // iterate over all D values to synchronize Start/Stop for all OnOffApps

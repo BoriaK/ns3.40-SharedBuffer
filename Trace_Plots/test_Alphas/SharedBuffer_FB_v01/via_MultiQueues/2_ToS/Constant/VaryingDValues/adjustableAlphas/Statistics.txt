@@ -6,43 +6,44 @@ Adjustable Alpha High/Low values
 
 Traffic Duration: 3x2 [Sec]
 Application: prioOnOff
+traffic Mode ConstantRandom
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   4856 / 5108512
-  Rx Packets/Bytes:   4176 / 4393152
+  Tx Packets/Bytes:   3402 / 3578904
+  Rx Packets/Bytes:   3402 / 3578904
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 6.51242 Mbps
+  Throughput: 7.214 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 680 / 715360
-High Priority Packets/Bytes dropped by Traffic Control Layer: 4 / 4208
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 676 / 711152
+Packets/Bytes dropped by Traffic Control Layer: 0 / 0
+High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 2089 / 2197628
-Packets/Bytes enqueued: 2089 / 2197628
-Packets/Bytes dequeued: 2089 / 2197628
+Packets/Bytes received: 1701 / 1789452
+Packets/Bytes enqueued: 1701 / 1789452
+Packets/Bytes dequeued: 1701 / 1789452
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 2089 / 2197628
+Packets/Bytes sent: 1701 / 1789452
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 2087 / 2195524
-Packets/Bytes enqueued: 2087 / 2195524
-Packets/Bytes dequeued: 2087 / 2195524
+Packets/Bytes received: 1701 / 1789452
+Packets/Bytes enqueued: 1701 / 1789452
+Packets/Bytes dequeued: 1701 / 1789452
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 2087 / 2195524
+Packets/Bytes sent: 1701 / 1789452
 Packets/Bytes marked: 0 / 0
 

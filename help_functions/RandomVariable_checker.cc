@@ -98,6 +98,34 @@ normalRandomVariableChecker(double_t mean_norm, double_t variance_norm)
   }
 }
 
+// void
+// poissonRandomVariableChecker(double_t mean_norm, double_t variance_norm)
+// {
+//   // RngSeedManager::SetSeed(12);
+//   // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
+//   // RngSeedManager::SetRun(1);
+//   // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
+
+//   Ptr<NormalRandomVariable> normalRandomVariable = ns3::CreateObject<ns3::NormalRandomVariable>();
+//   normalRandomVariable->SetAttribute("Mean", DoubleValue(mean_norm));
+//   normalRandomVariable->SetAttribute("Variance", DoubleValue(variance_norm));
+
+//   double normVar0, normVar1, normVar2;
+//   for (size_t i = 0; i < 3; i++)
+//   { 
+//     normalRandomVariable->SetStream(5);
+//     // std::cout << "the stream number for the RngStream " << normalRandomVariable->GetStream() << std::endl;
+
+//     normVar0 = normalRandomVariable->GetValue();
+//     normVar1 = normalRandomVariable->GetValue();
+//     normVar2 = normalRandomVariable->GetValue();
+
+//     std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << normVar0 << " ,"
+//                                                                                             << normVar1 << " ,"
+//                                                                                             << normVar2 << std::endl;
+//   }
+// }
+
 int main (int argc, char *argv[])
 { 
   // constantRandomVariableChecker(0.5);

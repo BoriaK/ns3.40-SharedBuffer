@@ -42,6 +42,13 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/udp-socket-factory.h"
 #include "ns3/uinteger.h"
+#include "ns3/core-module.h"
+
+#include <iostream>
+#include <fstream>
+#include <string>
+
+#include <stdint.h>
 
 namespace ns3
 {
@@ -229,8 +236,13 @@ void
 PrioOnOffApplication::StartApplication() // Called at time specified by Start
 {
     NS_LOG_FUNCTION(this);
+    // RngSeedManager::SetSeed(1);
+    // RngSeedManager::SetRun(1);
 
-    // AssignStreams(1);
+    // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
+    // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
+
+    AssignStreams(1);
 
     // Create the socket if not already
     if (!m_socket)
@@ -375,8 +387,9 @@ PrioOnOffApplication::ScheduleStartEvent()
     NS_LOG_FUNCTION(this);
 
     Time offInterval = Seconds(m_offTime->GetValue());
-    std::cout << "stream = " << m_offTime->GetStream() << std::endl;
-    std::cout << "off time = " << offInterval << "[sec]" << std::endl;
+    // m_offTime->SetStream(1);
+    // std::cout << "stream = " << m_offTime->GetStream() << std::endl;
+    // std::cout << "off time = " << offInterval << "[sec]" << std::endl;
     NS_LOG_LOGIC("start at " << offInterval.As(Time::S));
     m_startStopEvent = Simulator::Schedule(offInterval, &PrioOnOffApplication::StartSending, this);
 }
@@ -387,8 +400,9 @@ PrioOnOffApplication::ScheduleStopEvent()
     NS_LOG_FUNCTION(this);
 
     Time onInterval = Seconds(m_onTime->GetValue());
-    std::cout << "stream = " << m_onTime->GetStream() << std::endl;
-    std::cout << "on time = " << onInterval << "[sec]" << std::endl;
+    // m_offTime->SetStream(1);
+    // std::cout << "stream = " << m_onTime->GetStream() << std::endl;
+    // std::cout << "on time = " << onInterval << "[sec]" << std::endl;
     NS_LOG_LOGIC("stop at " << onInterval.As(Time::S));
     m_startStopEvent = Simulator::Schedule(onInterval, &PrioOnOffApplication::StopSending, this);
     // std::cout << "flow length: " << m_packetSeqCount << std::endl;

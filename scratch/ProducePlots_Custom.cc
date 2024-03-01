@@ -35,7 +35,7 @@ ToString (uint32_t value)
 }
 
 // .dat files path:
-std::string path = "./Trace_Plots/2In2Out_Topology/SharedBuffer_PredictiveFB_v01/via_MultiQueues/2_ToS";
+std::string path = "./Trace_Plots/2In2Out/SharedBuffer_PredictiveFB_v01/via_MultiQueues/2_ToS";
 
 void
 CreateSingle2DPlotFile(std::string priority)  // for a single plot with N data-sets

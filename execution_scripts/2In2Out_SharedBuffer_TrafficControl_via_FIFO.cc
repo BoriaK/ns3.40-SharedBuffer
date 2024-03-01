@@ -69,7 +69,7 @@
 
 using namespace ns3;
 
-std::string dir = "./Trace_Plots/2In2Out_Topology/";
+std::string dir = "./Trace_Plots/2In2Out/";
 std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
 std::string implementation = "via_FIFO_QueueDiscs/2_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs/2_ToS"
 std::string usedAlgorythm;  // "DT"/"FB"

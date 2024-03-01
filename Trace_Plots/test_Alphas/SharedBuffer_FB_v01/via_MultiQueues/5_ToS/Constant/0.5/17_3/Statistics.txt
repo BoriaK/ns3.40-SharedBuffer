@@ -5,6 +5,7 @@ Used D value: 0.5
 Alpha High = 17 Alpha Low = 3
 Traffic Duration: 2 [Sec]
 Application: prioOnOff
+traffic Mode ConstantRandom
 
 *** Flow monitor statistics ***
   Tx Packets/Bytes:   2762 / 2905624

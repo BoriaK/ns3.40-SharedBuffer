@@ -71,7 +71,7 @@
 
 using namespace ns3;
 
-std::string dir = "./Trace_Plots/basic_2In2Out_Topology/";
+std::string dir = "./Trace_Plots/basic_2In2Out/";
 std::string traffic_control_type = "FifoQueueDisc"; // "FifoQueueDisc"/"RedQueueDisc"/"DT_FifoQueueDisc_v02"/"FB_FifoQueueDisc_v01"
 
 uint32_t prev = 0;

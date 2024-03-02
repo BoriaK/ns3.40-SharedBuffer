@@ -1921,20 +1921,20 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 outputFile.close();
 
                 // for OnOff times DEBUG, log each packet arrival time in a sepparate file:
-                std::ofstream packetArrivalTimesOutputFile("Predictive_Packet_Arrival_Times.dat",
-                                            std::ios::app); // Replace with your desired file path
-                packetArrivalTimesOutputFile << Simulator::Now () << std::endl;
-                packetArrivalTimesOutputFile.close();
+                // std::ofstream packetArrivalTimesOutputFile("Predictive_Packet_Arrival_Times.dat",
+                //                             std::ios::app); // Replace with your desired file path
+                // packetArrivalTimesOutputFile << Simulator::Now () << std::endl;
+                // packetArrivalTimesOutputFile.close();
 
                 DropBeforeEnqueue(item);
             }
             else if (nodeName.find("Router") == 0)
             {
                 // for OnOff times DEBUG, log each packet arrival time in a sepparate file:
-                std::ofstream packetArrivalTimesOutputFile("Packet_Arrival_Times.dat",
-                                            std::ios::app); // Replace with your desired file path
-                packetArrivalTimesOutputFile << Simulator::Now () - Seconds(0.2) << std::endl;  // normalize arriving packet times to be at t-Tau
-                packetArrivalTimesOutputFile.close();
+                // std::ofstream packetArrivalTimesOutputFile("Packet_Arrival_Times.dat",
+                //                             std::ios::app); // Replace with your desired file path
+                // packetArrivalTimesOutputFile << Simulator::Now () - Seconds(0.2) << std::endl;  // normalize arriving packet times to be at t-Tau
+                // packetArrivalTimesOutputFile.close();
                 
                 std::cout << "Current Shared Buffer size is "
                           << GetCurrentSharedBufferSize().GetValue()

@@ -45,7 +45,7 @@
 #define SWITCH_RECIEVER_CAPACITY  500000        // Leaf-Spine Capacity 500Kbps/queue/port
 #define SERVER_SWITCH_CAPACITY 5000000          // Total Serever-Leaf Capacity 5Mbps/queue/port
 #define LINK_LATENCY MicroSeconds(20)            // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 500                          // Shared Buffer Size for a single queue per port. 500 Packets
+#define BUFFER_SIZE 250                          // Shared Buffer Size for a single queue/port. 250 [Packets]
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -499,7 +499,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / 2;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -3161,7 +3161,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   }
   else
   {
-    queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -3213,12 +3213,12 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -3900,7 +3900,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   }
   else
   {
-    queue_capacity = ToString(2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -3952,12 +3952,12 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = 2 * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet

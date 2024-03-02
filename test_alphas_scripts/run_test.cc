@@ -21,18 +21,18 @@
 
 
 int main ()
-{ 
-  std::string trafficControlType = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/ 
-  bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
-  std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal" 
-  // Run option: 
+{
+  std::string trafficControlType = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/
+  bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
+  std::string onOffTrafficMode = "Normal"; // "Constant"/"Uniform"/"Normal"
+  // Run option:
   // (1) single d & alphas pair value
   // (2) single d, multiple alphas pairs
   // (3) mutiple d values, single alphas pair
-  // (4) multiple alphas pairs & mutiple d values
+  // (4) mutiple d values & multiple alphas pairs
   // (5) single/multiple D values. Alphas are determined by Predictive Model
 
-  int runOption = 1; // [1, 2, 3, 4, 5]
+  int runOption = 4; // [1, 2, 3, 4, 5]
   switch (runOption)
   {
     case 1: // single d & alphas pair value
@@ -45,8 +45,8 @@ int main ()
       double_t alphaLow = 3;
 
       // viaFIFO(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
-      // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
-      viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
+      viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
+      // viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
       break;
     }
     case 2: // single d, multiple alphas pairs
@@ -65,7 +65,7 @@ int main ()
       }
       break;
     }
-    case 3: // mutiple d values, single alphas pair 
+    case 3: // mutiple d values, single alphas pair
     {
       // could be loaded as individual values in a loop or as an array of consecutive D values in "VaryingD" mode
       // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
@@ -82,7 +82,7 @@ int main ()
       {
         // Calculate the number of elements in the array
         std::size_t arrayLength = sizeof(miceElephantProb_array) / sizeof(miceElephantProb_array[0]);
-        for (size_t i = 0; i < arrayLength; i++)  // iterate over all the d values in the array 
+        for (size_t i = 0; i < arrayLength; i++)  // iterate over all the d values in the array
         {
           // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh, alphaLow, accumulateStats);
           viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh, alphaLow, accumulateStats);
@@ -99,7 +99,7 @@ int main ()
     {
       // could be loaded as individual values in a loop or as an array of consecutive D values in "VaryingD" mode
       // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-      std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8};
+      std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8}; // d=0.9 is illigal with current offTime calculation
       // std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.8};
 
       ////////////////////////////
@@ -117,12 +117,12 @@ int main ()
       {
         // Calculate the number of elements in the array
         std::size_t arrayLength = sizeof(miceElephantProb_array) / sizeof(miceElephantProb_array[0]);
-        for (size_t i = 0; i < arrayLength; i++)  // iterate over all the d values in the array 
+        for (size_t i = 0; i < arrayLength; i++)  // iterate over all the d values in the array
         {
           for (size_t j = 0; j < alphaHigh_array.size(); j++)
           {
             viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
-            // viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
+            viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
           }
         }
       }

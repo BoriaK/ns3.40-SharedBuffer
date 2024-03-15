@@ -23,8 +23,8 @@
 int main ()
 {
   std::string trafficControlType = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/
-  bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
-  std::string onOffTrafficMode = "Normal"; // "Constant"/"Uniform"/"Normal"
+  bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
+  std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
   // Run option:
   // (1) single d & alphas pair value
   // (2) single d, multiple alphas pairs
@@ -32,21 +32,22 @@ int main ()
   // (4) mutiple d values & multiple alphas pairs
   // (5) single/multiple D values. Alphas are determined by Predictive Model
 
-  int runOption = 4; // [1, 2, 3, 4, 5]
+  int runOption = 3; // [1, 2, 3, 4, 5]
   switch (runOption)
   {
     case 1: // single d & alphas pair value
     {
       // select a specific d value:
-      double_t miceElephantProb = 0.5; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets.
+      double_t miceElephantProb = 0.3; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets.
 
       // select a specific alpha high/low pair value:
       double_t alphaHigh = 17;
       double_t alphaLow = 3;
 
       // viaFIFO(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
-      viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
+      // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
       // viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
+      viaMQueues5ToS_v2(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
       break;
     }
     case 2: // single d, multiple alphas pairs
@@ -71,7 +72,7 @@ int main ()
       // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
       std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.8};
       ////////////////////////////
-      bool VaryingD = true;
+      bool VaryingD = false;
       bool adjustableAlphas = true;  // selects the optimal Alpha High/Low for each D value in VaryingD mode
       ////////////////////////////
       // select a specific alpha high/low value:
@@ -85,7 +86,8 @@ int main ()
         for (size_t i = 0; i < arrayLength; i++)  // iterate over all the d values in the array
         {
           // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh, alphaLow, accumulateStats);
-          viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh, alphaLow, accumulateStats);
+          // viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh, alphaLow, accumulateStats);
+          viaMQueues5ToS_v2(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh, alphaLow, accumulateStats);
         }
       }
       else // run all the d values in the array consecutivly in a single flow

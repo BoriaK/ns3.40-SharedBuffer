@@ -370,45 +370,6 @@ CalculateElephantOffTime (double_t traffic_gen_duration, double_t elephant_on_ti
   return off_time;
 }
 
-double_t
-ElephantOffTimeLUT (double_t mice_elephant_prob)
-{
-  double_t off_time = 0;
-  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
-  switch (miceElephantProbIndex)
-  {
-  case 1:
-    off_time = 0.001216806;
-    break;
-  case 2:
-    off_time = 0.053868907;
-    break;
-  case 3:
-    off_time = 0.138707323;
-    break;
-  case 4:
-    off_time = 0.21182521;
-    break;    
-  case 5:
-    off_time = 0.314190252;
-    break;
-  case 6:
-    off_time = 0.517737814;
-    break;
-  case 7:
-    off_time = 0.823650419;
-    break;
-  case 8:
-    off_time = 1.485475629;
-    break;
-
-  default:
-    break;
-  }
-  
-  return off_time;
-}
-
 void
 viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
 {
@@ -499,7 +460,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY / 2;
+  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -3898,6 +3859,7 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   }
   else
   {
+    // queue_capacity = ToString(5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
     queue_capacity = ToString(5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
@@ -4112,19 +4074,18 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
     serverPort_vector.push_back(50000 + i);
   }
 
-  uint32_t ipTos_HP = 0x10;  // (High) Linux priority 6: Maximize Throughput
-  std::vector<uint32_t> ipTosLowPriority_vector;
-  uint32_t ipTos_LP0 = 0x00; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP0);
-  uint32_t ipTos_LP1 = 0x02; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP1);
-  uint32_t ipTos_LP2 = 0x04; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP2);
-  uint32_t ipTos_LP3 = 0x06; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP3);
-  // for d = 0 case:
-  uint32_t ipTos_LP4 = 0x08; // (Low) Linux priority 2: Bulk
-  ipTosLowPriority_vector.push_back(ipTos_LP4);
+  // create a vector of IP_ToS_Priorities: P0>P1>...>P4
+  std::vector<uint32_t> ipTos_vector;
+  uint32_t ipTos_P0 = 0x08; 
+  ipTos_vector.push_back(ipTos_P0);
+  uint32_t ipTos_P1 = 0x06; 
+  ipTos_vector.push_back(ipTos_P1);
+  uint32_t ipTos_P2 = 0x04; 
+  ipTos_vector.push_back(ipTos_P2);
+  uint32_t ipTos_P3 = 0x02; 
+  ipTos_vector.push_back(ipTos_P3);
+  uint32_t ipTos_P4 = 0x00; 
+  ipTos_vector.push_back(ipTos_P4);
   
   
   ApplicationContainer sinkApps, sourceApps;
@@ -4186,32 +4147,7 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
     for (size_t j = 0; j < 5; j++)
     {
       InetSocketAddress tempSocketAddress = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), serverPort_vector[j]);
-      if (unequalNum) 
-      {
-        // in case the number of High/Low priority OnOff applications is not equally devidable by 2, 
-        // divide the High/Low priority OnOff applications between the 2 servers such that:
-        // 1st server recives the higher number of High priority and lower number of Low priority OnOff applications
-        // and the 2nd server recives lower number of High priority and higher number of Low priority OnOff applications
-        if (i == 0 && j < int(ceil(Num_M/2)) || i == 1 && j < int(floor(Num_M/2)))
-        {
-          tempSocketAddress.SetTos(ipTos_HP);
-        }
-        else
-        {
-          tempSocketAddress.SetTos(ipTosLowPriority_vector[j]);
-        } 
-      }
-      else
-      {
-        if (j < int(Num_M/2))
-        {
-          tempSocketAddress.SetTos(ipTos_HP);
-        }
-        else
-        {
-          tempSocketAddress.SetTos(ipTosLowPriority_vector[j]);
-        }
-      } 
+      tempSocketAddress.SetTos(ipTos_vector[j]); 
       socketAddress_vector.push_back(tempSocketAddress);
       PrioOnOffHelper tempClientHelper(socketType, socketAddress_vector[j]);
       clientHelpers_vector.push_back(tempClientHelper);
@@ -4330,7 +4266,7 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
           }
         }
         clientHelpers_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpers_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpers_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         sourceApps.Add(clientHelpers_vector[j].Install (servers.Get(serverIndex)));

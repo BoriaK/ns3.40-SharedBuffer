@@ -490,7 +490,7 @@ PrioOnOffApplication::SendPacket()
                 {
                     m_priority = 0x1;
                 }
-                else if (ipTosTag.GetTos() == 0x00 || ipTosTag.GetTos() == 0x02 || ipTosTag.GetTos() == 0x04 || ipTosTag.GetTos() == 0x06 )
+                else if (ipTosTag.GetTos() == 0x00 || ipTosTag.GetTos() == 0x02 || ipTosTag.GetTos() == 0x04 || ipTosTag.GetTos() == 0x06 || ipTosTag.GetTos() == 0x08)
                 {
                     m_priority = 0x2;
                 }

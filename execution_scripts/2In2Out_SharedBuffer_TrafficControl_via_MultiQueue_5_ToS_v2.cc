@@ -487,20 +487,19 @@ int main (int argc, char *argv[])
     serverPort_vector.push_back(50000 + i);
   }
 
-  uint32_t ipTos_HP = 0x10;  // (High) Linux priority 6: Maximize Throughput
-  std::vector<uint32_t> ipTosLowPriority_vector;
-  uint32_t ipTos_LP0 = 0x00; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP0);
-  uint32_t ipTos_LP1 = 0x02; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP1);
-  uint32_t ipTos_LP2 = 0x04; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP2);
-  uint32_t ipTos_LP3 = 0x06; // (Low) Linux priority 0: Best Effort
-  ipTosLowPriority_vector.push_back(ipTos_LP3);
-  /////////////////////   Maybe no nesessary      ////////////////////////
-  uint32_t ipTos_LP4 = 0x08; // (Low) Linux priority 2: Bulk
-  ipTosLowPriority_vector.push_back(ipTos_LP4);
-  ////////////////////////////////////////////////////////////////////////////
+  // create a vector of IP_ToS_Priorities: P0>P1>...>P4
+  std::vector<uint32_t> ipTos_vector;
+  uint32_t ipTos_P0 = 0x08; 
+  ipTos_vector.push_back(ipTos_P0);
+  uint32_t ipTos_P1 = 0x06; 
+  ipTos_vector.push_back(ipTos_P1);
+  uint32_t ipTos_P2 = 0x04; 
+  ipTos_vector.push_back(ipTos_P2);
+  uint32_t ipTos_P3 = 0x02; 
+  ipTos_vector.push_back(ipTos_P3);
+  uint32_t ipTos_P4 = 0x00; 
+  ipTos_vector.push_back(ipTos_P4);
+
   
   ApplicationContainer sinkApps, sourceApps;
 
@@ -563,32 +562,7 @@ int main (int argc, char *argv[])
     for (size_t j = 0; j < 5; j++)
     {
       InetSocketAddress tempSocketAddress = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), serverPort_vector[j]);
-      if (unequalNum) 
-      {
-        // in case the number of High/Low priority OnOff applications is not equally devidable by 2, 
-        // divide the High/Low priority OnOff applications between the 2 servers such that:
-        // 1st server recives the higher number of High priority and lower number of Low priority OnOff applications
-        // and the 2nd server recives lower number of High priority and higher number of Low priority OnOff applications
-        if (i == 0 && j < int(ceil(Num_M/2)) || i == 1 && j < int(floor(Num_M/2)))
-        {
-          tempSocketAddress.SetTos(ipTos_HP);
-        }
-        else
-        {
-          tempSocketAddress.SetTos(ipTosLowPriority_vector[j]);
-        } 
-      }
-      else
-      {
-        if (j < int(Num_M/2))
-        {
-          tempSocketAddress.SetTos(ipTos_HP);
-        }
-        else
-        {
-          tempSocketAddress.SetTos(ipTosLowPriority_vector[j]);
-        }
-      } 
+      tempSocketAddress.SetTos(ipTos_vector[j]); 
       socketAddress_vector.push_back(tempSocketAddress);
       PrioOnOffHelper tempClientHelper(socketType, socketAddress_vector[j]);
       clientHelpers_vector.push_back(tempClientHelper);

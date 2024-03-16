@@ -22,8 +22,8 @@
 
 int main ()
 {
-  std::string trafficControlType = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/
-  bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
+  std::string trafficControlType = "SharedBuffer_DT_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/
+  bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
   std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
   // Run option:
   // (1) single d & alphas pair value
@@ -32,7 +32,7 @@ int main ()
   // (4) mutiple d values & multiple alphas pairs
   // (5) single/multiple D values. Alphas are determined by Predictive Model
 
-  int runOption = 3; // [1, 2, 3, 4, 5]
+  int runOption = 4; // [1, 2, 3, 4, 5]
   switch (runOption)
   {
     case 1: // single d & alphas pair value
@@ -41,8 +41,8 @@ int main ()
       double_t miceElephantProb = 0.3; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets.
 
       // select a specific alpha high/low pair value:
-      double_t alphaHigh = 17;
-      double_t alphaLow = 3;
+      double_t alphaHigh = 15;
+      double_t alphaLow = 5;
 
       // viaFIFO(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
       // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
@@ -56,8 +56,10 @@ int main ()
       double_t miceElephantProb = 0.3; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets.
 
       // run over an array of alphas high/low:
-      std::array<double_t, 21> alphaHigh_array = {20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5};
-      std::array<double_t, 21> alphaLow_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+      // std::array<double_t, 21> alphaHigh_array = {20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5};
+      // std::array<double_t, 21> alphaLow_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+      std::array<double_t, 31> alphaHigh_array = {30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5};
+      std::array<double_t, 31> alphaLow_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
 
       for (size_t i = 0; i < alphaHigh_array.size(); i++)
       {
@@ -100,8 +102,7 @@ int main ()
     case 4: // multiple alphas pairs & mutiple d values
     {
       // could be loaded as individual values in a loop or as an array of consecutive D values in "VaryingD" mode
-      // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-      std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8}; // d=0.9 is illigal with current offTime calculation
+      std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
       // std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.8};
 
       ////////////////////////////
@@ -123,8 +124,9 @@ int main ()
         {
           for (size_t j = 0; j < alphaHigh_array.size(); j++)
           {
-            viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
-            viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
+            // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
+            // viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
+            viaMQueues5ToS_v2(trafficControlType, onOffTrafficMode, miceElephantProb_array[i], alphaHigh_array[j], alphaLow_array[j], accumulateStats);
           }
         }
       }

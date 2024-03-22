@@ -22,8 +22,8 @@
 
 int main ()
 {
-  std::string trafficControlType = "SharedBuffer_DT_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/
-  bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
+  std::string trafficControlType = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/
+  bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
   std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
   // Run option:
   // (1) single d & alphas pair value
@@ -32,7 +32,7 @@ int main ()
   // (4) mutiple d values & multiple alphas pairs
   // (5) single/multiple D values. Alphas are determined by Predictive Model
 
-  int runOption = 4; // [1, 2, 3, 4, 5]
+  int runOption = 3; // [1, 2, 3, 4, 5]
   switch (runOption)
   {
     case 1: // single d & alphas pair value
@@ -74,8 +74,8 @@ int main ()
       // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
       std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.8};
       ////////////////////////////
-      bool VaryingD = false;
-      bool adjustableAlphas = true;  // selects the optimal Alpha High/Low for each D value in VaryingD mode
+      bool VaryingD = true;
+      bool adjustableAlphas = false;  // selects the optimal Alpha High/Low for each D value in VaryingD mode
       ////////////////////////////
       // select a specific alpha high/low value:
       double_t alphaHigh = 17;
@@ -94,8 +94,9 @@ int main ()
       }
       else // run all the d values in the array consecutivly in a single flow
       {
-        viaMQueues2ToSVaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh, alphaLow, adjustableAlphas, accumulateStats);
+        // viaMQueues2ToSVaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh, alphaLow, adjustableAlphas, accumulateStats);
         // viaMQueues5ToSVaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh, alphaLow, adjustableAlphas, accumulateStats);
+        viaMQueues5ToS_v2_VaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh, alphaLow, adjustableAlphas, accumulateStats);
       }
       break;
     }
@@ -113,6 +114,12 @@ int main ()
       // run over an array of alphas high/low:
       std::array<double_t, 21> alphaHigh_array = {20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5};
       std::array<double_t, 21> alphaLow_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+      // std::array<double_t, 26> alphaHigh_array = {50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25};
+      // std::array<double_t, 26> alphaLow_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
+      // std::array<double_t, 51> alphaHigh_array = {50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5};
+      // std::array<double_t, 51> alphaLow_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50};
+      // std::array<double_t, 101> alphaHigh_array = {100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5};
+      // std::array<double_t, 101> alphaLow_array = {0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100};
       // std::array<double_t, 3> alphaHigh_array = {13, 15, 16};
       // std::array<double_t, 3> alphaLow_array = {7, 5, 4};
 

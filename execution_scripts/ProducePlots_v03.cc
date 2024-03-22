@@ -36,11 +36,12 @@ ToString (uint32_t value)
 
 std::string usedAlgorythm = "FB";  // "DT"/"FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices/2_ToS"/"via_FIFO_QueueDiscs/2_ToS"/"via_MultiQueues/2_ToS"/"via_MultiQueues/4_ToS"/"via_MultiQueues/5_ToS"
-std::string miceElephantProb = "0.5"; // [0.1:0.1:0.9]/ "VaryingDValues"
-std::string testAlphasPair = "6_14"; // format: alphaHigh_alphaLow or "adjustableAlphas". Alpha High/Low = [20, 19, ..., 1, 0.5] 
+std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal" 
+std::string miceElephantProb = "VaryingDValues"; // [0.1:0.1:0.9]/ "VaryingDValues"
+std::string testAlphasPair = "10_10"; // format: alphaHigh_alphaLow or "adjustableAlphas". Alpha High/Low = [20, 19, ..., 1, 0.5] 
 std::size_t numOfSubQueues = static_cast<size_t>(implementation[implementation.length() - 5] - '0');
 std::string dir = "./Trace_Plots/";
-std::string topology = "test_Alphas";  // "Line"/"Incast"/"2In2Out"/"test_Alphas"
+std::string topology = "2In2Out";  // "Line"/"Incast"/"2In2Out"/"test_Alphas"
 std::string traffic_control_type; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
 std::string trace_parameter1_type; // "netDevice_"/"queueDisc_""/"port_"
 
@@ -83,7 +84,7 @@ CreateSingle2DPlotFile(size_t portInd, size_t queueInd, std::string priority)  /
   
   std::string trace_parameter2 = "TrafficControl" + priority + "PriorityQueueThreshold_" + ToString(portInd);
   // can plot as many trace parameters as I wish
-  std::string location = dir + topology + "/" + traffic_control_type + "/" + implementation + "/" + miceElephantProb + "/" + testAlphasPair + "/";
+  std::string location = dir + topology + "/" + traffic_control_type + "/" + implementation + "/" + onOffTrafficMode + "/" + miceElephantProb + "/" + testAlphasPair + "/";
   std::string graphicsFileName = location + "port_" + ToString(portInd) + "_queue_" + ToString(queueInd) + "_" + priority + ".png";
   std::string plotFileName = location + "port_" + ToString(portInd) + "_queue_" + ToString(queueInd) + "_" + priority + ".plt";
 
@@ -227,7 +228,7 @@ CreateSingle2DMultiPlotFile()  // for a multiplot, with N data-sets each
   }
   
   // std::string location = dir + topology + "_Topology/" + traffic_control_type + "/" + implementation + "/";
-  std::string location = dir + topology + "/" + traffic_control_type + "/" + implementation + "/" + miceElephantProb + "/" + testAlphasPair + "/";
+  std::string location = dir + topology + "/" + traffic_control_type + "/" + implementation + "/" + onOffTrafficMode + "/" + miceElephantProb + "/" + testAlphasPair + "/";
   std::string graphicsFileName = location + "multiPlot.png";
   std::string plotFileName = location + "multiPlot.plt";
   
@@ -368,9 +369,9 @@ CreateAllPlotFiles()  // create a multiplot and all the sub plots sepperatly
 
 int main (int argc, char *argv[])
 { 
-  // CreateSingle2DPlotFile(0, 0, "High");
+  CreateSingle2DPlotFile(0, 1, "High");
   // CreateSingle2DMultiPlotFile();
-  CreateAllPlotFiles();
+  // CreateAllPlotFiles();
 
   return 0;
 }

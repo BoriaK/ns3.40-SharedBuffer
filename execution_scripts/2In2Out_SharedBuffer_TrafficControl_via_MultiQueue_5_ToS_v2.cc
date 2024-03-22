@@ -40,6 +40,7 @@
 #include <string>
 #include <list>
 #include <array>
+#include <filesystem>
 
 #include "ns3/core-module.h"
 #include "ns3/applications-module.h"
@@ -721,11 +722,12 @@ int main (int argc, char *argv[])
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  std::string dirToSave = "mkdir -p " + dir + traffic_control_type + "/" + implementation;
-  if (system (dirToSave.c_str ()) == -1)
+  // dir = "./Trace_Plots/2In2Out/";
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/";
+  if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
-    exit (1);
-  }  
+    system (("mkdir -p " + dirToSave).c_str ());
+  } 
 
   NS_LOG_INFO ("Start simulation");
   Simulator::Stop (Seconds (END_TIME + 10));
@@ -841,7 +843,7 @@ int main (int argc, char *argv[])
 
   
   // Added to create a .txt file with the summary of the tested scenario statistics
-  std::ofstream testFlowStatistics (dir + traffic_control_type + "/" + implementation + "/Statistics.txt", std::ios::out | std::ios::app);
+  std::ofstream testFlowStatistics (dirToSave + "/Statistics.txt", std::ios::out | std::ios::app);
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
@@ -865,6 +867,13 @@ int main (int argc, char *argv[])
   }
   
   testFlowStatistics.close ();
+
+  // move all the produced files to a directory based on the Alpha values
+  std::string newDir = dirToSave + onOffTrafficMode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  system (("mkdir -p " + newDir).c_str ());
+  // system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+  system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+  system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
 
   // command line needs to be in ./scratch/ inorder for the script to produce gnuplot correctly///
   // system (("gnuplot " + dir + "gnuplotScriptTcHighPriorityPacketsInQueue").c_str ());

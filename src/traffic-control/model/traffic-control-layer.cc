@@ -1184,7 +1184,7 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
     Ptr<NetDevice> ndev = device;
     std::map<Ptr<NetDevice>, NetDeviceInfo>::iterator ndi = m_netDevices.find(ndev);
 
-    if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 2)
+    if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 2)  // not sure it's still relevant
     {
         switch (mice_elephant_prob_val)
         {
@@ -1228,45 +1228,45 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
             break;
         }
     }
-    else if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 5)
+    else if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 5) // always in use in the current model
     {
         switch (mice_elephant_prob_val)
         {
         case 1:
-            alpha_h = 15;
-            alpha_l = 5;
+            alpha_h = 3;
+            alpha_l = 17;
             break;
         case 2:
-            alpha_h = 15;
-            alpha_l = 5;
+            alpha_h = 6;
+            alpha_l = 14;
             break;
         case 3:
-            alpha_h = 15;
-            alpha_l = 5;
+            alpha_h = 9;
+            alpha_l = 11;
             break;
         case 4:
+            alpha_h = 11;
+            alpha_l = 9;
+            break;
+        case 5:
             alpha_h = 15;
             alpha_l = 5;
             break;
-        case 5:
-            alpha_h = 16;
-            alpha_l = 4;
-            break;
         case 6:
-            alpha_h = 16;
-            alpha_l = 4;
+            alpha_h = 17;
+            alpha_l = 3;
             break;
         case 7:
-            alpha_h = 16;
-            alpha_l = 4;
+            alpha_h = 20;
+            alpha_l = 0.5;
             break;
         case 8:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 20;
+            alpha_l = 0.5;
             break;
         case 9:
-            alpha_h = 17;
-            alpha_l = 3;
+            alpha_h = 20;
+            alpha_l = 0.5;
             break;
         default:
             break;

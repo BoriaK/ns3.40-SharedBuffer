@@ -22,7 +22,7 @@
 
 int main ()
 {
-  std::string trafficControlType = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"/
+  std::string trafficControlType = "SharedBuffer_FB"; // "SharedBuffer_DT"/"SharedBuffer_FB"/
   bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
   std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
   // Run option:
@@ -46,6 +46,7 @@ int main ()
 
       // viaFIFO(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
       // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
+
       // viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
       viaMQueues5ToS_v2(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh, alphaLow, accumulateStats);
       break;
@@ -72,7 +73,7 @@ int main ()
     {
       // could be loaded as individual values in a loop or as an array of consecutive D values in "VaryingD" mode
       // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-      std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.8};
+      std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.7};
       ////////////////////////////
       bool VaryingD = true;
       bool adjustableAlphas = false;  // selects the optimal Alpha High/Low for each D value in VaryingD mode
@@ -103,11 +104,11 @@ int main ()
     case 4: // multiple alphas pairs & mutiple d values
     {
       // could be loaded as individual values in a loop or as an array of consecutive D values in "VaryingD" mode
-      std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-      // std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.8};
+      // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+      std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.7};
 
       ////////////////////////////
-      bool VaryingD = false;
+      bool VaryingD = true;
       // in this option adjustableAlphas is false. otherwise it would repeat the same iteration for each alpha high/low pair
       ////////////////////////////
 
@@ -141,8 +142,9 @@ int main ()
       {
         for (size_t i = 0; i < alphaHigh_array.size(); i++)
         {
-          viaMQueues2ToSVaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh_array[i], alphaLow_array[i], false, accumulateStats);
-          viaMQueues5ToSVaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh_array[i], alphaLow_array[i], false, accumulateStats);
+          // viaMQueues2ToSVaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh_array[i], alphaLow_array[i], false, accumulateStats);
+          // viaMQueues5ToSVaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh_array[i], alphaLow_array[i], false, accumulateStats);
+          viaMQueues5ToS_v2_VaryingD(trafficControlType, onOffTrafficMode, miceElephantProb_array, alphaHigh_array[i], alphaLow_array[i], false, accumulateStats);
         }
       }
       break;
@@ -151,7 +153,8 @@ int main ()
     {
       // select a specific d value:
       double_t miceElephantProb = 0.3; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets.
-      viaMQueuesPredictive2ToS ("SharedBuffer_PredictiveFB_v01", onOffTrafficMode, miceElephantProb, accumulateStats);
+      // viaMQueuesPredictive2ToS ("SharedBuffer_PredictiveFB", onOffTrafficMode, miceElephantProb, accumulateStats);
+      viaMQueuesPredictive5ToS_v2 ("SharedBuffer_PredictiveFB", onOffTrafficMode, miceElephantProb, accumulateStats);
     }
     default:
       break;

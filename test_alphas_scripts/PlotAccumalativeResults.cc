@@ -65,14 +65,18 @@ int main (int argc, char *argv[])
   std::string implementation = "MQueue_5ToS";  // "FIFO"/"MQueue_2ToS"/"MQueue_5ToS"
   std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"                                      
   // for a single plot: /////////////////////                                                  
-  std::string usedAlgorythm = "FB_VaryingDValues";  // "DT"/"FB"/"All"
+  std::string usedAlgorythm = "DT_vs_FB_0.1"; 
+  // Options: 
+  // "DT"/"FB"/"All"
   // "FB_0.1"/"FB_0.2"/"FB_0.3"/"FB_0.4"/"FB_0.5"/"FB_0.6"/"FB_0.7"/"FB_0.8"/"FB_0.9"/"FB_All_D"/"FB_VaryingDValues"
   // "DT_0.1"/"DT_0.2"/"DT_0.3"/"DT_0.4"/"DT_0.5"/"DT_0.6"/"DT_0.7"/"DT_0.8"/"DT_0.9"/"DT_All_D"
+  // "DT_vs_FB_0.1"
   // CreateSingle2DPlotFile(implementation, onOffTrafficMode, usedAlgorythm);
   ///////////////////////////////////////////
   
   // for multiple different plots:
   // std::string usedAlgorythmArray[] = {"DT_0.1","DT_0.2","DT_0.3","DT_0.4","DT_0.5","DT_0.6","DT_0.7","DT_0.8","DT_0.9","DT_All_D"};
-  std::string usedAlgorythmArray[] = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9","FB_All_D"};
+  // std::string usedAlgorythmArray[] = {"FB_0.1","FB_0.2","FB_0.3","FB_0.4","FB_0.5","FB_0.6","FB_0.7","FB_0.8","FB_0.9","FB_All_D"};
+  std::string usedAlgorythmArray[] = {"DT_vs_FB_0.1","DT_vs_FB_0.2","DT_vs_FB_0.3","DT_vs_FB_0.4","DT_vs_FB_0.5","DT_vs_FB_0.6","DT_vs_FB_0.7","DT_vs_FB_0.8","DT_vs_FB_0.9"};
   CreateMultiple2DPlotFiles(implementation, onOffTrafficMode, usedAlgorythmArray);
 }

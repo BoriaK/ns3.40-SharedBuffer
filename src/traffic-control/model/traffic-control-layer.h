@@ -333,7 +333,7 @@ class TrafficControlLayer : public Object
     QueueSize GetQueueThreshold_DT (double_t alpha, double_t alpha_h, double_t alpha_l);
 
     /**
-     * \brief Get the queueing limit of the current queue for each priority alpha, for FB Algorithm. v2 excepts Np(t) as an external variable
+     * \brief Get the queueing limit of the current queue for each priority alpha, for FB Algorithm.
      * \param alpha the alpha parameter relevant to the current arriving packet
      * \param alpha_h the pre-determined hyperparameter alpha High
      * \param alpha_l the pre-determined hyperparameter alpha Low
@@ -343,16 +343,6 @@ class TrafficControlLayer : public Object
      */
     QueueSize GetQueueThreshold_FB (double_t alpha, double_t alpha_h, double_t alpha_l, int conjestedQueues, float gamma_i);
 
-    // /**
-    //  * \brief Get the queueing limit of the current queue for each priority alpha, for FB Algorithm. v2 excepts Np(t) as an external variable
-    //  * \param queue_priority the priority of the queue that's currently being checked
-    //  * \param alpha_h the pre-determined hyperparameter alpha High
-    //  * \param alpha_l the pre-determined hyperparameter alpha Low
-    //  * \param conjestedQueues
-    //  * \param gamma_i the normalized dequeue rate on port i
-    //  * \returns the maximum number of packets allowed in the queue.
-    //  */
-    // QueueSize GetQueueThreshold_Predictive_FB_v1 (uint32_t queue_priority, double_t alpha_h, double_t alpha_l, int conjestedQueues, float gamma_i);
 
     /**
      * \brief Get the current number of High Priority Packets in the net-device (port) queue that the current packet is sent to, 
@@ -400,7 +390,7 @@ class TrafficControlLayer : public Object
      *        so the actual gamma_i_c(t) is calculated as: 1/current number of non empty queues of priority p (high/low) on the port.
      * \returns the normalized dequeue rate of queue_i_c(t).
      */
-    float_t GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uint8_t flow_riority, uint16_t queueIndex);
+    float_t GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uint8_t flow_riority, uint16_t portIndex, uint16_t queueIndex);
 
     /**
      * \brief Iterate over all queues and aggrigate the total number of packets enqueued by all of them till this point,
@@ -449,7 +439,6 @@ class TrafficControlLayer : public Object
      * \returns return the new alpha_high and alpha_low value based on the optimization done prior.
      */
     std::pair<double_t, double_t> GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_elephant_prob_val);
-    // double_t GetNewAlphaHighAndLow(uint32_t mice_elephant_prob_val, uint32_t queue_priority);
   //////////////////////////////////////////////////////////////////////////////
     /**
      * \brief Perform the actions required when the queue disc is notified of
@@ -523,8 +512,9 @@ class TrafficControlLayer : public Object
     float_t m_numConjestedQueuesLow;  //!< number of queues that are conjested at current time instance
     float_t numOfClasses;  //!< total number of classes. for now it's only High Priority/ Low Priority
     // Flow Classification Parameters
+    double_t m_Num_M_High;  //!< the number of OnOff machines that generate High Priority traffic
     MiceElephantProbabilityTag miceElephantProbTag;  //!< a Tag that represents the mice/elephant probability assigned to the flow by the user
-    double_t m_miceElephantProbVal;  //!< the actual d value of the flow that was assigned at the OnOff application
+    double_t m_miceElephantProbValFromTag;  //!< the d value of the flow that was assigned at the OnOff application
     SharedPriorityTag flowPrioTag;    //< a tag that's added to each sent packet based on the priority assigned by the Sender application
     uint8_t m_flow_priority;   //< Flow priority assigned to each recieved packet, based on the flow priority assigned by sender
     // to collect statistics at the end of the flow

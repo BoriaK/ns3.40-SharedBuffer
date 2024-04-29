@@ -1,0 +1,48 @@
+Topology: 2In2Out
+Queueing Algorithm: SharedBuffer_DT
+Implementation Method: via_MultiQueues/5_ToS
+Used D value: 0.7
+Alpha High = 9 Alpha Low = 11
+Traffic Duration: 2 [Sec]
+Application: prioOnOff
+traffic Mode UniformRandom
+
+*** Flow monitor statistics ***
+  Tx Packets/Bytes:   3944 / 4149088
+  Rx Packets/Bytes:   3651 / 3840852
+  Packets/Bytes Dropped by Queue Disc:   0 / 0
+  Packets/Bytes Dropped by NetDevice:   0 / 0
+  Throughput: 5.19899 Mbps
+
+*** TC Layer statistics ***
+
+Packets/Bytes dropped by Traffic Control Layer: 293 / 308236
+High Priority Packets/Bytes dropped by Traffic Control Layer: 231 / 243012
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 62 / 65224
+
+
+*** QueueDisc Layer statistics ***
+Queue Disceplene 0:
+
+Packets/Bytes received: 1810 / 1904120
+Packets/Bytes enqueued: 1810 / 1904120
+Packets/Bytes dequeued: 1810 / 1904120
+Packets/Bytes requeued: 0 / 0
+Packets/Bytes dropped: 0 / 0
+Packets/Bytes dropped before enqueue: 0 / 0
+Packets/Bytes dropped after dequeue: 0 / 0
+Packets/Bytes sent: 1810 / 1904120
+Packets/Bytes marked: 0 / 0
+
+Queue Disceplene 1:
+
+Packets/Bytes received: 1841 / 1936732
+Packets/Bytes enqueued: 1841 / 1936732
+Packets/Bytes dequeued: 1841 / 1936732
+Packets/Bytes requeued: 0 / 0
+Packets/Bytes dropped: 0 / 0
+Packets/Bytes dropped before enqueue: 0 / 0
+Packets/Bytes dropped after dequeue: 0 / 0
+Packets/Bytes sent: 1841 / 1936732
+Packets/Bytes marked: 0 / 0
+

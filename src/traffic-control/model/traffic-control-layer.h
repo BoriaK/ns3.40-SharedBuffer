@@ -45,7 +45,110 @@ class NetDeviceQueueInterface;
 
 /// Priority map
 typedef std::array<uint16_t, 16> TcPriomap;
+//////////////////////////////////////////////////////////////////////////////////
+// Custom data structure to store var1 and var2 for each time
+struct DataPoint 
+{
+double time;
+double var1;
+double var2;
+double var3;
+};
 
+class DataSet 
+{
+  public:
+    void LoadData(const std::string& filename) 
+    {
+      std::ifstream file(filename);
+      std::string line;
+      while (std::getline(file, line)) 
+      {
+        std::istringstream iss(line);
+        DataPoint data;
+
+        // Parse time
+        std::string timeStr;
+        iss >> timeStr;
+        timeStr.erase(std::remove_if(timeStr.begin(), timeStr.end(), [](char c) { return !isdigit(c) && c != '.' && c != 'e' && c != 'E' && c != '-'; }), timeStr.end());
+        std::istringstream timeIss(timeStr);
+        timeIss >> data.time;
+
+        // Parse var1 and var2
+        iss >> data.var1 >> data.var2 >> data.var3;
+
+        m_data.push_back(data);
+      }
+      file.close();
+    }
+
+    // Method to load the first row
+    DataPoint GetFirstRow() const 
+    {
+      if (!m_data.empty()) 
+      {
+        return m_data.front();
+      } 
+      else 
+      {
+        // Return a default DataPoint if the dataset is empty
+        return {0.0, 0.0, 0.0, 0.0};
+      }
+    }
+
+    // // Method to retrieve the row corresponding to a specific time
+    // DataPoint GetRow(double time) const 
+    // {
+    //   auto it = std::find_if(m_data.begin(), m_data.end(), [time](const DataPoint& dp) 
+    //   {
+    //     return dp.time == time;
+    //   });
+
+    //   if (it != m_data.end()) 
+    //   {
+    //     return *it;
+    //   } 
+    //   else 
+    //   {
+    //     // Return a default DataPoint if time is not found
+    //     return {0.0, 0.0, 0.0, 0.0};
+    //   }
+    // }
+
+    DataPoint GetRow(double time) const 
+    {
+      if (m_data.empty()) 
+      {
+          return {0.0, 0.0, 0.0}; // Return default if dataset is empty
+      }
+
+      // Find the closest time stamp
+      auto it = std::min_element(m_data.begin(), m_data.end(), [time](const DataPoint& dp1, const DataPoint& dp2) {
+          return std::abs(dp1.time - time) < std::abs(dp2.time - time);
+      });
+
+      return *it;
+    }
+
+
+    // Method to load the last row
+    DataPoint GetLastRow() const 
+    {
+      if (!m_data.empty()) 
+      {
+        return m_data.back();
+      } 
+      else 
+      {
+        // Return a default DataPoint if the dataset is empty
+        return {0.0, 0.0, 0.0, 0.0};
+      }
+    }
+
+private:
+    std::vector<DataPoint> m_data;
+};
+///////////////////////////////////////////////////////////////////////////////////////
 /**
  * \defgroup traffic-control Traffic Control model
  */
@@ -406,21 +509,6 @@ class TrafficControlLayer : public Object
     QueueSize GetNumOfTotalEnqueuedPriorityPacketsinQueues(uint32_t queue_priority);
 
     /**
-     * \brief calculate the total number of packets arriving to Shared Buffer,
-     * during the time interval t: t+Tau.
-     * \returns the total number of arriving packets.
-     */
-    double_t GetNumOfArrivingPackets();
-
-    /**
-     * \brief calculate the number of packets of priority P, arriving to Shared Buffer
-     * during the time interval t: t+Tau.
-     * \param queue_priority the priority of the queue that's currently being checked
-     * \returns the total number of arriving packets.
-     */
-    double_t GetNumOfArrivingPriorityPackets(uint32_t queue_priority);
-
-    /**
      * \brief round some double to one decimal point precission.
      * \returns the 1 decimal precission value of num.
      */
@@ -492,18 +580,15 @@ class TrafficControlLayer : public Object
     uint8_t m_nonEmpty; //!< number of non empty queues on each port.
     // Predictive queue disc parameters:
     double_t m_predicted_mice_elephant_prob;  //!< the predicted d value of the upcomming traffic returned by the function
+    double_t m_estimated_mice_elephant_prob;  //!< the estimated d value of the traffic returned by the function
     double_t predictedMiceElephantProbVal;  //!< the predicted d value of the upcomming traffic
     uint32_t totalEnqueuedPacketsInQueueCounter = 0;
     uint32_t totalEnqueuedBytesInQueueCounter = 0;
-    double_t m_predictedArrivingTraffic; //!< the total predicted number of packets arriving to shared buffer in time interval t: t+Tau
-    double_t m_predictedArrivingPriorityTraffic; //!< the predicted number of user defined Priority packets arriving to shared buffer in time interval t: t+Tau
+    double_t m_predictedArrivingTraffic; //!< the total predicted number of packets arriving to shared buffer in time interval t - Tau/2: t + Tau/2
+    double_t m_predictedArrivingHighPriorityTraffic; //!< the predicted number of user defined Priority packets arriving to shared buffer in time interval t - Tau/2: t + Tau/2
     double_t m_nTotalEnqueuedPacketsInSharedBuffer; //!< the total number of packets enqueued on shared buffer from the beginning of the simulation
-    // double_t predictedPacketsInSharedBuffer; //!< the predicted number of packets in shared buffer in time t+Tau
-    // double_t predictedHighPriorityPacketsInSharedBuffer; //!< the predicted number of High Priority packets in shared buffer in time t+Tau
-    // double_t predictedLowPriorityPacketsInSharedBuffer; //!< the predicted number of Low Priority packets in shared buffer in time t+Tau
-    double_t predictedPacketsDroppedBySharedBuffer; //!< the predicted number of packets Lost in shared buffer in time t+Tau
-    double_t predictedHighPriorityPacketsDroppedBySharedBuffer; //!< the predicted number of High Priority packets Lost in shared buffer in time t+Tau
-    double_t predictedLowPriorityPacketsDroppedBySharedBuffer; //!< the predicted number of Low Priority packets Lost in shared buffer in time t+Tau
+    double_t m_passedTraffic; //!< the total number of packets passed through shared buffer during time interval t-Tau: t
+    double_t m_passedPriorityTraffic; //!< the total number of user defined Priority packets passed through shared buffer in time interval t-Tau: t
     // uint8_t queue_priority;   //< the priority of the queue that's currently being checked
     uint32_t m_nConjestedQueues;   //!< number of queues that are conjested at current time instance
     uint32_t m_nConjestedQueues_p;   //!< number of queues of priority p that are conjested at current time instance
@@ -512,6 +597,7 @@ class TrafficControlLayer : public Object
     float_t m_numConjestedQueuesLow;  //!< number of queues that are conjested at current time instance
     float_t numOfClasses;  //!< total number of classes. for now it's only High Priority/ Low Priority
     // Flow Classification Parameters
+    double_t m_Tau; //!< the length of the winddow in time to monitor incoming traffic, to estimate local d 
     double_t m_Num_M_High;  //!< the number of OnOff machines that generate High Priority traffic
     MiceElephantProbabilityTag miceElephantProbTag;  //!< a Tag that represents the mice/elephant probability assigned to the flow by the user
     double_t m_miceElephantProbValFromTag;  //!< the d value of the flow that was assigned at the OnOff application

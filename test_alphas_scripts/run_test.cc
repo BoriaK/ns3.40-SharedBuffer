@@ -22,17 +22,18 @@
 
 int main ()
 {
-  std::string trafficControlType = "SharedBuffer_FB"; // "SharedBuffer_DT"/"SharedBuffer_FB"/
-  bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
+  std::string trafficControlType = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"/
+  bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
   std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
   // Run option:
   // (1) single d & alphas pair value
   // (2) single d, multiple alphas pairs
   // (3) mutiple d values, single alphas pair
   // (4) mutiple d values & multiple alphas pairs
-  // (5) single/multiple D values. Alphas are determined by Predictive Model
+  // (5) single D value. Alphas are determined by Predictive Model
+  // (6) multiple D values. Alphas are determined by Predictive Model
 
-  int runOption = 3; // [1, 2, 3, 4, 5]
+  int runOption = 6; // [1, 2, 3, 4, 5, 6]
   switch (runOption)
   {
     case 1: // single d & alphas pair value
@@ -76,7 +77,7 @@ int main ()
       std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.7};
       ////////////////////////////
       bool VaryingD = true;
-      bool adjustableAlphas = false;  // selects the optimal Alpha High/Low for each D value in VaryingD mode
+      bool adjustableAlphas = true;  // selects the optimal Alpha High/Low for each D value in VaryingD mode
       ////////////////////////////
       // select a specific alpha high/low value:
       double_t alphaHigh = 17;
@@ -104,11 +105,11 @@ int main ()
     case 4: // multiple alphas pairs & mutiple d values
     {
       // could be loaded as individual values in a loop or as an array of consecutive D values in "VaryingD" mode
-      // std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-      std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.7};
+      std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+      // std::double_t miceElephantProb_array[] = {0.2, 0.5, 0.7};
 
       ////////////////////////////
-      bool VaryingD = true;
+      bool VaryingD = false;
       // in this option adjustableAlphas is false. otherwise it would repeat the same iteration for each alpha high/low pair
       ////////////////////////////
 
@@ -149,12 +150,26 @@ int main ()
       }
       break;
     }
-    case 5:  // single/multiple D values. Alphas are determined by Predictive Model
+    case 5:  // single D value. Alphas are determined by Predictive Model
     {
       // select a specific d value:
       double_t miceElephantProb = 0.3; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets.
       // viaMQueuesPredictive2ToS ("SharedBuffer_PredictiveFB", onOffTrafficMode, miceElephantProb, accumulateStats);
-      viaMQueuesPredictive5ToS_v2 ("SharedBuffer_PredictiveFB", onOffTrafficMode, miceElephantProb, accumulateStats);
+      viaMQueuesPredictive5ToS_v2 ("SharedBuffer_PredictiveDT", onOffTrafficMode, miceElephantProb, accumulateStats);
+      break;
+    }
+    case 6:  // multiple D values. Alphas are determined by Predictive Model
+    {
+      // select a specific d value:
+      std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+      // Calculate the number of elements in the array
+      std::size_t arrayLength = sizeof(miceElephantProb_array) / sizeof(miceElephantProb_array[0]);
+      for (size_t i = 0; i < arrayLength; i++)  // iterate over all the d values in the array
+      {
+        // viaMQueuesPredictive2ToS ("SharedBuffer_PredictiveFB", onOffTrafficMode, miceElephantProb, accumulateStats);
+        viaMQueuesPredictive5ToS_v2 ("SharedBuffer_PredictiveDT", onOffTrafficMode, miceElephantProb_array[i], accumulateStats);
+      }
+      break;
     }
     default:
       break;

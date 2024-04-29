@@ -1,5 +1,5 @@
 set terminal png
-set output "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB_v01/via_MultiQueues/5_ToS/Constant/FB_0.2_TestAccumulativeStatistics.png"
+set output "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB/via_MultiQueues/5_ToS/Constant/FB_0.2_TestAccumulativeStatistics.png"
 # set title "total packets dropped"
 set xlabel "Alpha High/Low"
 set ylabel "Dropped Packets"
@@ -12,9 +12,9 @@ set multiplot
 
 set xtics 1  # This sets the distance between xtics to 1
 
-plot "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB_v01/via_MultiQueues/5_ToS/Constant/0.2/FB_TestAccumulativeStatistics.dat" using 0:2:xticlabels(1) with linespoints title "Total Packets Dropped", \
-     "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB_v01/via_MultiQueues/5_ToS/Constant/0.2/FB_TestAccumulativeStatistics.dat" using 0:3:xticlabels(1) with linespoints title "High Priority Packets Dropped", \
-     "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB_v01/via_MultiQueues/5_ToS/Constant/0.2/FB_TestAccumulativeStatistics.dat" using 0:4:xticlabels(1) with linespoints title "Low Priority Packets Dropped", \
+plot "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB/via_MultiQueues/5_ToS/Constant/0.2/FB_TestAccumulativeStatistics.dat" using 0:2:xticlabels(1) with linespoints title "Total Packets Dropped", \
+     "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB/via_MultiQueues/5_ToS/Constant/0.2/FB_TestAccumulativeStatistics.dat" using 0:3:xticlabels(1) with linespoints title "High Priority Packets Dropped", \
+     "./Trace_Plots/test_Alphas/TestStats/SharedBuffer_FB/via_MultiQueues/5_ToS/Constant/0.2/FB_TestAccumulativeStatistics.dat" using 0:4:xticlabels(1) with linespoints title "Low Priority Packets Dropped", \
 
 # Set legend properties
 set key autotitle columnheader  # Use the column header as legend title

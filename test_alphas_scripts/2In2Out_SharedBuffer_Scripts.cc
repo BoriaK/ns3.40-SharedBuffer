@@ -4172,6 +4172,11 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
             {
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
+              // test:
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTimeMax) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTimeMax) +"]"));
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) + "]"));
             }
             else 
             {
@@ -4196,6 +4201,11 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
             {
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
+              // test:
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTimeMax) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTimeMax) +"]"));
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) + "]"));
             }
             else 
             {
@@ -4223,6 +4233,11 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
             {
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
+              // test:
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTimeMax) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTimeMax) +"]"));
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) + "]"));
             }
             else 
             {
@@ -4247,6 +4262,11 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
             {
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
+              // test:
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTimeMax) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTimeMax) +"]"));
+              // clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "]"));
+              // clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) + "]"));
             }
             else 
             {
@@ -6057,6 +6077,11 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   std::string socketType;
   std::string queue_capacity;
   bool eraseOldData = true; // true/false
+  
+  // for local d estimatiuon
+  // Tau = 50 [msec]. start predictive model at t0 - Tau
+  double_t tau = 0.05;
+
   if (traffic_control_type.compare("SharedBuffer_DT") == 0)
   {
     usedAlgorythm = "DT";
@@ -6068,6 +6093,10 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   else if (traffic_control_type.compare("SharedBuffer_PredictiveFB") == 0)
   {
       usedAlgorythm = "PredictiveFB";
+  }
+  else if (traffic_control_type.compare("SharedBuffer_PredictiveDT") == 0)
+  {
+      usedAlgorythm = "PredictiveDT";
   }
 
   NS_LOG_INFO ("Config parameters");
@@ -6243,6 +6272,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
+  tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(tau));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
   tc->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPacketsInSharedQueueTrace));
@@ -6515,8 +6545,10 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
 
               // for Predictive model
-              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
-              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
+              // clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
+              // clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(elephantOffTime) +"]"));
             }
             else if (onoff_traffic_mode.compare("Uniform") == 0)
             {
@@ -6524,8 +6556,10 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
 
               // for Predictive model
-              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
-              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
+              // clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
+              // clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(elephantOnTimeMax) +"]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
             }
             else if (onoff_traffic_mode.compare("Normal") == 0)
             {
@@ -6533,8 +6567,10 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
 
               // for Predictive model
-              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
-              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
+              // clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+              // clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
             }
             else 
             {
@@ -6594,8 +6630,8 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
 
               // for Predictive model
-              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
-              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(elephantOffTime) +"]"));
             }
             else if (onoff_traffic_mode.compare("Uniform") == 0)
             {
@@ -6603,8 +6639,8 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
 
               // for Predictive model
-              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
-              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(elephantOnTimeMax) +"]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
             }
             else if (onoff_traffic_mode.compare("Normal") == 0)
             {
@@ -6612,8 +6648,8 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
 
               // for Predictive model
-              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
-              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
+              clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
             }
             else 
             {
@@ -6667,10 +6703,9 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   // double_t trafficGenDuration = 2; // for a single OnOff segment
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
-  // Tau = 100 [msec]. start predictive model at t0 - Tau
-  double_t tau = 0.1;
-  sourceAppsPredict.Start (Seconds (1.0 - tau));
-  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - tau));
+
+  sourceAppsPredict.Start (Seconds (1.0 - tau/2));
+  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - tau/2));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -6715,13 +6750,15 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   uint64_t statTxBytes = 0;
   uint32_t statRxPackets = 0; 
   uint64_t statRxBytes = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++)
-  // stats indexing needs to start from 1
+  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
   {
-    statTxPackets = statTxPackets + flowStats[i].txPackets;
-    statTxBytes = statTxBytes + flowStats[i].txBytes;
-    statRxPackets = statRxPackets + flowStats[i].rxPackets;
-    statRxBytes = statRxBytes + flowStats[i].rxBytes;
+    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
+    {
+      statTxPackets = statTxPackets + flowStats[i].txPackets;
+      statTxBytes = statTxBytes + flowStats[i].txBytes;
+      statRxPackets = statRxPackets + flowStats[i].rxPackets;
+      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+    }
   }
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
@@ -6731,13 +6768,15 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
 
   uint32_t packetsDroppedByQueueDisc = 0;
   uint64_t bytesDroppedByQueueDisc = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++)
-  // stats indexing needs to start from 1
+  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
   {
-    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
     {
-      packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-      bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+      {
+        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+      }
     }
   }
   std::cout << "  Packets/Bytes Dropped by Queue Disc:   " << packetsDroppedByQueueDisc
@@ -6745,42 +6784,52 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   
   uint32_t packetsDroppedByNetDevice = 0;
   uint64_t bytesDroppedByNetDevice = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++)
-  // stats indexing needs to start from 1
+  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
   {
-    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
     {
-      packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-      bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+      {
+        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+      }
     }
   }
   std::cout << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
               << " / " << bytesDroppedByNetDevice << std::endl;
   
   double TpT = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++)
-  // stats indexing needs to start from 1
+  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
   {
-    TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
+    {
+      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+    }
   }
   std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
                                   
   double AVGDelaySum = 0;
   double AVGDelay = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++)
+  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
   {
+    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
+    {
     AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+    }
   }
-  AVGDelay = AVGDelaySum / flowStats.size();
+  AVGDelay = AVGDelaySum / (flowStats.size()/2);
   std::cout << "  Mean delay:   " << AVGDelay << std::endl;
   
   double AVGJitterSum = 0;
   double AVGJitter = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++)
+  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
   {
+    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
+    {
     AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
+    }
   }
-  AVGJitter = AVGJitterSum / flowStats.size();
+  AVGJitter = AVGJitterSum / (flowStats.size()/2);
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
 
   // Simulator::Destroy ();

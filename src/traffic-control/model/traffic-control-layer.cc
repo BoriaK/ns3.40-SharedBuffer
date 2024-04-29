@@ -95,6 +95,11 @@ TrafficControlLayer::GetTypeId()
                           BooleanValue(false),
                           MakeBooleanAccessor(&TrafficControlLayer::m_adjustableAlphas),
                           MakeBooleanChecker())
+            .AddAttribute("TrafficEstimationWindowLength",
+                        "The length of the window to monitor incomming (passed and future) traffic to estimate local d value",
+                        DoubleValue(0.2),
+                        MakeDoubleAccessor(&TrafficControlLayer::m_Tau),
+                        MakeDoubleChecker<double_t>())
             .AddAttribute(
                 "TrafficControllAlgorythm",
                 "The Traffic Controll Algorythm to use inorder to manage traffic in Shared Buffer",
@@ -1114,67 +1119,6 @@ TrafficControlLayer::GetNumOfTotalEnqueuedPacketsinQueues()
     NS_ABORT_MSG("Unknown queue size unit");
 }
 
-double_t
-TrafficControlLayer::GetNumOfArrivingPackets()
-{
-    // the total number of packets arriving to Shared Buffer during the time window t + Tau - t:
-
-    // retrieve the total number of lost packets of priority P in shared buffer by time t+Tau from a
-    // saved file:
-    std::ifstream inputFile("Predictive_Packets_Dropped_by_SharedBuffer.dat");
-    // double packetsLostInSharedBuffer, highPriorityPacketsLostInSharedBuffer,
-    // lowPriorityPacketsLostInSharedBuffer;
-    inputFile >> predictedPacketsDroppedBySharedBuffer >>
-        predictedHighPriorityPacketsDroppedBySharedBuffer >>
-        predictedLowPriorityPacketsDroppedBySharedBuffer; // Read the values sequentially from the file
-    inputFile.close();
-
-    m_predictedArrivingTraffic = 0;
-    
-    m_predictedArrivingTraffic = predictedPacketsDroppedBySharedBuffer - m_stats.nTotalDroppedPackets - GetNumOfTotalEnqueuedPacketsinQueues().GetValue();
-    
-    // for debug:
-    // std::cout << "Predicted packets dropped by shared buffer: " << predictedPacketsDroppedBySharedBuffer << std::endl;
-    // std::cout << "current Total Dropped Packets: " << m_stats.nTotalDroppedPackets << std::endl;
-    // std::cout << "current Total enqueued Packets: " << GetNumOfTotalEnqueuedPacketsinQueues().GetValue() << std::endl;
-    
-    return m_predictedArrivingTraffic;
-}
-
-double_t
-TrafficControlLayer::GetNumOfArrivingPriorityPackets(uint32_t queue_priority)
-{
-    // the number of packets of priority P arriving to Shared Buffer during the time window t: t + Tau:
-    // m_stats.nTotalDroppedPackets;
-    // m_stats.nTotalDroppedPacketsHighPriority;
-    // m_stats.nTotalDroppedPacketsLowPriority;
-
-    // retrieve the total number of lost packets of priority P in shared buffer by time t+Tau from a
-    // saved file:
-    std::ifstream inputFile("Predictive_Packets_Dropped_by_SharedBuffer.dat");
-    // double packetsLostInSharedBuffer, highPriorityPacketsLostInSharedBuffer,
-    // lowPriorityPacketsLostInSharedBuffer;
-    inputFile >> predictedPacketsDroppedBySharedBuffer >>
-        predictedHighPriorityPacketsDroppedBySharedBuffer >>
-        predictedLowPriorityPacketsDroppedBySharedBuffer; // Read the values sequentially from the file
-    inputFile.close();
-
-    m_predictedArrivingPriorityTraffic = 0;
-
-    if (queue_priority == 1) // 1 is high priority
-    {
-        m_predictedArrivingPriorityTraffic = predictedHighPriorityPacketsDroppedBySharedBuffer -
-        m_stats.nTotalDroppedPacketsHighPriority - GetNumOfTotalEnqueuedPriorityPacketsinQueues(queue_priority).GetValue();
-    }
-    else if (queue_priority == 2) // 2 is low priority
-    {
-        m_predictedArrivingPriorityTraffic = predictedLowPriorityPacketsDroppedBySharedBuffer -
-        m_stats.nTotalDroppedPacketsLowPriority - GetNumOfTotalEnqueuedPriorityPacketsinQueues(queue_priority).GetValue();
-    }
-
-    return m_predictedArrivingPriorityTraffic;
-}
-
 double_t 
 TrafficControlLayer::roundToOneDecimal(double_t num) 
 {
@@ -1185,15 +1129,47 @@ TrafficControlLayer::roundToOneDecimal(double_t num)
 double_t
 TrafficControlLayer::CalculateNewLocalD()
 {
-    // we calculate the new d value (muse/elephant probability) as the predicted number of High Priority packets devided by the total number of prediced packets
-    m_predicted_mice_elephant_prob = 0;
-    m_predicted_mice_elephant_prob = roundToOneDecimal(GetNumOfArrivingPriorityPackets(1) / GetNumOfArrivingPackets());
+    // we calculate the new d value (mouse/elephant probability) as 
+    m_estimated_mice_elephant_prob = 0;
 
-    std::cout << "the new predictive d value is: " << m_predicted_mice_elephant_prob << std::endl;
-    // for check:
-    // std::cout << "complimentary elephant/mouse probability is: " << roundToOneDecimal(GetNumOfArrivingPriorityPackets(2) / GetNumOfArrivingPackets()) << std::endl;
+    DataSet dataset;
+    dataset.LoadData("List_Predictive_Packets_Dropped_by_SharedBuffer.dat");
+
+    DataPoint lastRow = dataset.GetLastRow();
+    DataPoint rowData = {0.0, 0.0, 0.0, 0.0}; // initilize rowData to zeros before filling it with the actual data
+    if ((lastRow.time - (1 + m_Tau)*1e+9) > 0)
+    {
+        double windowStartTime = lastRow.time - m_Tau*1e+9;
+        rowData = dataset.GetRow(windowStartTime);
+    }
+    else
+    {
+        rowData = dataset.GetFirstRow();
+    }
+
+    // for debug:
+    std::cout << "Window start time: " << rowData.time << std::endl;
+    std::cout << "Total sum of packets: " << rowData.var1 << std::endl;
+    std::cout << "Sum of high priority packets: " << rowData.var2 << std::endl;
+    std::cout << "Sum of low priority packets: " << rowData.var3 << std::endl;
+
+    std::cout << "Window end time: " << lastRow.time << std::endl;
+    std::cout << "Total sum of packets: " << lastRow.var1 << std::endl;
+    std::cout << "Sum of high priority packets " << lastRow.var2 << std::endl;
+    std::cout << "Sum of low priority packets: " << lastRow.var3 << std::endl;
+
+    m_predictedArrivingTraffic = lastRow.var1 - rowData.var1;
+    m_predictedArrivingHighPriorityTraffic = lastRow.var2 - rowData.var2;
+
+    m_estimated_mice_elephant_prob = roundToOneDecimal(m_predictedArrivingHighPriorityTraffic / m_predictedArrivingTraffic);
+
+    std::cout << "the new predictive d value is: " << m_estimated_mice_elephant_prob << std::endl;
     
-    return m_predicted_mice_elephant_prob;
+    // for debug, save a list of all the estimated d values to a file
+    std::ofstream estimatedDValuesOutputFile("Estimated_D_Values.dat", std::ios::app); 
+                estimatedDValuesOutputFile << m_estimated_mice_elephant_prob << std::endl;
+                estimatedDValuesOutputFile.close();
+    return m_estimated_mice_elephant_prob;
 }
 
 std::pair<double_t, double_t>
@@ -1208,7 +1184,103 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
 
     if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 5) // always in use in the current model
     {
-        if (m_usedAlgorythm.compare("PredictiveFB") == 0)
+        if (m_usedAlgorythm.compare("PredictiveDT") == 0 || m_usedAlgorythm.compare("DT") == 0)
+        {
+            switch (mice_elephant_prob_val)
+            {
+            case 1:
+                alpha_h = 11;
+                alpha_l = 9;
+                break;
+            case 2:
+                alpha_h = 11;
+                alpha_l = 9;
+                break;
+            case 3:
+                alpha_h = 13;
+                alpha_l = 7;
+                break;
+            case 4:
+                alpha_h = 17;
+                alpha_l = 3;
+                break;
+            case 5:
+                alpha_h = 18;
+                alpha_l = 2;
+                break;
+            case 6:
+                alpha_h = 19;
+                alpha_l = 1;
+                break;
+            case 7:
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            case 8:
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            case 9:
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            case 10:  // saturated
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            default:
+                break;
+            }
+        }
+        else if (m_usedAlgorythm.compare("PredictiveFB") == 0 || m_usedAlgorythm.compare("FB") == 0)
+        {
+            switch (mice_elephant_prob_val)
+            {
+            case 1:
+                alpha_h = 1;
+                alpha_l = 19;
+                break;
+            case 2:
+                alpha_h = 2;
+                alpha_l = 18;
+                break;
+            case 3:
+                alpha_h = 6;
+                alpha_l = 14;
+                break;
+            case 4:
+                alpha_h = 9;
+                alpha_l = 11;
+                break;
+            case 5:
+                alpha_h = 15;
+                alpha_l = 5;
+                break;
+            case 6:
+                alpha_h = 18;
+                alpha_l = 2;
+                break;
+            case 7:
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            case 8:
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            case 9:
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            case 10:  // saturated
+                alpha_h = 20;
+                alpha_l = 0.5;
+                break;
+            default:
+                break;
+            }
+        }
+        else if (m_usedAlgorythm.compare("PredictiveFB_v1") == 0) // currently not in use
         {
             switch (mice_elephant_prob_val)
             {
@@ -1252,10 +1324,6 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
                 break;
             }
         }
-        else if (m_usedAlgorythm.compare("PredictiveDT") == 0)
-        {
-            // to be added
-        }
     }
 
     return std::make_pair(alpha_h, alpha_l);
@@ -1265,6 +1333,12 @@ void
 TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
 {
     NS_LOG_FUNCTION(this << item);
+
+    // delete the list of predicted traffic from previous runs
+    if (m_stats.nTotalDroppedPackets == 0)
+    {
+        std::remove("List_Predictive_Packets_Dropped_by_SharedBuffer.dat");
+    }
 
     m_stats.nTotalDroppedPackets++;
     m_stats.nTotalDroppedBytes += item->GetSize();
@@ -1290,13 +1364,14 @@ TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
     // std::cout << "Node Name is: " << nodeName << std::endl;
     if (nodeName.compare("RouterPredict") == 0)
     {
-        // for Predictive model store values in a .dat file:
-        std::ofstream outputFile("Predictive_Packets_Dropped_by_SharedBuffer.dat",
-                                 std::ios::out); // Replace with your desired file path
-        outputFile << m_stats.nTotalDroppedPackets << std::endl;
-        outputFile << m_stats.nTotalDroppedPacketsHighPriority << std::endl;
-        outputFile << m_stats.nTotalDroppedPacketsLowPriority << std::endl;
-        outputFile.close();
+        // create a list of time-stamped sums of dropped Predicted Packets
+        std::ofstream listPredictedPacketsDroppedFile("List_Predictive_Packets_Dropped_by_SharedBuffer.dat",
+                                 std::ios::app);
+        listPredictedPacketsDroppedFile << Simulator::Now () << " "; 
+        listPredictedPacketsDroppedFile << m_stats.nTotalDroppedPackets << " ";
+        listPredictedPacketsDroppedFile << m_stats.nTotalDroppedPacketsHighPriority << " ";
+        listPredictedPacketsDroppedFile << m_stats.nTotalDroppedPacketsLowPriority << std::endl;
+        listPredictedPacketsDroppedFile.close();
     }
 
     NS_LOG_DEBUG("Total High Priority packets/bytes dropped by Traffic Controll Layer: "
@@ -1639,8 +1714,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     }
 
                     // for debug:
-                    std::cout << "d value assigned by OnOff Application is: "
-                              << item->GetPacket()->PeekPacketTag(miceElephantProbTag) << std::endl;
+                    // std::cout << "d value assigned by OnOff Application is: "
+                    //           << item->GetPacket()->PeekPacketTag(miceElephantProbTag) << std::endl;
 
                     // perform enqueueing process based on incoming flow priority
                     if (m_flow_priority == 1)
@@ -1894,21 +1969,12 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
             std::cout << "Node Name is: " << nodeName << std::endl;
             if (nodeName.compare("RouterPredict") == 0)
             {
-                // for Predictive model store values in a .dat file:
-                std::ofstream outputFile("Predictive_Packets_In_SharedBuffer.dat",
-                                            std::ios::out); // Replace with your desired file path
-                outputFile << m_traceSharedBufferPackets.Get() << std::endl;
-                outputFile << m_nPackets_trace_High_InSharedQueue.Get() << std::endl;
-                outputFile << m_nPackets_trace_Low_InSharedQueue.Get() << std::endl;
-                outputFile.close();
-
                 // for OnOff times DEBUG, log each packet arrival time in a sepparate file:
-                // std::ofstream packetArrivalTimesOutputFile("Predictive_Packet_Arrival_Times.dat",
-                //                             std::ios::app); // Replace with your desired file path
+                // std::ofstream packetArrivalTimesOutputFile("Predictive_Packet_Arrival_Times.dat", std::ios::app); 
                 // packetArrivalTimesOutputFile << Simulator::Now () << std::endl;
                 // packetArrivalTimesOutputFile.close();
 
-                DropBeforeEnqueue(item);
+                DropBeforeEnqueue(item); // all Predictive packets are logged in the DropBeforeEnque function
             }
             else if (nodeName.find("Router") == 0)
             {
@@ -1917,7 +1983,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 //                             std::ios::app); // Replace with your desired file path
                 // packetArrivalTimesOutputFile << Simulator::Now () - Seconds(0.2) << std::endl;  // normalize arriving packet times to be at t-Tau
                 // packetArrivalTimesOutputFile.close();
-                
+
                 std::cout << "Current Shared Buffer size is "
                           << GetCurrentSharedBufferSize().GetValue()
                           << " out of: " << GetMaxSharedBufferSize().GetValue() << std::endl;
@@ -1998,17 +2064,16 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 }
                 else if (m_usedAlgorythm.compare("PredictiveFB") == 0 || m_usedAlgorythm.compare("PredictiveDT") == 0)
                 {
-                    //print the High/Low Priority and the total number of packets that's expected in the time interval t: t+Tau
-                    std::cout << "the number of High Priority packets during the time interval"
-                                    " t:t+Tau is: "
-                                << GetNumOfArrivingPriorityPackets(1) << std::endl;
-                    std::cout << "the number of Low Priority packets during the time interval"
-                                    " t:t+Tau is: "
-                                << GetNumOfArrivingPriorityPackets(2) << std::endl;
-                    std::cout << "the total number of packets during the time interval"
-                                    " t:t+Tau is: "
-                                << GetNumOfArrivingPackets() << std::endl;
-                    
+                    // //print the High/Low Priority and the total number of packets that pass during the time interval t-Tau/2: t+Tau/2
+                    // std::cout << "the number of High Priority packets during the time interval"
+                    //                 " t-Tau/2: t+Tau/2 is: "
+                    //             << GetNumOfPassedPriorityPackets(1) + GetNumOfArrivingPriorityPackets(1) << std::endl;
+                    // std::cout << "the number of Low Priority packets during the time interval"
+                    //                 " t-Tau/2: t+Tau/2 is: "
+                    //             << GetNumOfPassedPriorityPackets(2) + GetNumOfArrivingPriorityPackets(2) << std::endl;
+                    // std::cout << "the total number of packets during the time interval"
+                    //                 " t-Tau/2: t+Tau/2 is: "
+                    //             << GetNumOfPassedPackets() + GetNumOfArrivingPackets() << std::endl;
                     predictedMiceElephantProbVal = CalculateNewLocalD();
                     alphas = GetNewAlphaHighAndLow(device, 10 * predictedMiceElephantProbVal); // the switch function in GetNewAlphaHighAndLow() operates with Ints
                     m_alpha_h = alphas.first;

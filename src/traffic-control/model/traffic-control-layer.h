@@ -512,13 +512,13 @@ class TrafficControlLayer : public Object
      * \brief round some double to one decimal point precission.
      * \returns the 1 decimal precission value of num.
      */
-    double_t roundToOneDecimal(double_t num);
+    double_t RoundToOneDecimal(double_t num);
     
     /**
      * \brief calculate the new local mouse/elephant probability d from the predicted traffic in the time interval t: t+Tau.
      * \returns the upcomming d value.
      */
-    double_t CalculateNewLocalD();
+    double_t EstimateNewLocalD();
 
     /**
      * \brief returns the optimal Alpha High and Low values based on the D of the traffic.

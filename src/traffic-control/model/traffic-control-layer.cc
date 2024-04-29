@@ -1120,14 +1120,14 @@ TrafficControlLayer::GetNumOfTotalEnqueuedPacketsinQueues()
 }
 
 double_t 
-TrafficControlLayer::roundToOneDecimal(double_t num) 
+TrafficControlLayer::RoundToOneDecimal(double_t num) 
 {
     num = std::round(num * 10) / 10;
     return num;
 }
 
 double_t
-TrafficControlLayer::CalculateNewLocalD()
+TrafficControlLayer::EstimateNewLocalD()
 {
     // we calculate the new d value (mouse/elephant probability) as 
     m_estimated_mice_elephant_prob = 0;
@@ -1161,7 +1161,7 @@ TrafficControlLayer::CalculateNewLocalD()
     m_predictedArrivingTraffic = lastRow.var1 - rowData.var1;
     m_predictedArrivingHighPriorityTraffic = lastRow.var2 - rowData.var2;
 
-    m_estimated_mice_elephant_prob = roundToOneDecimal(m_predictedArrivingHighPriorityTraffic / m_predictedArrivingTraffic);
+    m_estimated_mice_elephant_prob = RoundToOneDecimal(m_predictedArrivingHighPriorityTraffic / m_predictedArrivingTraffic);
 
     std::cout << "the new predictive d value is: " << m_estimated_mice_elephant_prob << std::endl;
     
@@ -2074,7 +2074,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     // std::cout << "the total number of packets during the time interval"
                     //                 " t-Tau/2: t+Tau/2 is: "
                     //             << GetNumOfPassedPackets() + GetNumOfArrivingPackets() << std::endl;
-                    predictedMiceElephantProbVal = CalculateNewLocalD();
+                    predictedMiceElephantProbVal = EstimateNewLocalD();
                     alphas = GetNewAlphaHighAndLow(device, 10 * predictedMiceElephantProbVal); // the switch function in GetNewAlphaHighAndLow() operates with Ints
                     m_alpha_h = alphas.first;
                     m_alpha_l = alphas.second;

@@ -22,7 +22,7 @@
 
 int main ()
 {
-  std::string trafficControlType = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"/
+  std::string trafficControlType = "SharedBuffer_FB"; // "SharedBuffer_DT"/"SharedBuffer_FB"/
   bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
   std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
   // Run option:

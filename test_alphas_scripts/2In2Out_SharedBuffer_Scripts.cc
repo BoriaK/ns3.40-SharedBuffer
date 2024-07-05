@@ -248,127 +248,127 @@ SojournTimeTrace (Time sojournTime)
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
 }
 
-double_t
-CalculateMiceOffTime (double_t traffic_gen_duration, double_t mice_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
-{
-  double_t off_time = 0;
-  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
-  double_t correctionFactor = 0;
-  switch (miceElephantProbIndex)
-  {
-  case 1:
-    correctionFactor = 0.15;
-    break;
-  case 2:
-    correctionFactor = 0.07;
-    break;
-  case 3:
-    correctionFactor = 0.05;
-    break;
-  case 4:
-    correctionFactor = 0.03;
-    break;    
-  case 5:
-    correctionFactor = 0.02;
-    break;
-  case 6:
-    correctionFactor = 0.018;
-    break;
-  case 7:
-    correctionFactor = 0.013;
-    break;
-  case 8:
-    correctionFactor = 0.012;
-    break;
+// double_t
+// CalculateMiceOffTime (double_t traffic_gen_duration, double_t mice_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
+// {
+//   double_t off_time = 0;
+//   int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
+//   double_t correctionFactor = 0;
+//   switch (miceElephantProbIndex)
+//   {
+//   case 1:
+//     correctionFactor = 0.15;
+//     break;
+//   case 2:
+//     correctionFactor = 0.07;
+//     break;
+//   case 3:
+//     correctionFactor = 0.05;
+//     break;
+//   case 4:
+//     correctionFactor = 0.03;
+//     break;    
+//   case 5:
+//     correctionFactor = 0.02;
+//     break;
+//   case 6:
+//     correctionFactor = 0.018;
+//     break;
+//   case 7:
+//     correctionFactor = 0.013;
+//     break;
+//   case 8:
+//     correctionFactor = 0.012;
+//     break;
 
-  default:
-    break;
-  }
+//   default:
+//     break;
+//   }
   
-  off_time = ((traffic_gen_duration * mice_on_time * data_rate * 1e6) / (8 * 1024 * mice_elephant_prob * total_num_of_packets)) - mice_on_time + correctionFactor;
+//   off_time = ((traffic_gen_duration * mice_on_time * data_rate * 1e6) / (8 * 1024 * mice_elephant_prob * total_num_of_packets)) - mice_on_time + correctionFactor;
   
-  return off_time;
-}
+//   return off_time;
+// }
 
-double_t
-MiceOffTimeLUT (double_t mice_elephant_prob)
-{
-  double_t off_time = 0;
-  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
-  switch (miceElephantProbIndex)
-  {
-  case 1:
-    off_time = 0.407095126;
-    break;
-  case 2:
-    off_time = 0.173547563;
-    break;
-  case 3:
-    off_time = 0.102365042;
-    break;
-  case 4:
-    off_time = 0.056773781;
-    break;    
-  case 5:
-    off_time = 0.031419025;
-    break;
-  case 6:
-    off_time = 0.019182521;
-    break;
-  case 7:
-    off_time = 0.006870732;
-    break;
-  case 8:
-    off_time = 0.000386891;
-    break;
+// double_t
+// MiceOffTimeLUT (double_t mice_elephant_prob)
+// {
+//   double_t off_time = 0;
+//   int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
+//   switch (miceElephantProbIndex)
+//   {
+//   case 1:
+//     off_time = 0.407095126;
+//     break;
+//   case 2:
+//     off_time = 0.173547563;
+//     break;
+//   case 3:
+//     off_time = 0.102365042;
+//     break;
+//   case 4:
+//     off_time = 0.056773781;
+//     break;    
+//   case 5:
+//     off_time = 0.031419025;
+//     break;
+//   case 6:
+//     off_time = 0.019182521;
+//     break;
+//   case 7:
+//     off_time = 0.006870732;
+//     break;
+//   case 8:
+//     off_time = 0.000386891;
+//     break;
 
-  default:
-    break;
-  }
+//   default:
+//     break;
+//   }
   
-  return off_time;
-}
+//   return off_time;
+// }
 
-double_t
-CalculateElephantOffTime (double_t traffic_gen_duration, double_t elephant_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
-{
-  double_t off_time = 0;
-  int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
-  double_t correctionFactor = 0;
-  switch (miceElephantProbIndex)
-  {
-  case 1:
-    correctionFactor = 0.16;
-    break;
-  case 2:
-    correctionFactor = 0.17;
-    break;
-  case 3:
-    correctionFactor = 0.2;
-    break;
-  case 4:
-    correctionFactor = 0.2;
-    break;    
-  case 5:
-    correctionFactor = 0.2;
-    break;
-  case 6:
-    correctionFactor = 0.25;
-    break;
-  case 7:
-    correctionFactor = 0.3;
-    break;
-  case 8:
-    correctionFactor = 0.45;
-    break;
+// double_t
+// CalculateElephantOffTime (double_t traffic_gen_duration, double_t elephant_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
+// {
+//   double_t off_time = 0;
+//   int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
+//   double_t correctionFactor = 0;
+//   switch (miceElephantProbIndex)
+//   {
+//   case 1:
+//     correctionFactor = 0.16;
+//     break;
+//   case 2:
+//     correctionFactor = 0.17;
+//     break;
+//   case 3:
+//     correctionFactor = 0.2;
+//     break;
+//   case 4:
+//     correctionFactor = 0.2;
+//     break;    
+//   case 5:
+//     correctionFactor = 0.2;
+//     break;
+//   case 6:
+//     correctionFactor = 0.25;
+//     break;
+//   case 7:
+//     correctionFactor = 0.3;
+//     break;
+//   case 8:
+//     correctionFactor = 0.45;
+//     break;
 
-  default:
-    break;
-  }
+//   default:
+//     break;
+//   }
   
-  off_time = ((traffic_gen_duration * elephant_on_time * data_rate * 1e6) / (8 * 1024 * (1 - mice_elephant_prob) * total_num_of_packets)) - elephant_on_time + correctionFactor;
-  return off_time;
-}
+//   off_time = ((traffic_gen_duration * elephant_on_time * data_rate * 1e6) / (8 * 1024 * (1 - mice_elephant_prob) * total_num_of_packets)) - elephant_on_time + correctionFactor;
+//   return off_time;
+// }
 
 void
 viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
@@ -643,9 +643,12 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
     InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
     socketAddressP1.SetTos(ipTos_LP);  // ToS 0x0 -> Low priority
 
-    // for OnOff Aplications:
-    double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
-    double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+    // time interval values for OnOff Aplications
+    // original values:
+    double_t miceOnTime = 0.05; // [sec]
+    double_t miceOffTime = 0.01; // [sec]
+    double_t elephantOnTime = 0.5; // [sec]
+    double_t elephantOffTime = 0.1; // [sec]
     // for RNG:
     double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
     double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
@@ -1285,10 +1288,11 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 
 
     // time interval values for OnOff Aplications
-    double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
-    double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
-    // double_t miceOffTime = MiceOffTimeLUT(mice_elephant_prob);
-    // double_t elephantOffTime = ElephantOffTimeLUT(mice_elephant_prob);
+    // original values:
+    double_t miceOnTime = 0.05; // [sec]
+    double_t miceOffTime = 0.01; // [sec]
+    double_t elephantOnTime = 0.5; // [sec]
+    double_t elephantOffTime = 0.1; // [sec]
 
     // for RNG:
     double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
@@ -1951,9 +1955,9 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
       for (size_t j = 0; j < N; j++) // iterate over all D values to configure and install OnOff Application for each Client
       {
         double_t mice_elephant_prob = mice_elephant_prob_array[j];
-        // in this simulation it effects silence time ratio for the onoff application
-        double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
-        double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+        // original values:
+        double_t miceOffTime = 0.01; // [sec]
+        double_t elephantOffTime = 0.1; // [sec]
         // for RNG:
         double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
         double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
@@ -2665,8 +2669,11 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
     socketAddressP1Predict.SetTos(ipTos_LP1);  // ToS 0x0 -> Low priority
 
     // time interval values for OnOff Aplications
-    double_t miceOffTime = CalculateMiceOffTime(trafficGenDuration, miceOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
-    double_t elephantOffTime = CalculateElephantOffTime(trafficGenDuration, elephantOnTime, dataRate, mice_elephant_prob, numOfTotalPackets, 1); // [sec]
+    // original values:
+    double_t miceOnTime = 0.05; // [sec]
+    double_t miceOffTime = 0.01; // [sec]
+    double_t elephantOnTime = 0.5; // [sec]
+    double_t elephantOffTime = 0.1; // [sec]
     // for RNG:
     double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
     double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
@@ -6079,7 +6086,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   bool eraseOldData = true; // true/false
   
   // for local d estimatiuon
-  // Tau = 50 [msec]. start predictive model at t0 - Tau
+  // Tau = 50 [msec]. start predictive model at t0 - Tau/2. use window of: [t0 - Tau/2, t0 + Tau/2]
   double_t tau = 0.05;
 
   if (traffic_control_type.compare("SharedBuffer_DT") == 0)
@@ -6545,8 +6552,6 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
 
               // for Predictive model
-              // clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
-              // clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(miceOffTime) +"]"));
               clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
               clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant="+ DoubleToString(elephantOffTime) +"]"));
             }
@@ -6556,8 +6561,6 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
 
               // for Predictive model
-              // clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(miceOnTimeMax) +"]"));
-              // clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
               clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max="+ DoubleToString(elephantOnTimeMax) +"]"));
               clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
             }
@@ -6567,8 +6570,6 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
 
               // for Predictive model
-              // clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
-              // clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
               clientHelpersPredict_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
               clientHelpersPredict_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
             }

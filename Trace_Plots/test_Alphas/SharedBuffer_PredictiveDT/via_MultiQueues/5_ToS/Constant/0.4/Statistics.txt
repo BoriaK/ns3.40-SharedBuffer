@@ -11,7 +11,7 @@ traffic Mode ConstantRandom
   Rx Packets/Bytes:   3661 / 3851372
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 5.16089 Mbps
+  Throughput: 5.16233 Mbps
 
 *** TC Layer statistics ***
 

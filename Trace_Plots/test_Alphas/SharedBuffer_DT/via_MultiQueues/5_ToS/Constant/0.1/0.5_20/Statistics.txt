@@ -1,5 +1,5 @@
 Topology: 2In2Out
-Queueing Algorithm: SharedBuffer_DT_v01
+Queueing Algorithm: SharedBuffer_DT
 Implementation Method: via_MultiQueues/5_ToS
 Used D value: 0.1
 Alpha High = 0.5 Alpha Low = 20

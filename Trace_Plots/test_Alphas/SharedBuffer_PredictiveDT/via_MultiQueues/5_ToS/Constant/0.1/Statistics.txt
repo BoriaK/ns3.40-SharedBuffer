@@ -11,37 +11,37 @@ traffic Mode ConstantRandom
   Rx Packets/Bytes:   3621 / 3809292
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 5.05257 Mbps
+  Throughput: 5.0582 Mbps
 
 *** TC Layer statistics ***
 
 Packets/Bytes dropped by Traffic Control Layer: 294 / 309288
-High Priority Packets/Bytes dropped by Traffic Control Layer: 6 / 6312
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 288 / 302976
+High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 294 / 309288
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1840 / 1935680
-Packets/Bytes enqueued: 1840 / 1935680
-Packets/Bytes dequeued: 1840 / 1935680
+Packets/Bytes received: 1841 / 1936732
+Packets/Bytes enqueued: 1841 / 1936732
+Packets/Bytes dequeued: 1841 / 1936732
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1840 / 1935680
+Packets/Bytes sent: 1841 / 1936732
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 1781 / 1873612
-Packets/Bytes enqueued: 1781 / 1873612
-Packets/Bytes dequeued: 1781 / 1873612
+Packets/Bytes received: 1780 / 1872560
+Packets/Bytes enqueued: 1780 / 1872560
+Packets/Bytes dequeued: 1780 / 1872560
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1781 / 1873612
+Packets/Bytes sent: 1780 / 1872560
 Packets/Bytes marked: 0 / 0
 

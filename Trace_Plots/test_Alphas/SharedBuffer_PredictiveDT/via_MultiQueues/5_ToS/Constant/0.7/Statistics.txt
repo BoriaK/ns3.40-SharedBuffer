@@ -11,13 +11,13 @@ traffic Mode ConstantRandom
   Rx Packets/Bytes:   3667 / 3857684
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 5.23313 Mbps
+  Throughput: 5.24042 Mbps
 
 *** TC Layer statistics ***
 
 Packets/Bytes dropped by Traffic Control Layer: 338 / 355576
-High Priority Packets/Bytes dropped by Traffic Control Layer: 109 / 114668
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 229 / 240908
+High Priority Packets/Bytes dropped by Traffic Control Layer: 106 / 111512
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 232 / 244064
 
 
 *** QueueDisc Layer statistics ***

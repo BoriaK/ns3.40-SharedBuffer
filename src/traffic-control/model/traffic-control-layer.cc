@@ -1136,30 +1136,32 @@ TrafficControlLayer::EstimateNewLocalD()
     dataset.LoadData("List_Predictive_Packets_Dropped_by_SharedBuffer.dat");
 
     DataPoint lastRow = dataset.GetLastRow();
-    DataPoint rowData = {0.0, 0.0, 0.0, 0.0}; // initilize rowData to zeros before filling it with the actual data
-    if ((lastRow.time - (1 + m_Tau)*1e+9) > 0)
+    DataPoint currentRow = {0.0, 0.0, 0.0, 0.0}; // initilize currentRow to zeros before filling it with the actual data
+    if ((lastRow.time - (1 + m_Tau)*1e+9) > 0) // make sure that Time (for Predictive model) that has passed is > Tau
     {
         double windowStartTime = lastRow.time - m_Tau*1e+9;
-        rowData = dataset.GetRow(windowStartTime);
+        currentRow = dataset.GetRow(windowStartTime);
+        std::cout << "winow length [nSec]: " << lastRow.time - currentRow.time << std::endl;
     }
-    else
+    else  // if Time (for Predictive model) that has passed is <= Tau, take the maximum window avalible
     {
-        rowData = dataset.GetFirstRow();
+        currentRow = dataset.GetFirstRow();
+        std::cout << "winow length [nSec]: " << lastRow.time - currentRow.time << std::endl;
     }
 
     // for debug:
-    std::cout << "Window start time: " << rowData.time << std::endl;
-    std::cout << "Total sum of packets: " << rowData.var1 << std::endl;
-    std::cout << "Sum of high priority packets: " << rowData.var2 << std::endl;
-    std::cout << "Sum of low priority packets: " << rowData.var3 << std::endl;
+    std::cout << "Window start time: " << currentRow.time << std::endl;
+    std::cout << "Total sum of packets: " << currentRow.var1 << std::endl;
+    std::cout << "Sum of high priority packets: " << currentRow.var2 << std::endl;
+    std::cout << "Sum of low priority packets: " << currentRow.var3 << std::endl;
 
     std::cout << "Window end time: " << lastRow.time << std::endl;
     std::cout << "Total sum of packets: " << lastRow.var1 << std::endl;
     std::cout << "Sum of high priority packets " << lastRow.var2 << std::endl;
     std::cout << "Sum of low priority packets: " << lastRow.var3 << std::endl;
 
-    m_predictedArrivingTraffic = lastRow.var1 - rowData.var1;
-    m_predictedArrivingHighPriorityTraffic = lastRow.var2 - rowData.var2;
+    m_predictedArrivingTraffic = lastRow.var1 - currentRow.var1;
+    m_predictedArrivingHighPriorityTraffic = lastRow.var2 - currentRow.var2;
 
     m_estimated_mice_elephant_prob = RoundToOneDecimal(m_predictedArrivingHighPriorityTraffic / m_predictedArrivingTraffic);
 
@@ -1334,8 +1336,12 @@ TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
 {
     NS_LOG_FUNCTION(this << item);
 
+    // save lost packets statistics in time t+Tau, in a sepparate file for Predictive Model
+    std::string nodeName = Names::FindName(m_node); // Get the name of the Node
+    // std::cout << "Node Name is: " << nodeName << std::endl;
+
     // delete the list of predicted traffic from previous runs
-    if (m_stats.nTotalDroppedPackets == 0)
+    if (m_stats.nTotalDroppedPackets == 0 && nodeName.compare("RouterPredict") == 0) // means that this is the first time the simulation get's here
     {
         std::remove("List_Predictive_Packets_Dropped_by_SharedBuffer.dat");
     }
@@ -1359,9 +1365,6 @@ TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
         m_stats.nTotalDroppedBytesLowPriority += item->GetSize();
     }
 
-    // save lost packets statistics in time t+Tau, in a sepparate file for Predictive Model
-    std::string nodeName = Names::FindName(m_node); // Get the name of the Node
-    // std::cout << "Node Name is: " << nodeName << std::endl;
     if (nodeName.compare("RouterPredict") == 0)
     {
         // create a list of time-stamped sums of dropped Predicted Packets

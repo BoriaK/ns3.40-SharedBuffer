@@ -491,16 +491,16 @@ int main (int argc, char *argv[])
         InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
         socketAddressP1.SetTos(ipTos_LP);  // ToS 0x0 -> Low priority
 
-    // time interval values for OnOff Aplications
-    // original values:
-    std::string miceOnTime = "0.05"; // [sec]
-    std::string miceOffTime = "0.01"; // [sec]
-    // for debug:
-    // std::string miceOnTime = "0.5"; // [sec]
-    // std::string miceOffTime = "0.1"; // [sec]
-    
-    std::string elephantOnTime = "0.5"; // [sec]
-    std::string elephantOffTime = "0.1"; // [sec]
+      // time interval values for OnOff Aplications
+      // original values:
+      std::string miceOnTime = "0.05"; // [sec]
+      std::string miceOffTime = "0.01"; // [sec]
+      // for debug:
+      // std::string miceOnTime = "0.5"; // [sec]
+      // std::string miceOffTime = "0.1"; // [sec]
+      
+      std::string elephantOnTime = "0.5"; // [sec]
+      std::string elephantOffTime = "0.1"; // [sec]
 
         // create and install Client apps:    
         if (applicationType.compare("standardClient") == 0) 

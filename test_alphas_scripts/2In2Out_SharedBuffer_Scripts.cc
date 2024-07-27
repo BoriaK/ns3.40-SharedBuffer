@@ -68,7 +68,7 @@ using namespace ns3;
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 
-std::string dir = "./Trace_Plots/test_Alphas/";
+std::string datDir = "./Trace_Plots/test_Alphas/";
 
 // for OnOff Aplications
 uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
@@ -130,7 +130,7 @@ StringCombine (std::string A, std::string B, std::string C)
 void
 TrafficControlPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream tcpisq (dir + "/TrafficControlPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream tcpisq (datDir + "/TrafficControlPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   tcpisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tcpisq.close ();
   
@@ -140,7 +140,7 @@ TrafficControlPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 void
 TrafficControlHighPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream tchppisq (dir + "/TrafficControlHighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream tchppisq (datDir + "/TrafficControlHighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   tchppisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tchppisq.close ();
   
@@ -150,7 +150,7 @@ TrafficControlHighPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t
 void
 TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream tclppisq (dir + "/TrafficControlLowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream tclppisq (datDir + "/TrafficControlLowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   tclppisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tclppisq.close ();
   
@@ -161,7 +161,7 @@ TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t 
 void
 TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
 {
-  std::ofstream tchpthr (dir + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
+  std::ofstream tchpthr (datDir + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tchpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tchpthr.close ();
 
@@ -172,7 +172,7 @@ TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newVal
 void
 TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
 {
-  std::ofstream tclpthr (dir + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
+  std::ofstream tclpthr (datDir + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tclpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tclpthr.close ();
   
@@ -183,7 +183,7 @@ TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValu
 void
 MultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream qdpiq (dir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream qdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   qdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   qdpiq.close ();
   
@@ -194,7 +194,7 @@ MultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t
 // void
 // HighPriorityMultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
 // {
-//   std::ofstream hpqdpiq (dir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+//   std::ofstream hpqdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
 //   hpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
 //   hpqdpiq.close ();
   
@@ -204,7 +204,7 @@ MultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t
 // void
 // LowPriorityMultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
 // {
-//   std::ofstream lpqdpiq (dir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+//   std::ofstream lpqdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
 //   lpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
 //   lpqdpiq.close ();
   
@@ -215,7 +215,7 @@ MultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t
 void
 QueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream qdpiq (dir + "/queueDisc_" + ToString(index) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream qdpiq (datDir + "/queueDisc_" + ToString(index) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   qdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   qdpiq.close ();
   
@@ -225,7 +225,7 @@ QueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue
 void
 HighPriorityQueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream hpqdpiq (dir + "/queueDisc_" + ToString(index) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream hpqdpiq (datDir + "/queueDisc_" + ToString(index) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   hpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   hpqdpiq.close ();
   
@@ -235,7 +235,7 @@ HighPriorityQueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint3
 void
 LowPriorityQueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream lpqdpiq (dir + "/queueDisc_" + ToString(index) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream lpqdpiq (datDir  + "/queueDisc_" + ToString(index) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   lpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   lpqdpiq.close ();
   
@@ -248,127 +248,6 @@ SojournTimeTrace (Time sojournTime)
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
 }
 
-// double_t
-// CalculateMiceOffTime (double_t traffic_gen_duration, double_t mice_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
-// {
-//   double_t off_time = 0;
-//   int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
-//   double_t correctionFactor = 0;
-//   switch (miceElephantProbIndex)
-//   {
-//   case 1:
-//     correctionFactor = 0.15;
-//     break;
-//   case 2:
-//     correctionFactor = 0.07;
-//     break;
-//   case 3:
-//     correctionFactor = 0.05;
-//     break;
-//   case 4:
-//     correctionFactor = 0.03;
-//     break;    
-//   case 5:
-//     correctionFactor = 0.02;
-//     break;
-//   case 6:
-//     correctionFactor = 0.018;
-//     break;
-//   case 7:
-//     correctionFactor = 0.013;
-//     break;
-//   case 8:
-//     correctionFactor = 0.012;
-//     break;
-
-//   default:
-//     break;
-//   }
-  
-//   off_time = ((traffic_gen_duration * mice_on_time * data_rate * 1e6) / (8 * 1024 * mice_elephant_prob * total_num_of_packets)) - mice_on_time + correctionFactor;
-  
-//   return off_time;
-// }
-
-// double_t
-// MiceOffTimeLUT (double_t mice_elephant_prob)
-// {
-//   double_t off_time = 0;
-//   int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
-//   switch (miceElephantProbIndex)
-//   {
-//   case 1:
-//     off_time = 0.407095126;
-//     break;
-//   case 2:
-//     off_time = 0.173547563;
-//     break;
-//   case 3:
-//     off_time = 0.102365042;
-//     break;
-//   case 4:
-//     off_time = 0.056773781;
-//     break;    
-//   case 5:
-//     off_time = 0.031419025;
-//     break;
-//   case 6:
-//     off_time = 0.019182521;
-//     break;
-//   case 7:
-//     off_time = 0.006870732;
-//     break;
-//   case 8:
-//     off_time = 0.000386891;
-//     break;
-
-//   default:
-//     break;
-//   }
-  
-//   return off_time;
-// }
-
-// double_t
-// CalculateElephantOffTime (double_t traffic_gen_duration, double_t elephant_on_time, uint32_t data_rate, double_t mice_elephant_prob, uint32_t total_num_of_packets, double_t hp_lp_prop)
-// {
-//   double_t off_time = 0;
-//   int32_t miceElephantProbIndex = 10 * mice_elephant_prob;
-//   double_t correctionFactor = 0;
-//   switch (miceElephantProbIndex)
-//   {
-//   case 1:
-//     correctionFactor = 0.16;
-//     break;
-//   case 2:
-//     correctionFactor = 0.17;
-//     break;
-//   case 3:
-//     correctionFactor = 0.2;
-//     break;
-//   case 4:
-//     correctionFactor = 0.2;
-//     break;    
-//   case 5:
-//     correctionFactor = 0.2;
-//     break;
-//   case 6:
-//     correctionFactor = 0.25;
-//     break;
-//   case 7:
-//     correctionFactor = 0.3;
-//     break;
-//   case 8:
-//     correctionFactor = 0.45;
-//     break;
-
-//   default:
-//     break;
-//   }
-  
-//   off_time = ((traffic_gen_duration * elephant_on_time * data_rate * 1e6) / (8 * 1024 * (1 - mice_elephant_prob) * total_num_of_packets)) - elephant_on_time + correctionFactor;
-//   return off_time;
-// }
 
 void
 viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
@@ -394,8 +273,8 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
 
   if (eraseOldData == true)
   {
-      system (("rm " + dir + traffic_control_type + "/" + implementation + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
-      system (("rm " + dir + traffic_control_type + "/" + implementation + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
+      system (("rm " + datDir + traffic_control_type + "/" + implementation + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
+      system (("rm " + datDir + traffic_control_type + "/" + implementation + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
       std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
   }
 
@@ -811,8 +690,8 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -969,8 +848,8 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   // move all the produced .dat files to a directory based on the Alpha values
   std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
-  // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
+  // system (("mv -f " + datDir + "*.txt " + newDir).c_str ());
 
   Simulator::Destroy ();
   NS_LOG_INFO ("Stop simulation");
@@ -1435,8 +1314,8 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -1599,18 +1478,18 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   // move all the produced .dat files to a directory based on the Alpha values
   std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
-  // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
+  // system (("mv -f " + datDir + "*.txt " + newDir).c_str ());
 
   // if chose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -1622,7 +1501,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -2052,8 +1931,8 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -2226,12 +2105,12 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   if (adjustableAlphas)
   {
     // move all the produced files to a directory
-    // dir = "./Trace_Plots/test_Alphas/"
-    // std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+    // datDir = "./Trace_Plots/test_Alphas/"
+    // std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
 
     std::string newDir = dirToSave + "VaryingDValues/adjustableAlphas/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + datDir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
   else
@@ -2239,19 +2118,19 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
     // move all the produced files to a directory based on the Alpha values
     std::string newDir = dirToSave + "VaryingDValues/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + datDir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
 
   // if choose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -2275,7 +2154,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -2887,8 +2766,8 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -3046,22 +2925,22 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
   testFlowStatistics.close ();
 
   // move all the produced .dat files to a directory based on the Alpha values
-  // dir = "./Trace_Plots/test_Alphas/"
-  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/";
   std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
-  // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
+  // system (("mv -f " + datDir + "*.txt " + newDir).c_str ());
 
   // if chose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (datDir  + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
@@ -3072,7 +2951,7 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      std::fstream testAccumulativeStats (datDir  + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
@@ -3625,7 +3504,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -3787,18 +3666,18 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   // move all the produced .dat files to a directory based on the Alpha values
   std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
-  // system (("mv -f " + dir + "*.txt " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
+  // system (("mv -f " + datDir + "*.txt " + newDir).c_str ());
 
   // if chose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -3810,7 +3689,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -4325,8 +4204,8 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -4486,22 +4365,22 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   testFlowStatistics.close ();
 
   // move all the produced .dat files to a directory based on the Alpha values
-  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
   std::string newDir = dirToSave + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   // std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
   system (("mv -f " + dirToSave + "*.txt " + newDir).c_str ());
 
   // if chose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -4513,7 +4392,7 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -5051,8 +4930,8 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + onoff_traffic_mode + "/" + implementation + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  std::string dirToSave = datDir + traffic_control_type + "/" + onoff_traffic_mode + "/" + implementation + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -5225,10 +5104,10 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   if (adjustableAlphas)
   {
     // move all the produced files to a directory
-    // dirToSave = dir + traffic_control_type + "/" + implementation + "/"
+    // dirToSave = datDir + traffic_control_type + "/" + implementation + "/"
     std::string newDir = dirToSave + "adjustableAlphas/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + datDir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
   else
@@ -5236,19 +5115,19 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
     // move all the produced files to a directory based on the Alpha values
     std::string newDir = dirToSave + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + datDir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
 
 // if choose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -5272,7 +5151,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -5810,8 +5689,8 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -5991,12 +5870,12 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
   if (adjustableAlphas)
   {
     // move all the produced files to a directory
-    // dir = "./Trace_Plots/test_Alphas/"
-    // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+    // datDir = "./Trace_Plots/test_Alphas/"
+    // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
 
     std::string newDir = dirToSave + "VaryingDValues/adjustableAlphas/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + datDir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
   else
@@ -6004,19 +5883,19 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
     // move all the produced files to a directory based on the Alpha values
     std::string newDir = dirToSave + "VaryingDValues/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
     system (("mkdir -p " + newDir).c_str ());
-    system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+    system (("mv -f " + datDir + "/*.dat " + newDir).c_str ());
     system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
   }
 
   // if choose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -6040,7 +5919,7 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -6087,23 +5966,22 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   
   // for local d estimatiuon
   // Tau = 50 [msec]. start predictive model at t0 - Tau/2. use window of: [t0 - Tau/2, t0 + Tau/2]
-  double_t tau = 0.05;
+  double_t tau = 0.05; // [Sec]
+
+  std::string  dir = datDir;
+  if (traffic_control_type.compare("SharedBuffer_DT") == 0)
+  {
+    usedAlgorythm = "PredictiveDT";
+  }
+
 
   if (traffic_control_type.compare("SharedBuffer_DT") == 0)
   {
-    usedAlgorythm = "DT";
+    usedAlgorythm = "PredictiveDT";
   }
   else if (traffic_control_type.compare("SharedBuffer_FB") == 0)
   {
-    usedAlgorythm = "FB";
-  }
-  else if (traffic_control_type.compare("SharedBuffer_PredictiveFB") == 0)
-  {
-      usedAlgorythm = "PredictiveFB";
-  }
-  else if (traffic_control_type.compare("SharedBuffer_PredictiveDT") == 0)
-  {
-      usedAlgorythm = "PredictiveDT";
+    usedAlgorythm = "PredictiveFB";
   }
 
   NS_LOG_INFO ("Config parameters");
@@ -6716,8 +6594,9 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  // dir = "datDir"
+  std::string dirToSave =  dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -6736,7 +6615,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
 
   // print the tested scenario at the top of the terminal: Topology, Queueing Algorithm and Application.
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
-  std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
+  std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
   std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
@@ -6863,7 +6742,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   // Added to create a .txt file with the summary of the tested scenario statistics
   std::ofstream testFlowStatistics (dirToSave + "Statistics.txt", std::ios::out | std::ios::app);
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
-  testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
+  testFlowStatistics << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
@@ -6889,23 +6768,23 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   testFlowStatistics.close ();
 
   // move all the produced .dat files to a directory based on the Alpha values
-  // dir = "./Trace_Plots/test_Alphas/"
-  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
-  std::string newDir = dirToSave + DoubleToString(mice_elephant_prob) + "/";
+  // datDir = "./Trace_Plots/test_Alphas/"
+  // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  std::string newDir = dirToSave + DoubleToString(mice_elephant_prob) + "/Predictive/";
   // std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
-  system (("mv -f " + dir + "*.dat " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
   system (("mv -f " + dirToSave + "*.txt " + newDir).c_str ());
 
   // if chose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+    if (!(std::filesystem::exists( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
-      std::ofstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      system (("mkdir -p " +  dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
@@ -6916,7 +6795,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      std::fstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 

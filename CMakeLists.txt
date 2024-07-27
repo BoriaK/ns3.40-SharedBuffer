@@ -166,6 +166,9 @@ add_subdirectory(execution_scripts)
 # Build test_alphas_scripts scripts
 add_subdirectory(test_alphas_scripts)
 
+# Build test_estimation_window_scripts scripts
+add_subdirectory(test_estimation_window_scripts)
+
 # Build help_functions_scripts scripts
 add_subdirectory(help_functions)
 

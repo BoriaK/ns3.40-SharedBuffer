@@ -1189,7 +1189,7 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
         if (m_usedAlgorythm.compare("PredictiveDT") == 0 || m_usedAlgorythm.compare("DT") == 0)
         {
             switch (mice_elephant_prob_val)
-            {
+            { // optimal alpha High/Low
             case 1:
                 alpha_h = 11;
                 alpha_l = 9;
@@ -2078,7 +2078,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     //                 " t-Tau/2: t+Tau/2 is: "
                     //             << GetNumOfPassedPackets() + GetNumOfArrivingPackets() << std::endl;
                     predictedMiceElephantProbVal = EstimateNewLocalD();
-                    alphas = GetNewAlphaHighAndLow(device, 10 * predictedMiceElephantProbVal); // the switch function in GetNewAlphaHighAndLow() operates with Ints
+                    alphas = GetNewAlphaHighAndLow(device, 10 * predictedMiceElephantProbVal); // the switch function in GetNewAlphaHighAndLow() operates with Integers
                     m_alpha_h = alphas.first;
                     m_alpha_l = alphas.second;
                 }

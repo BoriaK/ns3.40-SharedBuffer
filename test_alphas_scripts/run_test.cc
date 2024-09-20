@@ -25,7 +25,7 @@ int main ()
 {
   std::string trafficControlType = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
   bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
-  std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
+  std::string onOffTrafficMode = "Exponential"; // "Constant"/"Uniform"/"Normal"/"Exponential"
 
   // Run option:
   // (1) single d & alphas pair value
@@ -35,7 +35,7 @@ int main ()
   // (5) single D value. Alphas are determined by Predictive Model
   // (6) multiple D values. Alphas are determined by Predictive Model
 
-  int runOption = 6; // [1, 2, 3, 4, 5, 6]
+  int runOption = 1; // [1, 2, 3, 4, 5, 6]
   switch (runOption)
   {
     case 1: // single d & alphas pair value

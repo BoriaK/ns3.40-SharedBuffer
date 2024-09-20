@@ -1739,4 +1739,334 @@ EmpiricalRandomVariable::Validate()
     m_validated = true;
 }
 
+NS_OBJECT_ENSURE_REGISTERED(BinomialRandomVariable);
+
+TypeId
+BinomialRandomVariable::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::BinomialRandomVariable")
+            .SetParent<RandomVariableStream>()
+            .SetGroupName("Core")
+            .AddConstructor<BinomialRandomVariable>()
+            .AddAttribute("Trials",
+                          "The number of trials.",
+                          IntegerValue(10),
+                          MakeIntegerAccessor(&BinomialRandomVariable::m_trials),
+                          MakeIntegerChecker<uint32_t>(0))
+            .AddAttribute("Probability",
+                          "The probability of success in each trial.",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&BinomialRandomVariable::m_probability),
+                          MakeDoubleChecker<double>(0));
+    return tid;
+}
+
+BinomialRandomVariable::BinomialRandomVariable()
+{
+    // m_trials and m_probability are initialized after constructor by attributes
+    NS_LOG_FUNCTION(this);
+}
+
+double
+BinomialRandomVariable::GetValue(uint32_t trials, double probability)
+{
+    double successes = 0;
+
+    for (uint32_t i = 0; i < trials; ++i)
+    {
+        double v = Peek()->RandU01();
+        if (IsAntithetic())
+        {
+            v = (1 - v);
+        }
+
+        if (v <= probability)
+        {
+            successes += 1;
+        }
+    }
+    NS_LOG_DEBUG("value: " << successes << " stream: " << GetStream() << " trials: " << trials
+                           << " probability: " << probability);
+    return successes;
+}
+
+uint32_t
+BinomialRandomVariable::GetInteger(uint32_t trials, uint32_t probability)
+{
+    auto v = static_cast<uint32_t>(GetValue(trials, probability));
+    NS_LOG_DEBUG("integer value: " << v << " stream: " << GetStream() << " trials: " << trials
+                                   << " probability: " << probability);
+    return v;
+}
+
+double
+BinomialRandomVariable::GetValue()
+{
+    return GetValue(m_trials, m_probability);
+}
+
+NS_OBJECT_ENSURE_REGISTERED(BernoulliRandomVariable);
+
+TypeId
+BernoulliRandomVariable::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::BernoulliRandomVariable")
+            .SetParent<RandomVariableStream>()
+            .SetGroupName("Core")
+            .AddConstructor<BernoulliRandomVariable>()
+            .AddAttribute("Probability",
+                          "The probability of the random variable returning a value of 1.",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&BernoulliRandomVariable::m_probability),
+                          MakeDoubleChecker<double>(0));
+    return tid;
+}
+
+BernoulliRandomVariable::BernoulliRandomVariable()
+{
+    // m_probability is initialized after constructor by attributes
+    NS_LOG_FUNCTION(this);
+}
+
+double
+BernoulliRandomVariable::GetValue(double probability)
+{
+    double v = Peek()->RandU01();
+    if (IsAntithetic())
+    {
+        v = (1 - v);
+    }
+
+    double value = (v <= probability) ? 1.0 : 0.0;
+    NS_LOG_DEBUG("value: " << value << " stream: " << GetStream()
+                           << " probability: " << probability);
+    return value;
+}
+
+uint32_t
+BernoulliRandomVariable::GetInteger(uint32_t probability)
+{
+    auto v = static_cast<uint32_t>(GetValue(probability));
+    NS_LOG_DEBUG("integer value: " << v << " stream: " << GetStream()
+                                   << " probability: " << probability);
+    return v;
+}
+
+double
+BernoulliRandomVariable::GetValue()
+{
+    return GetValue(m_probability);
+}
+
+NS_OBJECT_ENSURE_REGISTERED(LaplacianRandomVariable);
+
+TypeId
+LaplacianRandomVariable::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::LaplacianRandomVariable")
+            .SetParent<RandomVariableStream>()
+            .SetGroupName("Core")
+            .AddConstructor<LaplacianRandomVariable>()
+            .AddAttribute("Location",
+                          "The location parameter for the Laplacian distribution returned by this "
+                          "RNG stream.",
+                          DoubleValue(0.0),
+                          MakeDoubleAccessor(&LaplacianRandomVariable::m_location),
+                          MakeDoubleChecker<double>())
+            .AddAttribute(
+                "Scale",
+                "The scale parameter for the Laplacian distribution returned by this RNG stream.",
+                DoubleValue(1.0),
+                MakeDoubleAccessor(&LaplacianRandomVariable::m_scale),
+                MakeDoubleChecker<double>())
+            .AddAttribute("Bound",
+                          "The bound on the values returned by this RNG stream.",
+                          DoubleValue(0.0),
+                          MakeDoubleAccessor(&LaplacianRandomVariable::m_bound),
+                          MakeDoubleChecker<double>());
+    return tid;
+}
+
+LaplacianRandomVariable::LaplacianRandomVariable()
+{
+    NS_LOG_FUNCTION(this);
+}
+
+double
+LaplacianRandomVariable::GetLocation() const
+{
+    return m_location;
+}
+
+double
+LaplacianRandomVariable::GetScale() const
+{
+    return m_scale;
+}
+
+double
+LaplacianRandomVariable::GetBound() const
+{
+    return m_bound;
+}
+
+double
+LaplacianRandomVariable::GetValue(double location, double scale, double bound)
+{
+    NS_LOG_FUNCTION(this << location << scale << bound);
+    NS_ABORT_MSG_IF(scale <= 0, "Scale parameter should be larger than 0");
+
+    while (true)
+    {
+        // Get a uniform random variable in [-0.5,0.5].
+        auto v = (Peek()->RandU01() - 0.5);
+        if (IsAntithetic())
+        {
+            v = (1 - v);
+        }
+
+        // Calculate the laplacian random variable.
+        const auto sgn = (v > 0) ? 1 : ((v < 0) ? -1 : 0);
+        const auto r = location - (scale * sgn * std::log(1.0 - (2.0 * std::abs(v))));
+
+        // Use this value if it's acceptable.
+        if (bound == 0.0 || std::fabs(r - location) <= bound)
+        {
+            return r;
+        }
+    }
+}
+
+uint32_t
+LaplacianRandomVariable::GetInteger(uint32_t location, uint32_t scale, uint32_t bound)
+{
+    NS_LOG_FUNCTION(this << location << scale << bound);
+    return static_cast<uint32_t>(GetValue(location, scale, bound));
+}
+
+double
+LaplacianRandomVariable::GetValue()
+{
+    NS_LOG_FUNCTION(this);
+    return GetValue(m_location, m_scale, m_bound);
+}
+
+double
+LaplacianRandomVariable::GetVariance(double scale)
+{
+    NS_LOG_FUNCTION(scale);
+    return 2.0 * std::pow(scale, 2.0);
+}
+
+double
+LaplacianRandomVariable::GetVariance() const
+{
+    return GetVariance(m_scale);
+}
+
+// NS_OBJECT_ENSURE_REGISTERED(LargestExtremeValueRandomVariable);
+
+// TypeId
+// LargestExtremeValueRandomVariable::GetTypeId()
+// {
+//     static TypeId tid =
+//         TypeId("ns3::LargestExtremeValueRandomVariable")
+//             .SetParent<RandomVariableStream>()
+//             .SetGroupName("Core")
+//             .AddConstructor<LargestExtremeValueRandomVariable>()
+//             .AddAttribute("Location",
+//                           "The location parameter for the Largest Extreme Value distribution "
+//                           "returned by this RNG stream.",
+//                           DoubleValue(0.0),
+//                           MakeDoubleAccessor(&LargestExtremeValueRandomVariable::m_location),
+//                           MakeDoubleChecker<double>())
+//             .AddAttribute("Scale",
+//                           "The scale parameter for the Largest Extreme Value distribution "
+//                           "returned by this RNG stream.",
+//                           DoubleValue(1.0),
+//                           MakeDoubleAccessor(&LargestExtremeValueRandomVariable::m_scale),
+//                           MakeDoubleChecker<double>());
+//     return tid;
+// }
+
+// LargestExtremeValueRandomVariable::LargestExtremeValueRandomVariable()
+// {
+//     NS_LOG_FUNCTION(this);
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetLocation() const
+// {
+//     return m_location;
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetScale() const
+// {
+//     return m_scale;
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetValue(double location, double scale)
+// {
+//     NS_LOG_FUNCTION(this << location << scale);
+//     NS_ABORT_MSG_IF(scale <= 0, "Scale parameter should be larger than 0");
+
+//     // Get a uniform random variable in [0,1].
+//     auto v = Peek()->RandU01();
+//     if (IsAntithetic())
+//     {
+//         v = (1 - v);
+//     }
+
+//     // Calculate the largest extreme value random variable.
+//     const auto t = std::log(v) * (-1.0);
+//     const auto r = location - (scale * std::log(t));
+
+//     return r;
+// }
+
+// uint32_t
+// LargestExtremeValueRandomVariable::GetInteger(uint32_t location, uint32_t scale)
+// {
+//     NS_LOG_FUNCTION(this << location << scale);
+//     return static_cast<uint32_t>(GetValue(location, scale));
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetValue()
+// {
+//     NS_LOG_FUNCTION(this);
+//     return GetValue(m_location, m_scale);
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetMean(double location, double scale)
+// {
+//     NS_LOG_FUNCTION(location << scale);
+//     return (location + (scale * std::numbers::egamma));
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetMean() const
+// {
+//     return GetMean(m_location, m_scale);
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetVariance(double scale)
+// {
+//     NS_LOG_FUNCTION(scale);
+//     return std::pow((scale * std::numbers::pi), 2) / 6.0;
+// }
+
+// double
+// LargestExtremeValueRandomVariable::GetVariance() const
+// {
+//     return GetVariance(m_scale);
+// }
+
 } // namespace ns3

@@ -123,6 +123,11 @@ class PrioOnOffApplication : public Application
     Ptr<Socket> GetSocket() const;
 
     /**
+     * \return The current state of the OnOff machine. when it's "On" returns 1, 0 otherwise.
+     */
+     bool GetCurrentState() const;
+
+    /**
      * \brief Assign a fixed random variable stream number to the random variables
      * used by this model.
      *
@@ -186,7 +191,8 @@ class PrioOnOffApplication : public Application
     MiceElephantProbabilityTag miceElephantProbTag;  //!< a Tag that represents the mice/elephant probability assigned to the flow by the user
     SharedPriorityTag  flowPrioTag;   //< a tag that's added to each sent packet based on the priority assigned by the SendPacket () function
     uint64_t        m_packetSeqCount; //!< Number of packets sent in sequence, added by me
-
+    // to monitor OnOff Aplication "state":
+    bool m_isOn; // True if the application is in the "on" state, false if "off".
     /// Traced Callback: transmitted packets.
     TracedCallback<Ptr<const Packet>> m_txTrace;
 

@@ -138,7 +138,8 @@ CustomOnOffApplication::CustomOnOffApplication ()
     m_packetSeqCount(1), // number of sent packets per sequence, always start with 1, added by me!
     // m_priority(1),  // the priority of the generated flow.
     // m_threshold (10),  // Flow classfication Threshold (length), Added by me!
-    m_unsentPacket (0)
+    m_unsentPacket (0),
+    m_isOn(false)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -173,6 +174,13 @@ CustomOnOffApplication::SetMaxBytes (uint64_t maxBytes)
 //   NS_LOG_FUNCTION (this);
 //   return m_socket;
 // }
+
+bool
+CustomOnOffApplication::GetCurrentState() const
+{
+    NS_LOG_FUNCTION(this);
+    return m_isOn;
+}
 
 int64_t 
 CustomOnOffApplication::AssignStreams (int64_t stream)
@@ -260,17 +268,24 @@ void CustomOnOffApplication::CancelEvents ()
 void CustomOnOffApplication::StartSending ()
 {
   NS_LOG_FUNCTION (this);
-  m_lastStartTime = Simulator::Now ();
+
+  m_isOn = true; // Set the state to "on"
+  // std::cout << "State: ON" << std::endl; // Log the state
+  m_lastStartTime = Simulator::Now();
+
   ScheduleNextTx ();  // Schedule the send packet event
   ScheduleStopEvent ();
 }
 
 void CustomOnOffApplication::StopSending ()
 {
-  NS_LOG_FUNCTION (this);
-  CancelEvents ();
+  NS_LOG_FUNCTION(this);
 
-  ScheduleStartEvent ();
+  m_isOn = false; // Set the state to "off"
+  // std::cout << "State: OFF" << std::endl; // Log the state
+  
+  CancelEvents();
+  ScheduleStartEvent();
 }
 
 // Private helpers

@@ -40,6 +40,11 @@
 #include <fstream>
 #include <string>
 #include <numeric>
+#include <vector>
+#include <utility>
+#include <list>
+#include <array>
+#include <filesystem>
 
 #include "ns3/core-module.h"
 #include "ns3/applications-module.h"
@@ -57,7 +62,7 @@
 using namespace ns3;
 
 std::string dir = "./Trace_Plots/Incast_Topology/";
-std::string queue_disc_type = "FB_FifoQueueDisc_v01"; // "DT_FifoQueueDisc_v02"/"FB_FifoQueueDisc_v01"
+std::string queue_disc_type = "FifoQueueDisc"; // "DT_FifoQueueDisc_v02"/"FB_FifoQueueDisc_v01"/"FifoQueueDisc"
 
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
@@ -67,6 +72,9 @@ NS_LOG_COMPONENT_DEFINE ("Traffic_Control_Example_Incast_Topology_v01");
 void
 TcPacketsInQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
+  std::ofstream piq (dir + queue_disc_type + "/highPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  piq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
+  piq.close ();
   std::cout << "TcPacketsInQueue " << newValue << std::endl;
 }
 
@@ -117,13 +125,65 @@ QueueThresholdLowTrace (float_t oldValue, float_t newValue)  // added by me, to 
 void
 DevicePacketsInQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
-  std::cout << "DevicePacketsInQueue " << oldValue << " to " << newValue << std::endl;
+  std::cout <<Simulator::Now ().GetSeconds () << " DevicePacketsInQueue: " << newValue << std::endl;
 }
+
+// Function to check queue length of Router 1
+void
+CheckQueueSize(Ptr<Queue<Packet>> queue)
+{
+    uint32_t qSize = queue->GetCurrentSize().GetValue();
+
+    // Check queue size every 1/100 of a second
+    Simulator::Schedule(Seconds(0.001), &CheckQueueSize, queue);
+    std::ofstream fPlotQueue(std::stringstream(dir + queue_disc_type + "/queue-size.dat").str(),
+                             std::ios::out | std::ios::app);
+    fPlotQueue << Simulator::Now().GetSeconds() << " " << qSize << std::endl;
+    fPlotQueue.close();
+}
+
+void
+CheckOnOffState(Ptr<CustomOnOffApplication> customOnOffApp)
+{
+    bool appState = customOnOffApp->GetCurrentState();
+
+    // Check OnOff state every 1/100 of a second
+    Simulator::Schedule(Seconds(0.001), &CheckOnOffState, customOnOffApp);
+    // for testing:
+    // std::cout <<Simulator::Now ().GetSeconds () << " OnOff State: " << appState << std::endl;
+
+    // save to .dat file
+    std::ofstream fPlotOnOffState(std::stringstream(dir + queue_disc_type + "/OnOffStateTrace.dat").str(),
+                             std::ios::out | std::ios::app);
+    fPlotOnOffState << Simulator::Now().GetSeconds() << " " << appState << std::endl;
+    fPlotOnOffState.close();
+}
+
+// Original example
+// void
+// CheckQueueSize(Ptr<QueueDisc> queue)
+// {
+//     uint32_t qSize = queue->GetCurrentSize().GetValue();
+
+//     // Check queue size every 1/100 of a second
+//     Simulator::Schedule(Seconds(0.001), &CheckQueueSize, queue);
+//     std::ofstream fPlotQueue(std::stringstream(dir + "queue-size.dat").str(),
+//                              std::ios::out | std::ios::app);
+//     fPlotQueue << Simulator::Now().GetSeconds() << " " << qSize << std::endl;
+//     fPlotQueue.close();
+// }
 
 void
 SojournTimeTrace (Time sojournTime)
 {
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
+}
+
+static void
+OnOffAppTxTrace(Ptr<const Packet> tx_packet)
+{
+    std::cout << Simulator::Now().GetSeconds() << "\t" << tx_packet
+                         << std::endl;
 }
 
 int main (int argc, char *argv[])
@@ -192,7 +252,7 @@ int main (int argc, char *argv[])
     LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
   
-  LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
+  // LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
 
   // Here, we will explicitly create three nodes.  The first container contains
   // nodes 0 and 1 from the diagram above, and the second one contains nodes
@@ -215,6 +275,7 @@ int main (int argc, char *argv[])
   PointToPointHelper p2p1_l;  // the link between each sender to Router
   p2p1_l.SetDeviceAttribute  ("DataRate", StringValue ("10Mbps"));
   p2p1_l.SetChannelAttribute ("Delay", StringValue ("5ms"));
+  p2p1_l.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1000p"));
 
   PointToPointHelper p2p1_h;  // the link between each sender to Router
   p2p1_h.SetDeviceAttribute  ("DataRate", StringValue ("10Mbps"));
@@ -233,15 +294,23 @@ int main (int argc, char *argv[])
   // NetDeviceContainer sender3 = p2p1.Install (senders.Get(3), senders.Get(1));
   NetDeviceContainer reciever = p2p2.Install (serverNodes);
 
+  // trace Tx packets in Net device:
+  Ptr<NetDevice> nd1 = sender1.Get(0);
+  Ptr<PointToPointNetDevice> ptpnd1 = DynamicCast<PointToPointNetDevice>(nd1);
+  Ptr<Queue<Packet>> queue1 = ptpnd1->GetQueue();
+
+  // Simulator::ScheduleNow (&CheckQueueSize, queue1); // 
+  // queue1->TraceConnectWithoutContext ("PacketsInQueue", MakeCallback (&DevicePacketsInQueueTrace));
+
   // Now add ip/tcp stack to all nodes.
   InternetStackHelper internet;
   internet.InstallAll ();
 
   TrafficControlHelper tch;
   // tch.SetRootQueueDisc ("ns3::RedQueueDisc", "MaxSize", StringValue ("5p"));
-  // tch.SetRootQueueDisc ("ns3::FifoQueueDisc", "MaxSize", StringValue ("20p"));
-  tch.SetRootQueueDisc ("ns3::" + queue_disc_type, "MaxSize", StringValue (queue_capacity), 
-                        "Alpha_High", DoubleValue (alpha_high), "Alpha_Low", DoubleValue (alpha_low));
+  tch.SetRootQueueDisc ("ns3::FifoQueueDisc", "MaxSize", StringValue ("20p"));
+  // tch.SetRootQueueDisc ("ns3::" + queue_disc_type, "MaxSize", StringValue (queue_capacity), 
+                        // "Alpha_High", DoubleValue (alpha_high), "Alpha_Low", DoubleValue (alpha_low));
 
   QueueDiscContainer qdiscs = tch.Install (reciever);
 
@@ -249,21 +318,17 @@ int main (int argc, char *argv[])
   Ptr<QueueDisc> q = qdiscs.Get (0); // look at the router queue - shows actual values
   // The Next Line Displayes "PacketsInQueue" statistic at the Traffic Controll Layer
   // q->TraceConnectWithoutContext ("PacketsInQueue", MakeCallback (&TcPacketsInQueueTrace));
-  q->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeCallback (&TcHighPriorityPacketsInQueueTrace));  // ### ADDED BY ME #####
-  q->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeCallback (&TcLowPriorityPacketsInQueueTrace));  // ### ADDED BY ME #####
-  q->TraceConnectWithoutContext("EnqueueingThreshold_High", MakeCallback (&QueueThresholdHighTrace)); // ### ADDED BY ME #####
-  q->TraceConnectWithoutContext("EnqueueingThreshold_Low", MakeCallback (&QueueThresholdLowTrace)); // ### ADDED BY ME #####
+  // q->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeCallback (&TcHighPriorityPacketsInQueueTrace));  // ### ADDED BY ME #####
+  // q->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeCallback (&TcLowPriorityPacketsInQueueTrace));  // ### ADDED BY ME #####
+  // q->TraceConnectWithoutContext("EnqueueingThreshold_High", MakeCallback (&QueueThresholdHighTrace)); // ### ADDED BY ME #####
+  // q->TraceConnectWithoutContext("EnqueueingThreshold_Low", MakeCallback (&QueueThresholdLowTrace)); // ### ADDED BY ME #####
   Config::ConnectWithoutContextFailSafe ("/NodeList/1/$ns3::TrafficControlLayer/RootQueueDiscList/0/SojournTime",
                                  MakeCallback (&SojournTimeTrace));
-
-  ////////////////////////////////////////////////////////
-  // Simulator::ScheduleNow (&CheckQueueSize, q);
-  ////////////////////////////////////////////////////////
   
   // Ptr<NetDevice> nd = serverDevice.Get (1);  // original value
-  Ptr<NetDevice> nd = reciever.Get (0);  //router side? fits queue-discs-benchmark example
-  Ptr<PointToPointNetDevice> ptpnd = DynamicCast<PointToPointNetDevice> (nd);
-  Ptr<Queue<Packet> > queue = ptpnd->GetQueue ();
+  // Ptr<NetDevice> nd = reciever.Get (0);  //router side? fits queue-discs-benchmark example
+  // Ptr<PointToPointNetDevice> ptpnd = DynamicCast<PointToPointNetDevice> (nd);
+  // Ptr<Queue<Packet> > queue = ptpnd->GetQueue ();
   // The Next Line Displayes "PacketsInQueue" statistic at the NetDevice Layer
   // queue->TraceConnectWithoutContext ("PacketsInQueue", MakeCallback (&DevicePacketsInQueueTrace));
 
@@ -308,9 +373,6 @@ int main (int argc, char *argv[])
     ApplicationContainer sourceApps2 = udpClient.Install (clientNodes.Get (2));
     sourceApps2.Start (Seconds (1.0));
     sourceApps2.Stop (Seconds(3.0));
-    // ApplicationContainer sourceApps3 = udpClient.Install (clientNodes.Get (3));
-    // sourceApps3.Start (Seconds (1.0));
-    // sourceApps3.Stop (Seconds(3.0));
   }
   else if (applicationType.compare("OnOff") == 0)
   {
@@ -329,19 +391,17 @@ int main (int argc, char *argv[])
     ApplicationContainer sourceApps1 = clientHelper.Install (clientNodes.Get (0));
     sourceApps1.Start (Seconds (1.0));
     sourceApps1.Stop (Seconds(3.0));
+
     ApplicationContainer sourceApps2 = clientHelper.Install (clientNodes.Get (2));
     sourceApps2.Start (Seconds (1.0));
     sourceApps2.Stop (Seconds(3.0));
-    // ApplicationContainer sourceApps3 = clientHelper.Install (clientNodes.Get (3));
-    // sourceApps3.Start (Seconds (1.0));
-    // sourceApps3.Stop (Seconds(3.0));
   }
   else if (applicationType.compare("customOnOff") == 0)
   {
     // Create the Custom application to send TCP/UDP to the server
     Ptr<Socket> ns3UdpSocket1 = Socket::CreateSocket (clientNodes.Get (0), UdpSocketFactory::GetTypeId ());
     Ptr<Socket> ns3UdpSocket2 = Socket::CreateSocket (clientNodes.Get (2), UdpSocketFactory::GetTypeId ());
-    // Ptr<Socket> ns3UdpSocket3 = Socket::CreateSocket (clientNodes.Get (3), UdpSocketFactory::GetTypeId ());    
+ 
     // ns3UdpSocket->TraceConnectWithoutContext ("CongestionWindow", MakeCallback (&CwndChange));
     
     InetSocketAddress socketAddressUp = InetSocketAddress (routerInterface.GetAddress(1), servPort); // sink IPv4 address
@@ -357,6 +417,8 @@ int main (int argc, char *argv[])
     customOnOffApp1->SetStartTime (Seconds (1.0));
     customOnOffApp1->SetStopTime (Seconds(3.0));
     clientNodes.Get (0)->AddApplication (customOnOffApp1);
+    // customOnOffApp1->TraceConnectWithoutContext ("Tx", MakeCallback (&OnOffAppTxTrace));
+    Simulator::ScheduleNow (&CheckOnOffState, customOnOffApp1); //
 
     Ptr<CustomOnOffApplication> customOnOffApp2 = CreateObject<CustomOnOffApplication> ();
     customOnOffApp2->Setup(ns3UdpSocket2);
@@ -373,18 +435,6 @@ int main (int argc, char *argv[])
     ////////////////////////////
     customOnOffApp2->SetStopTime (Seconds(3.0));
     clientNodes.Get (2)->AddApplication (customOnOffApp2);
-
-    // Ptr<CustomOnOffApplication> customOnOffApp3 = CreateObject<CustomOnOffApplication> ();
-    // customOnOffApp3->Setup(ns3UdpSocket3);
-    // customOnOffApp3->SetAttribute("Remote", AddressValue (socketAddressUp));
-    // customOnOffApp3->SetAttribute("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
-    // customOnOffApp3->SetAttribute("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.1]"));
-    // customOnOffApp3->SetAttribute("PacketSize", UintegerValue (payloadSize));
-    // customOnOffApp3->SetAttribute("DataRate", StringValue ("2Mb/s"));
-    // customOnOffApp3->SetAttribute("EnableSeqTsSizeHeader", BooleanValue (false));
-    // customOnOffApp3->SetStartTime (Seconds (1.0));
-    // customOnOffApp3->SetStopTime (Seconds(3.0));
-    // clientNodes.Get (3)->AddApplication (customOnOffApp3);
   }
 
   else if (applicationType.compare("customApplication") == 0)
@@ -392,8 +442,6 @@ int main (int argc, char *argv[])
     // Create the Custom application to send TCP/UDP to the server
     Ptr<Socket> ns3UdpSocket1 = Socket::CreateSocket (clientNodes.Get (0), UdpSocketFactory::GetTypeId ());
     Ptr<Socket> ns3UdpSocket2 = Socket::CreateSocket (clientNodes.Get (2), UdpSocketFactory::GetTypeId ());
-    // Ptr<Socket> ns3UdpSocket3 = Socket::CreateSocket (clientNodes.Get (3), UdpSocketFactory::GetTypeId ()); 
-    // ns3UdpSocket->TraceConnectWithoutContext ("CongestionWindow", MakeCallback (&CwndChange));
 
     InetSocketAddress socketAddressUp = InetSocketAddress (routerInterface.GetAddress(1), servPort);  // sink IPv4 address
 
@@ -412,23 +460,17 @@ int main (int argc, char *argv[])
     ////////////////////////////
     customApp2->SetStopTime (Seconds(3.0));
     clientNodes.Get (2)->AddApplication (customApp2);
-
-    // Ptr<TutorialApp> customApp3 = CreateObject<TutorialApp> ();
-    // customApp3->Setup (ns3UdpSocket3, socketAddressUp, payloadSize, numOfPackets, DataRate ("1Mbps"));
-    // customApp3->SetStartTime (Seconds (1.0));
-    // customApp3->SetStopTime (Seconds(3.0));
-    // clientNodes.Get (3)->AddApplication (customApp3);
   }
 
   FlowMonitorHelper flowmon;
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  std::string dirToSave = "mkdir -p " + dir + queue_disc_type;
-  if (system (dirToSave.c_str ()) == -1)
-    {
-      exit (1);
-    } 
+  std::string dirToSave = dir + queue_disc_type;
+  if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
+  {
+    system (("mkdir -p " + dirToSave).c_str ());
+  } 
 
   // Generate PCAP traces if it is enabled
   if (enablePcap)
@@ -543,7 +585,7 @@ int main (int argc, char *argv[])
   std::cout << q->GetStats () << std::endl;
 
   // Added to create a .txt file with the summary of the tested scenario statistics
-  std::ofstream testFlowStatistics (dir + queue_disc_type + "/Statistics.txt", std::ios::out | std::ios::app);
+  std::ofstream testFlowStatistics (dirToSave + "/Statistics.txt", std::ios::out | std::ios::app);
   testFlowStatistics << "Topology: Line" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + queue_disc_type << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
@@ -560,8 +602,12 @@ int main (int argc, char *argv[])
   testFlowStatistics << q->GetStats () << std::endl;
   testFlowStatistics.close ();
 
+  // MOVE ALL TRACE/.dat files to the run directory:
+  // system (("mv -f " + dir + "/*.dat " + dirToSave).c_str ());
+  // system (("mv -f " + dir + "/*.txt " + dirToSave).c_str ());
+
   // command line needs to be in ./scratch/ inorder for the script to produce gnuplot correctly///
-  // system (("gnuplot " + dir + "gnuplotScriptTcHighPriorityPacketsInQueue").c_str ());
+  // system (("gnuplot " + dirToSave + "/gnuplotScripthighPriorityPacketsInQueueTrace").c_str ());
 
   Simulator::Destroy ();
   return 0;

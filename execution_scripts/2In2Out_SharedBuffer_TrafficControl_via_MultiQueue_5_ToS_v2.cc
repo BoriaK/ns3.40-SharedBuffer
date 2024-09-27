@@ -15,7 +15,8 @@
  *
  */
 /*
- * Basic Topology with 2 clients: n0 and n1, a switch S, and 2 recievers r0 and r1
+ * Basic Topology, with 2 ports p0 and p1 with 5 client servers [t0,...t5] on each port, a switch S, 2 Tx ports connected to 5 
+ * recievers [r0,...,r5] each
  * this design is based on DumbellTopoplogy model.
  * in this version all the NetDevices are created first and the TrafficControllHelper is installed on them simultanoiusly
  *
@@ -130,7 +131,7 @@ StringCombine (std::string A, std::string B, std::string C)
 
 // std::string dir = "./Trace_Plots/2In2Out/test_Alphas/" + ToString(alpha_high) + "_" + ToString(alpha_low) + "/";
 std::string dir = "./Trace_Plots/2In2Out/";
-std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
+std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "DT"/"FB"
 std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
@@ -243,11 +244,11 @@ int main (int argc, char *argv[])
   std::string transportProt = "UDP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
-  if (traffic_control_type.compare("SharedBuffer_DT_v01") == 0)
+  if (traffic_control_type.compare("SharedBuffer_DT") == 0)
   {
     usedAlgorythm = "DT";
   }
-  else if (traffic_control_type.compare("SharedBuffer_FB_v01") == 0)
+  else if (traffic_control_type.compare("SharedBuffer_FB") == 0)
   {
     usedAlgorythm = "FB";
   }
@@ -318,9 +319,6 @@ int main (int argc, char *argv[])
   NodeContainer servers;
   servers.Create (SERVER_COUNT);
 
-
-  // NS_LOG_INFO ("Install channels and assign addresses");
-
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
@@ -380,9 +378,7 @@ int main (int argc, char *argv[])
   // priomap with low priority for class "0" and high priority for rest of the 15 classes (1-15). Technically not nesessary for RoundRobinPrioQueue
   std::array<uint16_t, 16> prioArray = {4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   
-  // Priomap prioMap = Priomap{prioArray};
   TosMap tosMap = TosMap{prioArray};
-  // uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinPrioQueueDisc", "Priomap", PriomapValue(prioMap));
   uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinTosQueueDisc", "TosMap", TosMapValue(tosMap));
 
   TrafficControlHelper::ClassIdList cid = tch.AddQueueDiscClasses(handle, 5, "ns3::QueueDiscClass");
@@ -510,8 +506,8 @@ int main (int argc, char *argv[])
   double_t miceOffTime = 0.01; // [sec]
   double_t elephantOffTime = 0.1; // [sec]
   // for RNG:
-  double_t miceOnTimeMax = 0.1; // [sec]
-  double_t elephantOnTimeMax = 1.0; // [sec]
+  double_t miceOnTimeMax = 2 * miceOnTime; // [sec]
+  double_t elephantOnTimeMax = 2 * elephantOnTime; // [sec]
   double_t miceOffTimeMax = 2 * miceOffTime; // [sec]
   double_t elephantOffTimeMax = 2 * elephantOffTime; // [sec]
 
@@ -869,11 +865,11 @@ int main (int argc, char *argv[])
   testFlowStatistics.close ();
 
   // move all the produced files to a directory based on the Alpha values
-  std::string newDir = dirToSave + onOffTrafficMode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
-  system (("mkdir -p " + newDir).c_str ());
-  // system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
-  system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
-  system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
+  // std::string newDir = dirToSave + onOffTrafficMode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  // system (("mkdir -p " + newDir).c_str ());
+  // // system (("mv -f " + dir + "/*.dat " + newDir).c_str ());
+  // system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+  // system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
 
   // command line needs to be in ./scratch/ inorder for the script to produce gnuplot correctly///
   // system (("gnuplot " + dir + "gnuplotScriptTcHighPriorityPacketsInQueue").c_str ());

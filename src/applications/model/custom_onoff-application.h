@@ -130,6 +130,11 @@ public:
   void SetMaxBytes (uint64_t maxBytes);
 
   /**
+   * \return The current state of the OnOff machine. when it's "On" returns 1, 0 otherwise.
+   */
+  bool GetCurrentState() const;
+
+  /**
    * \brief Return a pointer to associated socket.
    * \return pointer to associated socket
    */
@@ -200,10 +205,13 @@ private:
   uint32_t        m_seq {0};      //!< Sequence
   Ptr<Packet>     m_unsentPacket; //!< Unsent packet cached for future attempt
   bool            m_enableSeqTsSizeHeader {false}; //!< Enable or disable the use of SeqTsSizeHeader
-///////////////////////////added by me, for shared buffer///////////////////////////////////////
+  ///////////////////////////added by me, for shared buffer///////////////////////////////////////
   bool            m_enableCustomHeader {true}; //!< Enable or disable the use of SeqTsSizeHeader
-/////////////////////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////
   
+  // to monitor OnOff Aplication "state":
+  bool m_isOn; // True if the application is in the "on" state, false if "off".
+
   /// Traced Callback: transmitted packets.
   TracedCallback<Ptr<const Packet> > m_txTrace;
 

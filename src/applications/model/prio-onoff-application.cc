@@ -157,9 +157,10 @@ PrioOnOffApplication::PrioOnOffApplication()
       m_lastStartTime(Seconds(0)),
       m_totBytes(0),
       m_unsentPacket(nullptr),
-      m_packetSeqCount(1) // number of sent packets per sequence, always start with 1, added by me!
+      m_packetSeqCount(1), // number of sent packets per sequence, always start with 1, added by me!
     // m_priority(1),  // the priority of the generated flow.
     // m_threshold (10),  // Flow classfication Threshold (length), Added by me!
+        m_isOn(false)
       
 {
     NS_LOG_FUNCTION(this);
@@ -208,6 +209,13 @@ PrioOnOffApplication::GetSocket() const
 {
     NS_LOG_FUNCTION(this);
     return m_socket;
+}
+
+bool
+PrioOnOffApplication::GetCurrentState() const
+{
+    NS_LOG_FUNCTION(this);
+    return m_isOn;
 }
 
 int64_t
@@ -344,7 +352,11 @@ void
 PrioOnOffApplication::StartSending()
 {
     NS_LOG_FUNCTION(this);
+    
+    m_isOn = true; // Set the state to "on"
+    std::cout << "State: ON" << std::endl; // Log the state
     m_lastStartTime = Simulator::Now();
+    
     ScheduleNextTx(); // Schedule the send packet event
     ScheduleStopEvent();
 }
@@ -353,6 +365,10 @@ void
 PrioOnOffApplication::StopSending()
 {
     NS_LOG_FUNCTION(this);
+
+    m_isOn = false; // Set the state to "off"
+    std::cout << "State: OFF" << std::endl; // Log the state
+    
     CancelEvents();
 
     ScheduleStartEvent();

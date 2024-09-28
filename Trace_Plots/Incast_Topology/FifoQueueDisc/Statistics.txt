@@ -5,21 +5,21 @@ Application: customOnOff
 
 *** Flow monitor statistics ***
   Tx Packets/Bytes:   488 / 513376
-  Rx Packets/Bytes:   246 / 258792
-  Packets/Bytes Dropped by Queue Disc:   242 / 254584
+  Rx Packets/Bytes:   252 / 265104
+  Packets/Bytes Dropped by Queue Disc:   236 / 248272
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 1.01492 Mbps
+  Throughput: 1.05239 Mbps
 
 *** TC Layer statistics ***
 
 Packets/Bytes received: 488 / 513376
-Packets/Bytes enqueued: 246 / 258792
-Packets/Bytes dequeued: 246 / 258792
+Packets/Bytes enqueued: 252 / 265104
+Packets/Bytes dequeued: 252 / 265104
 Packets/Bytes requeued: 0 / 0
-Packets/Bytes dropped: 242 / 254584
-Packets/Bytes dropped before enqueue: 242 / 254584
-  Queue disc limit exceeded: 242 / 254584
+Packets/Bytes dropped: 236 / 248272
+Packets/Bytes dropped before enqueue: 236 / 248272
+  Queue disc limit exceeded: 236 / 248272
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 246 / 258792
+Packets/Bytes sent: 252 / 265104
 Packets/Bytes marked: 0 / 0
 

@@ -98,7 +98,7 @@ createHistogram(const std::vector<double>& in_array,
 void
 createAndPlotHistogram(std::string destrebution, const std::vector<double>& in_array, double precision)
 {
- std::string plotFileName = destrebution;
+  std::string plotFileName = destrebution;
   Gnuplot plot(plotFileName+".png");
   plot.SetTitle("NormalRandomVariable");
   // Make the graphics file, which the plot file will create when it

@@ -135,6 +135,11 @@ PrioOnOffApplication::GetTypeId()
                             StringValue(""),
                             MakeStringAccessor(&PrioOnOffApplication::m_miceElephantProb),
                             MakeStringChecker())
+            .AddAttribute ("StreamIndex", 
+                            "Assign a stream index for each instanse of the OnOff Application for the RNG",
+                            UintegerValue (1),
+                            MakeUintegerAccessor (&PrioOnOffApplication::m_streamIndex),
+                            MakeUintegerChecker<uint32_t> ())
             .AddTraceSource("Tx",
                             "A new packet is created and is sent",
                             MakeTraceSourceAccessor(&PrioOnOffApplication::m_txTrace),
@@ -160,7 +165,7 @@ PrioOnOffApplication::PrioOnOffApplication()
       m_packetSeqCount(1), // number of sent packets per sequence, always start with 1, added by me!
     // m_priority(1),  // the priority of the generated flow.
     // m_threshold (10),  // Flow classfication Threshold (length), Added by me!
-        m_isOn(false)
+      m_isOn(false)
       
 {
     NS_LOG_FUNCTION(this);
@@ -224,6 +229,8 @@ PrioOnOffApplication::AssignStreams(int64_t stream)
     NS_LOG_FUNCTION(this << stream);
     m_onTime->SetStream(stream);
     m_offTime->SetStream(stream + 1);
+    // std::cout << "assigned stream for RNG is: " << m_onTime->GetStream() << std::endl;
+    // std::cout << "assigned stream for RNG is: " << m_offTime->GetStream() << std::endl;
     return 2;
 }
 
@@ -250,7 +257,7 @@ PrioOnOffApplication::StartApplication() // Called at time specified by Start
     // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
     // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
 
-    AssignStreams(1);
+    AssignStreams(m_streamIndex);
 
     // Create the socket if not already
     if (!m_socket)

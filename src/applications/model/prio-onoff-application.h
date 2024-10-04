@@ -193,6 +193,7 @@ class PrioOnOffApplication : public Application
     uint64_t        m_packetSeqCount; //!< Number of packets sent in sequence, added by me
     // to monitor OnOff Aplication "state":
     bool m_isOn; // True if the application is in the "on" state, false if "off".
+    uint32_t m_streamIndex; //!< pass a stream index for the RNG
     /// Traced Callback: transmitted packets.
     TracedCallback<Ptr<const Packet>> m_txTrace;
 

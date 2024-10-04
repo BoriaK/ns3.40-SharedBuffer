@@ -137,47 +137,45 @@ void
 uniformRandomVariableChecker(double_t min_uni, double_t max_uni)
 {
   RngSeedManager::SetSeed(12);
-  // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
-
-  // RngSeedManager::SetRun(1);
-  // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
+  std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
+  RngSeedManager::SetRun(1);
+  std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
   
   Ptr<UniformRandomVariable> uniformRandomVariable = ns3::CreateObject<ns3::UniformRandomVariable>();
   uniformRandomVariable->SetAttribute("Min", DoubleValue(min_uni));
   uniformRandomVariable->SetAttribute("Max", DoubleValue(max_uni));
 
-  uniformRandomVariable->SetStream(2);
-  std::cout << "the stream number for the RngStream " << uniformRandomVariable->GetStream() << std::endl;
 
   /////// to check that the RNG produces the exact same values for each instance: //////
   /////// generate an array of random numbers of the set distrebution             //////
   /////// repeat 3 times, and see that each time the RNG peoduces the same array  //////
-  // std::vector<double_t> uniformVarVector;
-  // int vacLength = 5;
-  // for (size_t i = 0; i < 3; i++)
-  // { 
-  //   std::cout << "the numbers drawn from the Uniform distrebution returned by the RNG are: " << std::endl;
-  //   for (size_t j = 0; j < vacLength; j++)
-  //   { 
-  //     uniformVarVector.push_back(uniformRandomVariable->GetValue());
-  //     std::cout << uniformVarVector[j] << ", ";
-  //   }
-  //   std::cout << std::endl;
-  // }
+  int vacLength = 5;
+  for (size_t i = 0; i < 3; i++)
+  { 
+    uniformRandomVariable->SetStream(2 + i);
+    std::cout << "the stream number for the RngStream " << uniformRandomVariable->GetStream() << std::endl;
+    
+    std::cout << "the numbers drawn from the Uniform distrebution returned by the RNG are: " << std::endl;
+    for (size_t j = 0; j < vacLength; j++)
+    { 
+      std::cout << uniformRandomVariable->GetValue() << ", ";
+    }
+    std::cout << std::endl;
+  }
 
 
   /////// plot Histogram and save it to .png //////
-  std::vector<double_t> uniformVarVector;
-  int arrLength = 10000;
-  // std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << std::endl;
-  for (size_t i = 0; i < arrLength; i++)
-  { 
-    uniformVarVector.push_back(uniformRandomVariable->GetValue());
-    // std::cout << uniformVarVector[i] << ", ";
-  }
-  // std::cout << std::endl;
+  // std::vector<double_t> uniformVarVector;
+  // int arrLength = 10000;
+  // // std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << std::endl;
+  // for (size_t i = 0; i < arrLength; i++)
+  // { 
+  //   uniformVarVector.push_back(uniformRandomVariable->GetValue());
+  //   // std::cout << uniformVarVector[i] << ", ";
+  // }
+  // // std::cout << std::endl;
   
-  createAndPlotHistogram("UniformDestrebution",uniformVarVector, 0.1);
+  // createAndPlotHistogram("UniformDestrebution",uniformVarVector, 0.1);
 
 }
 
@@ -185,87 +183,87 @@ void
 normalRandomVariableChecker(double_t mean_norm, double_t variance_norm)
 {
   RngSeedManager::SetSeed(12);
-  // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
+  std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
   RngSeedManager::SetRun(1);
-  // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
+  std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
 
   Ptr<NormalRandomVariable> normalRandomVariable = ns3::CreateObject<ns3::NormalRandomVariable>();
   normalRandomVariable->SetAttribute("Mean", DoubleValue(mean_norm));
   normalRandomVariable->SetAttribute("Variance", DoubleValue(variance_norm));
 
-  normalRandomVariable->SetStream(2);
-  std::cout << "the stream number for the RngStream " << normalRandomVariable->GetStream() << std::endl;
+  // normalRandomVariable->SetStream(2);
+  // std::cout << "the stream number for the RngStream " << normalRandomVariable->GetStream() << std::endl;
 
-  /////// to check that the RNG produces the exact same values for each instance: //////
-  /////// generate an array of random numbers of the set distrebution             //////
-  /////// repeat 3 times, and see that each time the RNG peoduces the same array  //////
-  // std::vector<double_t> normVarVector;
-  // int vacLength = 5;
-  // for (size_t i = 0; i < 3; i++)
-  // { 
-  //   std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << std::endl;
-  //   for (size_t j = 0; j < vacLength; j++)
-  //   { 
-  //     normVarVector.push_back(normalRandomVariable->GetValue());
-  //     std::cout << normVarVector[j] << ", ";
-  //   }
-  //   std::cout << std::endl;
-  // }
+  // to make sure that the RNG generates the same squence of random numbers each iteration:
+  // make sure that the RNG STREAM is set to the same value.
+  // to make sure that the RNG generates different sequences of random numbers each itteration:
+  // make sure that the RNG STREAM is NOT set to the same number.
+  int vecLength = 5;
+  for (size_t i = 0; i < 3; i++)
+  { 
+    normalRandomVariable->SetStream(2 + i);
+    std::cout << "the stream number for the RngStream " << normalRandomVariable->GetStream() << std::endl;
+    
+    std::cout << "the numbers drawn from the Normal distribution returned by the RNG are: " << std::endl;
+    for (size_t j = 0; j < vecLength; j++)
+    { 
+      std::cout << normalRandomVariable->GetValue() << ", ";
+    }
+    std::cout << std::endl;
+  }
   
   /////// plot Histogram and save it to .png //////
-  std::vector<double_t> normVarVector;
-  int arrLength = 10000;
-  // std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << std::endl;
-  for (size_t i = 0; i < arrLength; i++)
-  { 
-    normVarVector.push_back(normalRandomVariable->GetValue());
-    // std::cout << normVarVector[i] << ", ";
-  }
+  // std::vector<double_t> normVarVector;
+  // int arrLength = 10000;
+  // // std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << std::endl;
+  // for (size_t i = 0; i < arrLength; i++)
+  // { 
+  //   normVarVector.push_back(normalRandomVariable->GetValue());
+  //   // std::cout << normVarVector[i] << ", ";
+  // }
   // std::cout << std::endl;
   
-  createAndPlotHistogram("NormalDestrebution",normVarVector,0.1);                                                                                   
+  // createAndPlotHistogram("NormalDestrebution",normVarVector,0.1);                                                                                   
 }
 
 void
 exponentialRandomVariableChecker(double_t mean_exp, double_t bound_exp)
 {
   RngSeedManager::SetSeed(12);
-  // std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
+  std::cout << "the RNG seed is: " << RngSeedManager::GetSeed() << std::endl;
   RngSeedManager::SetRun(1);
-  // std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
+  std::cout << "the run number is: " << RngSeedManager::GetRun() << std::endl;
 
   Ptr<ExponentialRandomVariable> exponentialRandomVariable = ns3::CreateObject<ns3::ExponentialRandomVariable>();
   exponentialRandomVariable->SetAttribute("Mean", DoubleValue(mean_exp));
   exponentialRandomVariable->SetAttribute("Bound", DoubleValue(bound_exp));
 
-  exponentialRandomVariable->SetStream(2);
-  std::cout << "the stream number for the RngStream " << exponentialRandomVariable->GetStream() << std::endl;
-
   /////// to check that the RNG produces the exact same values for each instance: //////
   /////// generate an array of random numbers of the set distrebution             //////
   /////// repeat 3 times, and see that each time the RNG peoduces the same array  //////
-  // std::vector<double_t> exponentialVarVector;
-  // int vacLength = 5;
-  // for (size_t i = 0; i < 3; i++)
-  // { 
-  //   std::cout << "the numbers drawn from the exponential distrebution returned by the RNG are: " << std::endl;
-  //   for (size_t j = 0; j < vacLength; j++)
-  //   { 
-  //     exponentialVarVector.push_back(exponentialRandomVariable->GetValue());
-  //     std::cout << exponentialVarVector[j] << ", ";
-  //   }
-  //   std::cout << std::endl;
-  // }
+  int vacLength = 5;
+  for (size_t i = 0; i < 3; i++)
+  {  
+    exponentialRandomVariable->SetStream(2 + i);
+    std::cout << "the stream number for the RngStream " << exponentialRandomVariable->GetStream() << std::endl;
+
+    std::cout << "the numbers drawn from the exponential distrebution returned by the RNG are: " << std::endl;
+    for (size_t j = 0; j < vacLength; j++)
+    { 
+      std::cout << exponentialRandomVariable->GetValue() << ", ";
+    }
+    std::cout << std::endl;
+  }
   
   /////// plot Histogram and save it to .png //////
-  std::vector<double_t> exponentialVarVector;
-  int arrLength = 10000;
-  // std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << std::endl;
-  for (size_t i = 0; i < arrLength; i++)
-  { 
-    exponentialVarVector.push_back(exponentialRandomVariable->GetValue());
-  }
-  createAndPlotHistogram("ExponentialDestrebution",exponentialVarVector,0.1);                                                                                   
+  // std::vector<double_t> exponentialVarVector;
+  // int arrLength = 10000;
+  // // std::cout << "the numbers drawn from the Normal distrebution returned by the RNG are: " << std::endl;
+  // for (size_t i = 0; i < arrLength; i++)
+  // { 
+  //   exponentialVarVector.push_back(exponentialRandomVariable->GetValue());
+  // }
+  // createAndPlotHistogram("ExponentialDestrebution",exponentialVarVector,0.1);                                                                                   
 }
 
 int main (int argc, char *argv[])

@@ -71,7 +71,7 @@ Time prevTime = Seconds (0);
 NS_LOG_COMPONENT_DEFINE ("Traffic_Control_Example_Incast_Topology_v01");
 
 void
-generateGnuPlotFromDatFile(std::string datFileName)
+generate1DGnuPlotFromDatFile(std::string datFileName)
 {
   std::string plotFileName = datFileName.substr(0, datFileName.length() - 4);
   Gnuplot plot(plotFileName + ".png");
@@ -507,7 +507,7 @@ int main (int argc, char *argv[])
     clientNodes.Get (2)->AddApplication (customOnOffApp2);
 
     //monitor OnOff Traffic generated from the OnOff Applications:
-    Simulator::Schedule (Seconds (1.0), &returnOnOffTraffic, customOnOffApp1, customOnOffApp2, 3.0, Simulator::Now().GetSeconds());
+    Simulator::Schedule (Seconds (1.0), &returnOnOffTraffic, customOnOffApp1, customOnOffApp2, 3.1, Simulator::Now().GetSeconds());
   }
 
   else if (applicationType.compare("customApplication") == 0)
@@ -680,7 +680,7 @@ int main (int argc, char *argv[])
   // system (("mv -f " + dir + "/*.txt " + dirToSave).c_str ());
 
   // Create the gnuplot.//////////////////////////////
-  generateGnuPlotFromDatFile(dirToSave + "generatedOnOffTrafficTrace.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "generatedOnOffTrafficTrace.dat");
 
   Simulator::Destroy ();
   return 0;

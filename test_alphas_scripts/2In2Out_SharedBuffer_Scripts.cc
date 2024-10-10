@@ -5972,7 +5972,7 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
 }
 
 void
-viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, bool accumulate_stats)
+viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, bool accumulate_stats, double_t future_possition, double_t win_length)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
@@ -5986,7 +5986,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   
   // for local d estimatiuon
   // Tau = 50 [msec]. start predictive model at t0 - Tau/2. use window of: [t0 - Tau/2, t0 + Tau/2]
-  double_t tau = 0.05; // [Sec]
+  double_t tau = win_length; // [Sec]
 
   std::string  dir = datDir;
   if (traffic_control_type.compare("SharedBuffer_DT") == 0)
@@ -6603,8 +6603,8 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
-  sourceAppsPredict.Start (Seconds (1.0 - tau/2));
-  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - tau/2));
+  sourceAppsPredict.Start (Seconds (1.0 - tau*future_possition));
+  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - tau*(1 - future_possition)));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -6636,6 +6636,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   // print the tested scenario at the top of the terminal: Topology, Queueing Algorithm and Application.
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
+  std::cout << std::endl << "Estimation Window Size: " << tau << " Possition: " << future_possition << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
   std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
@@ -6763,6 +6764,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   std::ofstream testFlowStatistics (dirToSave + "Statistics.txt", std::ios::out | std::ios::app);
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
+  testFlowStatistics << "Estimation Window Size: " << tau << " Possition: " << future_possition << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;

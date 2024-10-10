@@ -88,6 +88,13 @@ using namespace ns3;
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 
+// std::string dir = "./Trace_Plots/2In2Out/test_Alphas/" + ToString(alpha_high) + "_" + ToString(alpha_low) + "/";
+std::string dir = "./Trace_Plots/2In2Out/";
+std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
+std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
+std::string usedAlgorythm;  // "DT"/"FB"
+std::string onOffTrafficMode = "Uniform"; // "Constant"/"Uniform"/"Normal"
+
 NS_LOG_COMPONENT_DEFINE ("2In2Out");
 
 std::string
@@ -129,13 +136,6 @@ StringCombine (std::string A, std::string B, std::string C)
   ss << A << B << C;
   return ss.str();
 }
-
-// std::string dir = "./Trace_Plots/2In2Out/test_Alphas/" + ToString(alpha_high) + "_" + ToString(alpha_low) + "/";
-std::string dir = "./Trace_Plots/2In2Out/";
-std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
-std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
-std::string usedAlgorythm;  // "DT"/"FB"
-std::string onOffTrafficMode = "Uniform"; // "Constant"/"Uniform"/"Normal"
 
 // functions to monitor Shared Buffer packets on Traffic Control Layer
 void
@@ -348,15 +348,6 @@ int main (int argc, char *argv[])
   std::string transportProt = "UDP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
-  if (traffic_control_type.compare("SharedBuffer_DT") == 0)
-  {
-    usedAlgorythm = "DT";
-  }
-  else if (traffic_control_type.compare("SharedBuffer_FB") == 0)
-  {
-    usedAlgorythm = "FB";
-  }
-
 
   // Create a new directory to store the output of the program
   // dir = "./Trace_Plots/2In2Out/";
@@ -365,6 +356,7 @@ int main (int argc, char *argv[])
   {
     system (("mkdir -p " + dirToSave).c_str ());
   }
+
 
   uint32_t flowletTimeout = 50;
   bool eraseOldData = true; // true/false
@@ -378,12 +370,22 @@ int main (int argc, char *argv[])
     std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
   }
 
+  NS_LOG_INFO ("Config parameters");
+
   CommandLine cmd;
   cmd.AddValue ("transportProt", "Transport protocol to use: Udp, Tcp, DcTcp", transportProt);
   cmd.AddValue ("flowletTimeout", "flowlet timeout", flowletTimeout);
   cmd.Parse (argc, argv);
 
-  NS_LOG_INFO ("Config parameters");
+  if (traffic_control_type.compare("SharedBuffer_DT") == 0)
+  {
+    usedAlgorythm = "DT";
+  }
+  else if (traffic_control_type.compare("SharedBuffer_FB") == 0)
+  {
+    usedAlgorythm = "FB";
+  }
+
   // Application type dependent parameters
   if (applicationType.compare("standardClient") == 0 || applicationType.compare("prioClient") == 0)
   {

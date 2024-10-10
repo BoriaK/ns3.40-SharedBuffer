@@ -74,15 +74,12 @@ std::string datDir = "./Trace_Plots/test_Estimation_Window/";
 uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
 // time interval values 
 double_t trafficGenDuration = 2; // [sec] initilize for a single OnOff segment
-int32_t numOfTotalPackets = 795; // [packets] number of total generated packets for a single OnOff Pair (High and Low)
 double_t miceOnTime = 0.05; // [sec] for ~12 packets/flow
 double_t elephantOnTime = 0.5; // [sec] for ~125 packets/flow
 
-double_t miceOffTimeConst = 0.01; // [sec]
-double_t elephantOffTimeConst = 0.1; // [sec]
 // for RNG:
-double_t miceOnTimeMax = 0.1; // [sec]
-double_t elephantOnTimeMax = 1.0; // [sec]
+double_t miceOnTimeMax = 2 * miceOnTime; // [sec]
+double_t elephantOnTimeMax = 2 * elephantOnTime; // [sec]
 
 NS_LOG_COMPONENT_DEFINE ("2In2Out");
 

@@ -24,7 +24,7 @@
 int main ()
 {
   std::string trafficControlType = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
-  bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
+  bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
   std::string onOffTrafficMode = "Exponential"; // "Constant"/"Uniform"/"Normal"/"Exponential"
 
   // for Predictive Model
@@ -167,7 +167,11 @@ int main ()
     {
       // this file is for debug, to trace the sequence of all estimated d values during the run
       // it needs to be erased before the simulation starts
-      std::remove("Estimated_D_Values.dat");
+      if (std::filesystem::exists("Estimated_D_Values.dat"))
+      {
+        std::remove("Estimated_D_Values.dat");
+      }
+      
       
       // select a specific d value:
       double_t miceElephantProb = 0.3; // d (- [0.1, 0.9] the probability to generate mice compared to elephant packets.
@@ -179,7 +183,10 @@ int main ()
     {
       // this file is for debug, to trace the sequence of all estimated d values during the run
       // it needs to be erased before the simulation starts
-      std::remove("Estimated_D_Values.dat");
+      if (std::filesystem::exists("Estimated_D_Values.dat"))
+      {
+        std::remove("Estimated_D_Values.dat");
+      }
 
       // set an array of tested d values:
       std::double_t miceElephantProb_array[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};

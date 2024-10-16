@@ -708,6 +708,7 @@ int main (int argc, char *argv[])
           clientHelpers_matrix[j][k].SetAttribute ("DataRate", StringValue ("2Mb/s"));
           // clientHelpers_matrix[j][k].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
           clientHelpers_matrix[j][k].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb_array[j])));
+          clientHelpers_matrix[j][k].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + k))); // assign a stream for RNG for each OnOff application instanse
           sourceApps_vector[j].Add(clientHelpers_matrix[j][k].Install (servers.Get(serverIndex)));
         }
       }

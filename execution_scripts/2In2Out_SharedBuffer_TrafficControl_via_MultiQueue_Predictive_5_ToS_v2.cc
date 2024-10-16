@@ -254,7 +254,7 @@ LowPriorityQueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32
 
 // to monitor the OnOff state of a single OnOff Application in real time
 void
-checkOnOffState(Ptr<Application>& app, size_t portIndex, size_t appIndex, double maxDuration, double startTime)
+checkOnOffState(Ptr<Application>& app, std::string predictive_status, size_t portIndex, size_t appIndex, double maxDuration, double startTime)
 {
     double elapsedTime = Simulator::Now().GetSeconds() - startTime;
 
@@ -269,11 +269,11 @@ checkOnOffState(Ptr<Application>& app, size_t portIndex, size_t appIndex, double
     bool appState = prioOnOffApp->GetCurrentState();
 
     // Check OnOff state every 1/100 of a second
-    Simulator::Schedule(Seconds(0.001), &checkOnOffState, app, portIndex, appIndex, maxDuration, startTime);
+    Simulator::Schedule(Seconds(0.001), &checkOnOffState, app, predictive_status, portIndex, appIndex, maxDuration, startTime);
 
     // save to .dat file
     std::ofstream fPlotOnOffState(std::stringstream(dir + traffic_control_type + "/" + implementation + 
-    "/" + "port_" + IntToString(portIndex) + "_app_" + IntToString(appIndex) + "_OnOffStateTrace.dat").str(),
+    "/" + predictive_status + "_port_" + IntToString(portIndex) + "_app_" + IntToString(appIndex) + "_OnOffStateTrace.dat").str(),
                              std::ios::out | std::ios::app);
     fPlotOnOffState << Simulator::Now().GetSeconds() << " " << appState << std::endl;
     fPlotOnOffState.close();
@@ -330,7 +330,7 @@ generate1DGnuPlotFromDatFile(std::string datFileName)
   
   Gnuplot2dDataset dataset;
   dataset.SetTitle("generated Packets");
-  dataset.SetStyle(Gnuplot2dDataset::LINES);
+  dataset.SetStyle(Gnuplot2dDataset::STEPS);
   
   // load a dat file as data set for plotting
   std::ifstream file(datFileName);
@@ -374,6 +374,13 @@ int main (int argc, char *argv[])
   std::string socketType;
   std::string queue_capacity;
   
+  // this file is for debug, to trace the sequence of all estimated d values during the run
+  // it needs to be erased before the simulation starts
+  if (std::filesystem::exists("Estimated_D_Values.dat"))
+  {
+    std::remove("Estimated_D_Values.dat");
+  }
+
   // Create a new directory to store the output of the program
   // dir = "./Trace_Plots/2In2Out/Predictive/";
   std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType + "/" + onOffTrafficMode;
@@ -1014,22 +1021,22 @@ int main (int argc, char *argv[])
         clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
         clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
         sourceApps.Add(clientHelpers_vector[j].Install (servers.Get(serverIndex)));
-        clientHelpers_vector[j].AssignStreams(servers.Get(serverIndex), 0);
+        // clientHelpers_vector[j].AssignStreams(servers.Get(serverIndex), 0);
 
         //monitor OnOff Traffic generated from the OnOff Applications:
-        Simulator::Schedule (Seconds (1.0), &checkOnOffState, sourceApps.Get(j), i, j, 3.1, Simulator::Now().GetSeconds());
+        Simulator::Schedule (Seconds (1.0), &checkOnOffState, sourceApps.Get(j), "non-predictive", i, j, 3.1, Simulator::Now().GetSeconds());
 
         // for Predictive model
         clientHelpersPredict_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpersPredict_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpersPredict_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpersPredict_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-        clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
+        clientHelpersPredict_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
         sourceAppsPredict.Add(clientHelpersPredict_vector[j].Install (serversPredict.Get(serverIndex)));
-        clientHelpersPredict_vector[j].AssignStreams(serversPredict.Get(serverIndex), 0);
+        // clientHelpersPredict_vector[j].AssignStreams(serversPredict.Get(serverIndex), 0);
 
         //monitor OnOff Traffic generated from the OnOff Applications:
-        Simulator::Schedule (Seconds (1.0), &checkOnOffState, sourceAppsPredict.Get(j), i, j, 3.1, Simulator::Now().GetSeconds());
+        Simulator::Schedule (Seconds (1.0 - win_length*future_possition), &checkOnOffState, sourceAppsPredict.Get(j), "predictive", i, j, 3.1- win_length*(1 - future_possition), Simulator::Now().GetSeconds());
       }
     }
     else 
@@ -1236,8 +1243,10 @@ int main (int argc, char *argv[])
 
   // Create the gnuplot.//////////////////////////////
   generate1DGnuPlotFromDatFile(dirToSave + "/generatedOnOffTrafficTrace.dat");
-  generate1DGnuPlotFromDatFile(dirToSave + "/port_0_app_1_OnOffStateTrace.dat");
-  generate1DGnuPlotFromDatFile(dirToSave + "/port_1_app_3_OnOffStateTrace.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_0_app_1_OnOffStateTrace.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_1_app_3_OnOffStateTrace.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_0_app_1_OnOffStateTrace.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_1_app_3_OnOffStateTrace.dat");
 
   // Simulator::Cancel();
   Simulator::Destroy ();

@@ -3,7 +3,7 @@ set output "./Trace_Plots/2In2Out/Predictive/SharedBuffer_DT/via_MultiQueues/5_T
 set title "generated On Off Traffic[packets] vs Time[sec]"
 set xlabel "Time[sec]"
 set ylabel "Traffic"
-plot "-"  title "generated Packets" with lines
+plot "-"  title "generated Packets" with steps
 1 0
 1.0001 0
 1.0002 0

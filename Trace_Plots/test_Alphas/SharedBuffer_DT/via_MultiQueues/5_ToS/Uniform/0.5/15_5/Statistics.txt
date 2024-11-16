@@ -8,30 +8,30 @@ Application: prioOnOff
 traffic Mode UniformRandom
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   4000 / 4208000
-  Rx Packets/Bytes:   3660 / 3850320
+  Tx Packets/Bytes:   4050 / 4260600
+  Rx Packets/Bytes:   3666 / 3856632
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 5.09612 Mbps
+  Throughput: 5.12437 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 340 / 357680
-High Priority Packets/Bytes dropped by Traffic Control Layer: 41 / 43132
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 299 / 314548
+Packets/Bytes dropped by Traffic Control Layer: 384 / 403968
+High Priority Packets/Bytes dropped by Traffic Control Layer: 83 / 87316
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 301 / 316652
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1840 / 1935680
-Packets/Bytes enqueued: 1840 / 1935680
-Packets/Bytes dequeued: 1840 / 1935680
+Packets/Bytes received: 1846 / 1941992
+Packets/Bytes enqueued: 1846 / 1941992
+Packets/Bytes dequeued: 1846 / 1941992
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1840 / 1935680
+Packets/Bytes sent: 1846 / 1941992
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:

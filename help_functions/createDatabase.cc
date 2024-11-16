@@ -54,11 +54,12 @@ void collectData(std::string path, std::string onoff_traffic_mode, const std::st
 
 int main (int argc, char *argv[])
 { 
-  std::string testType = "test_Estimation_Window"; // "test_Alphas"/"test_Estimation_Window_Width"
+  std::string testType = "test_Alphas"; // "test_Alphas"/"test_Estimation_Window_Width"
   std::string windowPossition = "0.5";  // ""/"0.25"/"0.5"/0.75 
   std::string Tau = "0.04"; // "0.02"/"0.03"/"0.04"/"0.05"
-  std::string filePath = "Trace_Plots/" + testType + "/Position_" + windowPossition + "/Length_" + Tau + "/TestStats/SharedBuffer_DT/via_MultiQueues/5_ToS/";
-  std::string onOffTrafficMode = "Uniform"; // "Constant"/"Uniform"/"Normal"
+  // std::string filePath = "Trace_Plots/" + testType + "/Position_" + windowPossition + "/Length_" + Tau + "/TestStats/SharedBuffer_DT/via_MultiQueues/5_ToS/";
+  std::string filePath = "Trace_Plots/" + testType + "/TestStats/SharedBuffer_DT/via_MultiQueues/5_ToS/";
+  std::string onOffTrafficMode = "Exponential"; // "Constant"/"Uniform"/"Normal"/"Exponential"
   
   // std::string miceElephantProbArray[] = {"0.1"};
   std::string miceElephantProbArray[] = {"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"};

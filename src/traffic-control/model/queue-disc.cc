@@ -312,6 +312,14 @@ QueueDisc::GetTypeId()
                             "Number of bytes currently stored in the queue disc",
                             MakeTraceSourceAccessor(&QueueDisc::m_nBytes),
                             "ns3::TracedValueCallback::Uint32")
+            .AddTraceSource("HighPriorityPacketsInQueue",
+                            "Number of High Priority packets currently stored in the queue disc",
+                            MakeTraceSourceAccessor(&QueueDisc::m_nPackets_h),
+                            "ns3::TracedValueCallback::Uint32")
+            .AddTraceSource("LowPriorityPacketsInQueue",
+                            "Number of High Priority packets currently stored in the queue disc",
+                            MakeTraceSourceAccessor(&QueueDisc::m_nPackets_l),
+                            "ns3::TracedValueCallback::Uint32")
             .AddTraceSource("SojournTime",
                             "Sojourn time of the last packet dequeued from the queue disc",
                             MakeTraceSourceAccessor(&QueueDisc::m_sojourn),

@@ -93,7 +93,11 @@ std::string dir = "./Trace_Plots/2In2Out/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "DT"/"FB"
-std::string onOffTrafficMode = "Uniform"; // "Constant"/"Uniform"/"Normal"
+std::string onOffTrafficMode = "Exponential"; // "Constant"/"Uniform"/"Normal"/"Exponential"
+// for OnOff Aplications
+uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
+// time interval values
+double_t trafficGenDuration = 2; // [sec] initilize for a single OnOff segment
 
 NS_LOG_COMPONENT_DEFINE ("2In2Out");
 
@@ -145,7 +149,7 @@ TrafficControlPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
   tcpisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tcpisq.close ();
   
-  std::cout << "PacketsInSharedBuffer: " << newValue << std::endl;
+  // std::cout << "PacketsInSharedBuffer: " << newValue << std::endl;
 }
 
 void
@@ -155,7 +159,7 @@ TrafficControlHighPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t
   tchppisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tchppisq.close ();
   
-  std::cout << "HighPriorityPacketsInSharedBuffer: " << newValue << std::endl;
+  // std::cout << "HighPriorityPacketsInSharedBuffer: " << newValue << std::endl;
 }
 
 void
@@ -165,7 +169,7 @@ TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t 
   tclppisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tclppisq.close ();
   
-  std::cout << "LowPriorityPacketsInSharedBuffer: " << newValue << std::endl;
+  // std::cout << "LowPriorityPacketsInSharedBuffer: " << newValue << std::endl;
 }
 
 // Trace the Threshold Value for High Priority packets in the Shared Queue
@@ -176,7 +180,7 @@ TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newVal
   tchpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tchpthr.close ();
 
-  std::cout << "HighPriorityQueueThreshold on port: " << index << " is: " << newValue << " packets " << std::endl;
+  // std::cout << "HighPriorityQueueThreshold on port: " << index << " is: " << newValue << " packets " << std::endl;
 }
 
 // Trace the Threshold Value for Low Priority packets in the Shared Queue
@@ -187,7 +191,7 @@ TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValu
   tclpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tclpthr.close ();
   
-  std::cout << "LowPriorityQueueThreshold on port: " << index << " is: " << newValue << " packets " << std::endl;
+  // std::cout << "LowPriorityQueueThreshold on port: " << index << " is: " << newValue << " packets " << std::endl;
 }
 
 // void DroppedPacketHandler(std::string context, Ptr<const Packet> packet) 
@@ -203,7 +207,7 @@ QueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldV
   qdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   qdpiq.close ();
   
-  std::cout << "QueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
+  // std::cout << "QueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
 }
 
 void
@@ -213,7 +217,7 @@ HighPriorityQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, u
   hpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   hpqdpiq.close ();
   
-  std::cout << "HighPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
+  // std::cout << "HighPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
 }
 
 void
@@ -223,7 +227,7 @@ LowPriorityQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, ui
   lpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   lpqdpiq.close ();
   
-  std::cout << "LowPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
+  // std::cout << "LowPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
 }
 
 // to monitor the OnOff state of a single OnOff Application in real time
@@ -339,9 +343,9 @@ int main (int argc, char *argv[])
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
-  double_t miceElephantProb = 0.7;
-  double_t alpha_high = 10;
-  double_t alpha_low = 10;
+  double_t miceElephantProb = 0.3;
+  double_t alpha_high = 15;
+  double_t alpha_low = 5;
 
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
   // Command line parameters parsing
@@ -351,7 +355,7 @@ int main (int argc, char *argv[])
 
   // Create a new directory to store the output of the program
   // dir = "./Trace_Plots/2In2Out/";
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType + "/" + onOffTrafficMode;
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onOffTrafficMode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low);
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -538,8 +542,8 @@ int main (int argc, char *argv[])
     {
       Ptr<QueueDisc> queue = qdiscs.Get (i)->GetQueueDiscClass(j)->GetQueueDisc();
       queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&QueueDiscPacketsInQueueTrace, i, j));
-      queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityQueueDiscPacketsInQueueTrace, i, j)); 
-      queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityQueueDiscPacketsInQueueTrace, i, j)); 
+      // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityQueueDiscPacketsInQueueTrace, i, j)); 
+      // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityQueueDiscPacketsInQueueTrace, i, j)); 
     }
   }
   ////////////////////////////////////////////////////////////////////////////////
@@ -711,6 +715,11 @@ int main (int argc, char *argv[])
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
             }
+            else if (onOffTrafficMode.compare("Exponential") == 0)
+            {
+              clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ExponentialRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(trafficGenDuration) + "]"));
+              clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ExponentialRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(trafficGenDuration) +"]"));
+            }
             else 
             {
               std::cerr << "unknown OnOffMode type: " << onOffTrafficMode << std::endl;
@@ -734,6 +743,11 @@ int main (int argc, char *argv[])
             {
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
+            }
+            else if (onOffTrafficMode.compare("Exponential") == 0)
+            {
+              clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ExponentialRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(trafficGenDuration) + "]"));
+              clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ExponentialRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(trafficGenDuration) +"]"));
             }
             else 
             {
@@ -762,6 +776,11 @@ int main (int argc, char *argv[])
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Variance="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(miceOffTime) +"]"));
             }
+            else if (onOffTrafficMode.compare("Exponential") == 0)
+            {
+              clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ExponentialRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(trafficGenDuration) + "]"));
+              clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ExponentialRandomVariable[Mean="+ DoubleToString(miceOffTime) +"|Bound="+ DoubleToString(trafficGenDuration) +"]"));
+            }
             else 
             {
               std::cerr << "unknown OnOffMode type: " << onOffTrafficMode << std::endl;
@@ -786,6 +805,11 @@ int main (int argc, char *argv[])
               clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
               clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Variance="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(elephantOffTime) +"]"));
             }
+            else if (onOffTrafficMode.compare("Exponential") == 0)
+            {
+              clientHelpers_vector[j].SetAttribute ("OnTime", StringValue ("ns3::ExponentialRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(trafficGenDuration) + "]"));
+              clientHelpers_vector[j].SetAttribute ("OffTime", StringValue ("ns3::ExponentialRandomVariable[Mean="+ DoubleToString(elephantOffTime) +"|Bound="+ DoubleToString(trafficGenDuration) +"]"));
+            }
             else 
             {
               std::cerr << "unknown OnOffMode type: " << onOffTrafficMode << std::endl;
@@ -795,7 +819,7 @@ int main (int argc, char *argv[])
           }
         }
         clientHelpers_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-        clientHelpers_vector[j].SetAttribute ("DataRate", StringValue ("2Mb/s"));
+        clientHelpers_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
         clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
@@ -829,7 +853,7 @@ int main (int argc, char *argv[])
   }
 
   sourceApps.Start (Seconds (1.0));
-  sourceApps.Stop (Seconds(3.0));
+  sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -850,6 +874,7 @@ int main (int argc, char *argv[])
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
   std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
@@ -960,6 +985,7 @@ int main (int argc, char *argv[])
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl; 
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
   testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;

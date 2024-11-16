@@ -1137,7 +1137,7 @@ TrafficControlLayer::EstimateNewLocalD()
 
     DataPoint lastRow = dataset.GetLastRow();
     DataPoint currentRow = {0.0, 0.0, 0.0, 0.0}; // initilize currentRow to zeros before filling it with the actual data
-    if ((lastRow.time - (1 + m_Tau)*1e+9) > 0) // make sure that Time (for Predictive model) that has passed is > Tau
+    if ((lastRow.time - (1 + m_Tau)*1e+9) > 0) // make sure that Run-Time (for Predictive model) that has passed is > Tau
     {
         double windowStartTime = lastRow.time - m_Tau*1e+9;
         currentRow = dataset.GetRow(windowStartTime);
@@ -1169,7 +1169,8 @@ TrafficControlLayer::EstimateNewLocalD()
     
     // for debug, save a list of all the estimated d values to a file
     std::ofstream estimatedDValuesOutputFile("Estimated_D_Values.dat", std::ios::app); 
-                estimatedDValuesOutputFile << m_estimated_mice_elephant_prob << std::endl;
+                estimatedDValuesOutputFile << m_estimated_mice_elephant_prob << 
+                " " << GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue() <<  std::endl;
                 estimatedDValuesOutputFile.close();
     return m_estimated_mice_elephant_prob;
 }

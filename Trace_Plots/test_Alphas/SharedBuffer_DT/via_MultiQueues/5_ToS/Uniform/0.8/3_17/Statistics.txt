@@ -8,41 +8,41 @@ Application: prioOnOff
 traffic Mode UniformRandom
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   3916 / 4119632
-  Rx Packets/Bytes:   3601 / 3788252
+  Tx Packets/Bytes:   4091 / 4303732
+  Rx Packets/Bytes:   3610 / 3797720
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 5.20506 Mbps
+  Throughput: 5.21589 Mbps
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 315 / 331380
-High Priority Packets/Bytes dropped by Traffic Control Layer: 315 / 331380
+Packets/Bytes dropped by Traffic Control Layer: 481 / 506012
+High Priority Packets/Bytes dropped by Traffic Control Layer: 481 / 506012
 Low Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1803 / 1896756
-Packets/Bytes enqueued: 1803 / 1896756
-Packets/Bytes dequeued: 1803 / 1896756
+Packets/Bytes received: 1793 / 1886236
+Packets/Bytes enqueued: 1793 / 1886236
+Packets/Bytes dequeued: 1793 / 1886236
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1803 / 1896756
+Packets/Bytes sent: 1793 / 1886236
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 1798 / 1891496
-Packets/Bytes enqueued: 1798 / 1891496
-Packets/Bytes dequeued: 1798 / 1891496
+Packets/Bytes received: 1817 / 1911484
+Packets/Bytes enqueued: 1817 / 1911484
+Packets/Bytes dequeued: 1817 / 1911484
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1798 / 1891496
+Packets/Bytes sent: 1817 / 1911484
 Packets/Bytes marked: 0 / 0
 

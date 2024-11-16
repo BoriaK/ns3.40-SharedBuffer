@@ -24,11 +24,11 @@
 int main ()
 {
   std::string trafficControlType = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
-  bool accumulateStats = false; // true/false. to acumulate run statistics in a single file
-  std::string onOffTrafficMode = "Exponential"; // "Constant"/"Uniform"/"Normal"/"Exponential"
+  bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
+  std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"/"Exponential"
 
   // for Predictive Model
-  double_t tau = 0.04; // Tau is Estimation Window Length [Sec]. {0.03, 0.04, 0.05}
+  double_t tau = 0.4; // Tau is Estimation Window Length [Sec]. {0.03, 0.04, 0.05}
   double_t futurePossition = 0.5; // the placemant of the window in regards to t0 [fraction of Tau]. {0.25, 0.5, 0.75}
   // start predictive model at: t0 - Tau*futurePossition
   // the estimation window will be: [t0 - Tau*(1-futurePossition), t0 + Tau*futurePossition]
@@ -41,7 +41,7 @@ int main ()
   // (5) single D value. Alphas are determined by Predictive Model
   // (6) multiple D values. Alphas are determined by Predictive Model
 
-  int runOption = 1; // [1, 2, 3, 4, 5, 6]
+  int runOption = 5; // [1, 2, 3, 4, 5, 6]
   switch (runOption)
   {
     case 1: // single d & alphas pair value
@@ -73,8 +73,9 @@ int main ()
 
       for (size_t i = 0; i < alphaHigh_array.size(); i++)
       {
-        viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh_array[i], alphaLow_array[i], accumulateStats);
+        // viaMQueues2ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh_array[i], alphaLow_array[i], accumulateStats);
         // viaMQueues5ToS(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh_array[i], alphaLow_array[i], accumulateStats);
+        viaMQueues5ToS_v2(trafficControlType, onOffTrafficMode, miceElephantProb, alphaHigh_array[i], alphaLow_array[i], accumulateStats);
       }
       break;
     }
@@ -130,7 +131,7 @@ int main ()
       // std::array<double_t, 3> alphaLow_array = {7, 5, 4};
       
       
-      bool VaryingD = true;
+      bool VaryingD = false;
       // true -> all d values are loaded as an array of consecutive D values
       // false -> all d values are loaded as individual values in a loop
       

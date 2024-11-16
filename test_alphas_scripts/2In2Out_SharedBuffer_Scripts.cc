@@ -5958,6 +5958,9 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
+  // for local d(t) estimatiuon
+  // Tau = win_length[sec]. start predictive model at t0 - Tau/2. use window of: [t0 - Tau/2, t0 + Tau/2]
+
   std::string implementation = "via_MultiQueues/5_ToS";
   std::string usedAlgorythm;
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
@@ -5965,12 +5968,8 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   std::string socketType;
   std::string queue_capacity;
   bool eraseOldData = true; // true/false
+  std::string  dir = datDir + "/Position_" + DoubleToString(future_possition) + "/Length_" + DoubleToString(win_length) + "/";
   
-  // for local d estimatiuon
-  // Tau = 50 [msec]. start predictive model at t0 - Tau/2. use window of: [t0 - Tau/2, t0 + Tau/2]
-  double_t tau = win_length; // [Sec]
-
-  std::string  dir = datDir;
   if (traffic_control_type.compare("SharedBuffer_DT") == 0)
   {
     usedAlgorythm = "PredictiveDT";
@@ -6159,7 +6158,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
-  tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(tau));
+  tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(win_length));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
   tc->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPacketsInSharedQueueTrace));
@@ -6621,8 +6620,8 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
-  sourceAppsPredict.Start (Seconds (1.0 - tau*future_possition));
-  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - tau*(1 - future_possition)));
+  sourceAppsPredict.Start (Seconds (1.0 - win_length*future_possition));
+  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
@@ -6633,7 +6632,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
 
   // Create a new directory to store the output of the program
   // datDir = "./Trace_Plots/test_Alphas/"
-  // dir = "datDir"
+  // dir = datDir + "future_possition/win_length/"
   std::string dirToSave =  dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
@@ -6654,7 +6653,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   // print the tested scenario at the top of the terminal: Topology, Queueing Algorithm and Application.
   std::cout << std::endl << "Topology: 2In2Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
-  std::cout << std::endl << "Estimation Window Size: " << tau << " Possition: " << future_possition << std::endl;
+  std::cout << std::endl << "Estimation Window Size: " << win_length << " Possition: " << future_possition << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
   std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
@@ -6782,7 +6781,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   std::ofstream testFlowStatistics (dirToSave + "Statistics.txt", std::ios::out | std::ios::app);
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
-  testFlowStatistics << "Estimation Window Size: " << tau << " Possition: " << future_possition << std::endl;
+  testFlowStatistics << "Estimation Window Size: " << win_length << " Possition: " << future_possition << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
@@ -6809,7 +6808,8 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
 
   // move all the produced .dat files to a directory based on the Alpha values
   // datDir = "./Trace_Plots/test_Alphas/"
-  // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // dir = datDir + "future_possition/win_length/"
+  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
   std::string newDir = dirToSave + DoubleToString(mice_elephant_prob) + "/Predictive/";
   // std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
@@ -6823,7 +6823,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " +  dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      system (("mkdir -p " +  dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/"  + DoubleToString(mice_elephant_prob) + "/").c_str ());
       std::ofstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats

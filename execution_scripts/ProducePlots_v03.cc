@@ -34,14 +34,14 @@ ToString (uint32_t value)
   return ss.str();
 }
 
-std::string usedAlgorythm = "PredictiveDT";  // "DT"/"FB"/"PredictiveDT"/"PredictiveFB"
+std::string usedAlgorythm = "DT";  // "DT"/"FB"/"PredictiveDT"/"PredictiveFB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices/2_ToS"/"via_FIFO_QueueDiscs/2_ToS"/"via_MultiQueues/2_ToS"/"via_MultiQueues/4_ToS"/"via_MultiQueues/5_ToS"
 std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal" 
 std::string miceElephantProb = "0.3"; // [0.1:0.1:0.9]/ "VaryingDValues"
 std::string testAlphasPair = "15_5"; // format: alphaHigh_alphaLow or "adjustableAlphas". Alpha High/Low = [20, 19, ..., 1, 0.5] 
 std::size_t numOfSubQueues = static_cast<size_t>(implementation[implementation.length() - 5] - '0');
 std::string dir = "./Trace_Plots/";
-std::string topology = "test_Alphas";  // "Line"/"Incast"/"2In2Out"/"test_Alphas"
+std::string topology = "2In2Out";  // "Line"/"Incast"/"2In2Out"/"test_Alphas"
 std::string traffic_control_type; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string trace_parameter1_type; // "netDevice_"/"queueDisc_""/"port_"
 
@@ -393,9 +393,9 @@ CreateAllPlotFiles()  // create a multiplot and all the sub plots sepperatly
 
 int main (int argc, char *argv[])
 { 
-  CreateSingle2DPlotFile(0, 1, "High");
+  // CreateSingle2DPlotFile(0, 1, "High");
   // CreateSingle2DMultiPlotFile();
-  // CreateAllPlotFiles();
+  CreateAllPlotFiles();
 
   return 0;
 }

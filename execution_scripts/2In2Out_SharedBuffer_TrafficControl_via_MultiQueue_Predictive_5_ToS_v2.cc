@@ -88,7 +88,7 @@ using namespace ns3;
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 
-std::string dir = "./Trace_Plots/2In2Out/Predictive/";
+std::string datDir = "./Trace_Plots/2In2Out/Predictive/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "PredictiveDT"/"PredictiveFB"
@@ -140,7 +140,7 @@ StringCombine (std::string A, std::string B, std::string C)
 void
 TrafficControlPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream tcpisq (dir + traffic_control_type + "/" + implementation + "/TrafficControlPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream tcpisq (datDir + "/TrafficControlPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   tcpisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tcpisq.close ();
   
@@ -150,7 +150,7 @@ TrafficControlPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 void
 TrafficControlHighPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream tchppisq (dir + traffic_control_type + "/" + implementation + "/TrafficControlHighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream tchppisq (datDir + "/TrafficControlHighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   tchppisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tchppisq.close ();
   
@@ -160,7 +160,7 @@ TrafficControlHighPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t
 void
 TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream tclppisq (dir + traffic_control_type + "/" + implementation + "/TrafficControlLowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream tclppisq (datDir + "/TrafficControlLowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   tclppisq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tclppisq.close ();
   
@@ -171,7 +171,7 @@ TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t 
 void
 TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
 {
-  std::ofstream tchpthr (dir + traffic_control_type + "/" + implementation + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
+  std::ofstream tchpthr (datDir + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tchpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tchpthr.close ();
 
@@ -182,7 +182,7 @@ TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newVal
 void
 TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
 {
-  std::ofstream tclpthr (dir + traffic_control_type + "/" + implementation + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
+  std::ofstream tclpthr (datDir + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tclpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   tclpthr.close ();
   
@@ -193,7 +193,7 @@ TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValu
 void
 MultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream qdpiq (dir + traffic_control_type + "/" + implementation + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream qdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   qdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   qdpiq.close ();
   
@@ -225,7 +225,7 @@ MultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t
 void
 QueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream qdpiq (dir + traffic_control_type + "/" + implementation + "/queueDisc_" + ToString(index) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream qdpiq (datDir+ "/queueDisc_" + ToString(index) + "_PacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   qdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   qdpiq.close ();
   
@@ -235,7 +235,7 @@ QueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue
 void
 HighPriorityQueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream hpqdpiq (dir + traffic_control_type + "/" + implementation + "/queueDisc_" + ToString(index) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream hpqdpiq (datDir + "/queueDisc_" + ToString(index) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   hpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   hpqdpiq.close ();
   
@@ -245,7 +245,7 @@ HighPriorityQueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint3
 void
 LowPriorityQueueDiscPacketsInQueueTrace (size_t index, uint32_t oldValue, uint32_t newValue)
 {
-  std::ofstream lpqdpiq (dir + traffic_control_type + "/" + implementation + "/queueDisc_" + ToString(index) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  std::ofstream lpqdpiq (datDir + "/queueDisc_" + ToString(index) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
   lpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
   lpqdpiq.close ();
   
@@ -272,9 +272,10 @@ checkOnOffState(Ptr<Application>& app, std::string predictive_status, size_t por
     Simulator::Schedule(Seconds(0.001), &checkOnOffState, app, predictive_status, portIndex, appIndex, maxDuration, startTime);
 
     // save to .dat file
-    std::ofstream fPlotOnOffState(std::stringstream(dir + traffic_control_type + "/" + implementation + 
+    std::ofstream fPlotOnOffState(std::stringstream(datDir + 
     "/" + predictive_status + "_port_" + IntToString(portIndex) + "_app_" + IntToString(appIndex) + "_OnOffStateTrace.dat").str(),
                              std::ios::out | std::ios::app);
+
     fPlotOnOffState << Simulator::Now().GetSeconds() << " " << appState << std::endl;
     fPlotOnOffState.close();
 }
@@ -310,7 +311,7 @@ returnOnOffTraffic(const ApplicationContainer& appContainer, double maxDuration,
     // std::cout <<Simulator::Now ().GetSeconds () << " OnOff Traffic: " << traffic << std::endl;
 
     // save to .dat file
-    std::ofstream fPlotOnOffTrafficState(std::stringstream(dir + traffic_control_type + "/" + implementation + "/generatedOnOffTrafficTrace.dat").str(),
+    std::ofstream fPlotOnOffTrafficState(std::stringstream(datDir + "/generatedOnOffTrafficTrace.dat").str(),
                              std::ios::out | std::ios::app);
     fPlotOnOffTrafficState << Simulator::Now().GetSeconds() << " " << traffic << std::endl;
     fPlotOnOffTrafficState.close();
@@ -382,7 +383,8 @@ int main (int argc, char *argv[])
   }
 
   // Create a new directory to store the output of the program
-  // dir = "./Trace_Plots/2In2Out/Predictive/";
+  // datDir = "./Trace_Plots/2In2Out/Predictive/";
+  std::string  dir = datDir + "Position_" + DoubleToString(future_possition) + "/Length_" + DoubleToString(win_length) + "/";
   std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType + "/" + onOffTrafficMode;
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
@@ -1238,7 +1240,7 @@ int main (int argc, char *argv[])
   testFlowStatistics.close ();
 
   // move all the produced files to dirToSave
-  system (("mv -f " + dir + traffic_control_type + "/" + implementation + + "/*.dat " + dirToSave).c_str ());
+  system (("mv -f " + datDir + "/*.dat " + dirToSave).c_str ());
   // system (("mv -f " + dir + traffic_control_type + "/" + implementation + + "/*.txt " + dirToSave).c_str ());
 
   // Create the gnuplot.//////////////////////////////

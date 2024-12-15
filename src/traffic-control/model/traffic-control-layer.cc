@@ -37,6 +37,8 @@
 #include <cstdlib>
 #include <string>
 #include <tuple>
+#include <array>
+#include <filesystem>
 
 namespace ns3
 {
@@ -1167,10 +1169,15 @@ TrafficControlLayer::EstimateNewLocalD()
 
     std::cout << "the new predictive d value is: " << m_estimated_mice_elephant_prob << std::endl;
     
-    // for debug, save a list of all the estimated d values to a file
+    // for debug, save a list of all the estimated d values and the remaining buffer space to a file
     std::ofstream estimatedDValuesOutputFile("Estimated_D_Values.dat", std::ios::app); 
                 estimatedDValuesOutputFile << m_estimated_mice_elephant_prob << 
-                " " << GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue() <<  std::endl;
+                // " " << GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue() <<  
+                // " " << GetQueueThreshold_DT(m_alpha_h, m_alpha_l, m_alpha_h).GetValue() <<
+                // " " << GetQueueThreshold_DT(m_alpha_l, m_alpha_l, m_alpha_h).GetValue() <<
+                // " " << GetNumOfHighPriorityPacketsInSharedQueue().GetValue() <<
+                // " " << GetNumOfLowPriorityPacketsInSharedQueue().GetValue() << 
+                std::endl;
                 estimatedDValuesOutputFile.close();
     return m_estimated_mice_elephant_prob;
 }
@@ -1969,24 +1976,54 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
     {
         if (m_useSharedBuffer)
         {
+            // set a besic Packet clasification based on arbitrary Tag from recieved packet:
+            // flow_priority = 1 is high priority, flow_priority = 2 is low priority
+            if (item->GetPacket()->PeekPacketTag(flowPrioTag))
+            {
+                m_flow_priority = flowPrioTag.GetSimpleValue();
+            }
+
             std::string nodeName = Names::FindName(m_node); // Get the name of the Node
             std::cout << "Node Name is: " << nodeName << std::endl;
             if (nodeName.compare("RouterPredict") == 0)
             {
-                // for OnOff times DEBUG, log each packet arrival time in a sepparate file:
-                // std::ofstream packetArrivalTimesOutputFile("Predictive_Packet_Arrival_Times.dat", std::ios::app); 
-                // packetArrivalTimesOutputFile << Simulator::Now () << std::endl;
-                // packetArrivalTimesOutputFile.close();
+                // delete the list of predicted traffic from previous runs
+                if (m_stats.nTotalDroppedPackets == 0 && nodeName.compare("RouterPredict") == 0) // means that this is the first time the simulation get's here
+                {
+                    std::remove("Predictive_Packet_Arrival_Times.dat");
+                    std::remove("Real_Packet_Arrival_Times.dat");
+                }
+                // log each packet arrival time (add 20[mSec] to align with real packet arrival times):
+                std::ofstream packetArrivalTimesOutputFile("Predictive_Packet_Arrival_Times.dat", std::ios::app); 
+                packetArrivalTimesOutputFile << (Simulator::Now () + Seconds(0.2)).GetFemtoSeconds() << " " << int(m_flow_priority) << std::endl;
+                packetArrivalTimesOutputFile.close();
+
 
                 DropBeforeEnqueue(item); // all Predictive packets are logged in the DropBeforeEnque function
             }
             else if (nodeName.find("Router") == 0)
             {
-                // for OnOff times DEBUG, log each packet arrival time in a sepparate file:
-                // std::ofstream packetArrivalTimesOutputFile("Packet_Arrival_Times.dat",
-                //                             std::ios::app); // Replace with your desired file path
-                // packetArrivalTimesOutputFile << Simulator::Now () - Seconds(0.2) << std::endl;  // normalize arriving packet times to be at t-Tau
-                // packetArrivalTimesOutputFile.close();
+                // log each packet arrival time in a sepparate file:
+                std::ofstream packetArrivalTimesOutputFile("Real_Packet_Arrival_Times.dat",
+                                            std::ios::app);
+                packetArrivalTimesOutputFile << Simulator::Now ().GetFemtoSeconds() << " " << int(m_flow_priority) << std::endl; // normalize arriving packet times to be at t-Tau/2
+                packetArrivalTimesOutputFile.close();
+                
+                // add index counter for packets that arrive at the exact same time:
+                if (m_lastArrivalTime == Simulator::Now ().GetFemtoSeconds())
+                {
+                    m_time_index++;
+                }
+                else
+                {
+                    m_time_index = 0;
+                }
+                m_lastArrivalTime = Simulator::Now ().GetFemtoSeconds(); // register current arrival time as lastArrivalTime for next packet arrival
+
+                // for Algorythem (desicion):
+                PacketLog predictedPacketArrivalLog;
+                predictedPacketArrivalLog.LoadPacketsFromFile("Predictive_Packet_Arrival_Times.dat", Simulator::Now ().GetFemtoSeconds(), m_time_index);
+                // predictedPacketArrivalLog.PrintLog();
 
                 std::cout << "Current Shared Buffer size is "
                           << GetCurrentSharedBufferSize().GetValue()
@@ -2068,28 +2105,24 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 }
                 else if (m_usedAlgorythm.compare("PredictiveFB") == 0 || m_usedAlgorythm.compare("PredictiveDT") == 0)
                 {
-                    // //print the High/Low Priority and the total number of packets that pass during the time interval t-Tau/2: t+Tau/2
-                    // std::cout << "the number of High Priority packets during the time interval"
-                    //                 " t-Tau/2: t+Tau/2 is: "
-                    //             << GetNumOfPassedPriorityPackets(1) + GetNumOfArrivingPriorityPackets(1) << std::endl;
-                    // std::cout << "the number of Low Priority packets during the time interval"
-                    //                 " t-Tau/2: t+Tau/2 is: "
-                    //             << GetNumOfPassedPriorityPackets(2) + GetNumOfArrivingPriorityPackets(2) << std::endl;
-                    // std::cout << "the total number of packets during the time interval"
-                    //                 " t-Tau/2: t+Tau/2 is: "
-                    //             << GetNumOfPassedPackets() + GetNumOfArrivingPackets() << std::endl;
                     predictedMiceElephantProbVal = EstimateNewLocalD();
                     alphas = GetNewAlphaHighAndLow(device, 10 * predictedMiceElephantProbVal); // the switch function in GetNewAlphaHighAndLow() operates with Integers
                     m_alpha_h = alphas.first;
                     m_alpha_l = alphas.second;
-                }
-                // set a besic Packet clasification based on arbitrary Tag from recieved packet:
-                // flow_priority = 1 is high priority, flow_priority = 2 is low priority
-                if (item->GetPacket()->PeekPacketTag(flowPrioTag))
-                {
-                    m_flow_priority = flowPrioTag.GetSimpleValue();
-                }
 
+                    // get the time till next high priority packet is supposed to arrive
+                    // try
+                    // {
+                    //     PacketLog::SinglePacket p = predictedPacketArrivalLog.getPacketByType(1);
+                    //     std::cout << "Packet of type 1: Arrival Time " << p.arrivalTime << std::endl;
+                    // }
+                    // catch(const std::out_of_range& e) // in case no high piority packets are suppose to arrive during the prediction window
+                    // {
+                    //     std::cout << e.what() << std::endl;
+                    // }
+                    
+                    
+                }
                 // perform enqueueing process based on incoming flow priority
                 if (m_flow_priority == 1)
                 {

@@ -35,6 +35,10 @@
 #include <string>
 #include <array>
 #include <list>
+#include <iostream>
+#include <deque>
+#include <unordered_map>
+#include <utility>
 
 namespace ns3
 {
@@ -96,30 +100,12 @@ class DataSet
       }
     }
 
-    // // Method to retrieve the row corresponding to a specific time
-    // DataPoint GetRow(double time) const 
-    // {
-    //   auto it = std::find_if(m_data.begin(), m_data.end(), [time](const DataPoint& dp) 
-    //   {
-    //     return dp.time == time;
-    //   });
-
-    //   if (it != m_data.end()) 
-    //   {
-    //     return *it;
-    //   } 
-    //   else 
-    //   {
-    //     // Return a default DataPoint if time is not found
-    //     return {0.0, 0.0, 0.0, 0.0};
-    //   }
-    // }
-
+  
     DataPoint GetRow(double time) const 
     {
       if (m_data.empty()) 
       {
-          return {0.0, 0.0, 0.0}; // Return default if dataset is empty
+          return {0.0, 0.0, 0.0, 0.0}; // Return default if dataset is empty
       }
 
       // Find the closest time stamp
@@ -148,6 +134,87 @@ class DataSet
 private:
     std::vector<DataPoint> m_data;
 };
+
+class PacketLog {
+public:
+    // Structures to hold packet logs for two types
+    std::deque<std::pair<int64_t, int>> packetType1Log;
+    std::deque<std::pair<int64_t, int>> packetType2Log;
+
+    // Method to enqueue packets into the log based on type
+    void Enqueue(int packetType, int64_t arrivalTime) {
+        if (packetType == 1) {
+            packetType1Log.push_back({arrivalTime, packetType});
+        } else if (packetType == 2) {
+            packetType2Log.push_back({arrivalTime, packetType});
+        }
+    }
+
+    // Method to get the packet at a specific index (for given packet type)
+    std::pair<int64_t, int> GetPacketByIndex(int packetType, size_t index) {
+        if (packetType == 1 && index < packetType1Log.size()) {
+            return packetType1Log[index];
+        } else if (packetType == 2 && index < packetType2Log.size()) {
+            return packetType2Log[index];
+        }
+        throw std::out_of_range("Index out of range for the given packet type");
+    }
+
+    // Method to get the last packet logged for a given type
+    std::pair<int64_t, int> GetLastPacket(int packetType) {
+        if (packetType == 1 && !packetType1Log.empty()) {
+            return packetType1Log.back();
+        } else if (packetType == 2 && !packetType2Log.empty()) {
+            return packetType2Log.back();
+        }
+        throw std::runtime_error("No packets found for the given packet type");
+    }
+
+    // Method to load packets from a file starting from a specific arrival time and index for duplicates
+    void LoadPacketsFromFile(const std::string& filename, int64_t startTime, size_t startIndex = 0) {
+        std::ifstream inputFile(filename);
+        if (!inputFile.is_open()) {
+            std::cerr << "Error: Unable to open file " << filename << std::endl;
+            return;
+        }
+
+        std::string line;
+        std::unordered_map<int64_t, size_t> packetCount;  // To count occurrences of a specific timestamp
+
+        while (std::getline(inputFile, line)) {
+            std::stringstream ss(line);
+            int64_t packetTime;
+            int packetType;
+
+            // Read the time and packet type from the line
+            ss >> packetTime >> packetType;
+
+            // Only load packets with a timestamp >= startTime
+            if (packetTime >= startTime) {
+                if (packetCount[packetTime] >= startIndex) {
+                    Enqueue(packetType, packetTime);
+                }
+                packetCount[packetTime]++;
+            }
+        }
+
+        inputFile.close();
+    }
+
+    // Print method for debugging
+    void PrintLog() const {
+        std::cout << "Packet Type 1 Log:" << std::endl;
+        for (const auto& packet : packetType1Log) {
+            std::cout << "Arrival Time: " << packet.first << ", Packet Type: " << packet.second << std::endl;
+        }
+
+        std::cout << "\nPacket Type 2 Log:" << std::endl;
+        for (const auto& packet : packetType2Log) {
+            std::cout << "Arrival Time: " << packet.first << ", Packet Type: " << packet.second << std::endl;
+        }
+    }
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////
 /**
  * \defgroup traffic-control Traffic Control model
@@ -596,6 +663,9 @@ class TrafficControlLayer : public Object
     float_t m_numConjestedQueuesHigh;  //!< number of queues that are conjested at current time instance
     float_t m_numConjestedQueuesLow;  //!< number of queues that are conjested at current time instance
     float_t numOfClasses;  //!< total number of classes. for now it's only High Priority/ Low Priority
+    // Log Packets Parameters:
+    int m_time_index = 0; //!< the index that represents the order of registery for packets that arrive at the exact same time
+    int64_t m_lastArrivalTime = 0; //!< store the arrival time for the last (before current) packet
     // Flow Classification Parameters
     double_t m_Tau; //!< the length of the winddow in time to monitor incoming traffic, to estimate local d 
     double_t m_Num_M_High;  //!< the number of OnOff machines that generate High Priority traffic

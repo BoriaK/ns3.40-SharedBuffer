@@ -472,7 +472,15 @@ PrioOnOffApplication::SendPacket()
         
         miceElephantProbTag.SetSimpleValue(miceElephantProbValueDecInt);
         // store the tag in a packet.
-        packet->AddPacketTag (miceElephantProbTag);
+        if (packet->PeekPacketTag(miceElephantProbTag) == false)
+        {
+            packet->AddPacketTag(miceElephantProbTag);
+        }
+        else
+        {
+            std::cout << "retransmit" << std::endl;
+        }
+        // packet->AddPacketTag (miceElephantProbTag);
     }
 
     SocketIpTosTag ipTosTag;  // used in the switch loop, and in the end of the function
@@ -526,7 +534,16 @@ PrioOnOffApplication::SendPacket()
 
     flowPrioTag.SetSimpleValue (m_priority);
     // store the tag in a packet.
-    packet->AddPacketTag (flowPrioTag);
+    if (packet->PeekPacketTag(flowPrioTag) == false)
+    {
+        packet->AddPacketTag (flowPrioTag);
+    }
+    else
+    {
+        std::cout << "retransmit" << std::endl;
+    }
+    
+    // packet->AddPacketTag (flowPrioTag);
 
     int actual = m_socket->Send(packet);
     if ((unsigned)actual == m_pktSize)

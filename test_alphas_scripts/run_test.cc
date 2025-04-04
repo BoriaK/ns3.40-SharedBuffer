@@ -25,7 +25,7 @@ int main ()
 {
   std::string trafficControlType = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
   bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
-  std::string onOffTrafficMode = "Uniform"; // "Constant"/"Uniform"/"Normal"/"Exponential"
+  std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"/"Exponential"
 
   // for Predictive Model
   double_t tau = 0.4; // Tau is Estimation Window Length [Sec]. {0.03, 0.04, 0.05}

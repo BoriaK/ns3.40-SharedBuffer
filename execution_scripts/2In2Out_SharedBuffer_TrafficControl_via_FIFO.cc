@@ -70,7 +70,7 @@
 using namespace ns3;
 
 std::string dir = "./Trace_Plots/2In2Out/";
-std::string traffic_control_type = "SharedBuffer_FB_v01"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
+std::string traffic_control_type = "SharedBuffer_FB"; // "SharedBuffer_DT_v01"/"SharedBuffer_FB_v01"
 std::string implementation = "via_FIFO_QueueDiscs/2_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs/2_ToS"
 std::string usedAlgorythm;  // "DT"/"FB"
 
@@ -352,11 +352,9 @@ int main (int argc, char *argv[])
     NS_LOG_INFO ("Install QueueDisc");
 
     TrafficControlHelper tch;
-    tch.SetRootQueueDisc ("ns3::FifoQueueDisc", "MaxSize", StringValue (ToString(BUFFER_SIZE)+"p"));
+    tch.SetRootQueueDisc ("ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity));
     
     QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
-
-    
 
 ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
 

@@ -69,7 +69,7 @@
 
 // The simulation starting and ending time
 #define START_TIME 0.0
-#define DURATION_TIME 6
+#define DURATION_TIME 2
 #define END_TIME 60
 
 // The flow port range, each flow will be assigned a random port number within this range
@@ -92,7 +92,7 @@ std::string datDir = "./Trace_Plots/2In2Out/Predictive/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "PredictiveDT"/"PredictiveFB"
-std::string onOffTrafficMode = "Uniform"; // "Constant"/"Uniform"/"Normal"
+std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
 
 NS_LOG_COMPONENT_DEFINE ("2In2Out");
 
@@ -357,6 +357,64 @@ generate1DGnuPlotFromDatFile(std::string datFileName)
 }
 
 void
+generate2DGnuPlotFromDatFile(std::string datFileName, std::string priority)
+{
+  std::string location = datFileName.substr(0, datFileName.length() - 38);
+  std::string plotFileName = datFileName.substr(0, datFileName.length() - 23) + priority;
+  std::string portInd = datFileName.substr(datFileName.length() - 33, 1);
+  std::string queueInd = datFileName.substr(datFileName.length() - 25, 1);
+  Gnuplot plot(plotFileName + ".png");
+  std::string plotTitle = "port " + portInd + " queue " + queueInd + " " + priority + " Priority Packets vs Threshold";
+  plot.SetTitle(plotTitle);
+  // Make the graphics file, which the plot file will create when it
+  // is used with Gnuplot, be a PNG file.
+  plot.SetTerminal("png");
+  // Set the labels for each axis. xlabel/ylabel
+  plot.SetLegend("Time[sec]", "PacketsInQueue");
+  
+  // add the desired trace parameters to plot
+  Gnuplot2dDataset dataset1, dataset2;
+
+  dataset1.SetTitle("generated Packets");
+  dataset1.SetStyle(Gnuplot2dDataset::LINES);
+  
+  // load a dat file as data set for plotting
+  std::ifstream file1(datFileName);
+  double x, y;
+  x = 0;
+  y = 0;
+
+  while (file1 >> x >> y) 
+  {
+    dataset1.Add(x, y);
+  }
+  // Add the dataset to the plot.
+  plot.AddDataset(dataset1);
+  
+  dataset2.SetTitle(priority + " PriorityQueueThreshold");
+  dataset2.SetStyle(Gnuplot2dDataset::LINES);
+  // load a dat file as data set for plotting
+  std::ifstream file2(location + "TrafficControl" + priority + "PriorityQueueThreshold_" + portInd + ".dat");
+  x = 0;
+  y = 0;
+  while (file2 >> x >> y) 
+  {
+    dataset2.Add(x, y);
+  }
+  // Add the dataset to the plot.
+  plot.AddDataset(dataset2);
+
+  // Open the plot file.
+  std::ofstream plotFile(plotFileName + ".plt");
+  // Write the plot file.
+  plot.GenerateOutput(plotFile);
+  // Close the plot file.
+  plotFile.close();
+  // command line needs to be in ./ns-3-dev-git$ inorder for the script to produce gnuplot correctly///
+  system (("gnuplot " + plotFileName + ".plt").c_str ());
+}
+
+void
 SojournTimeTrace (Time sojournTime)
 {
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
@@ -367,11 +425,11 @@ int main (int argc, char *argv[])
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
-  double_t miceElephantProb = 0.7;
+  double_t miceElephantProb = 0.5;
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
-  std::string transportProt = "UDP"; // "UDP"/"TCP"
+  std::string transportProt = "TCP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
   
@@ -433,6 +491,16 @@ int main (int argc, char *argv[])
   // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   {
+    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
+    Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+    // Set default segment size of TCP packet to a specified value:
+    // Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
+    Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                       TypeIdValue(TypeId::LookupByName("ns3::TcpClassicRecovery")));
+    
+    // Set default initial congestion window as 1000 segments
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));
+    
     socketType = "ns3::TcpSocketFactory";
   }
   else
@@ -719,7 +787,7 @@ int main (int argc, char *argv[])
   // for OnOff Aplications
   uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
   // time interval values 
-  double_t trafficGenDuration = 2; // [sec] initilize for a single OnOff segment
+  double_t trafficGenDuration = DURATION_TIME; // [sec] initilize for a single OnOff segment
   double_t miceOnTime = 0.05; // [sec] for ~12 packets/flow
   double_t elephantOnTime = 0.5; // [sec] for ~125 packets/flow
   double_t miceOffTime = 0.01; // [sec]
@@ -1249,6 +1317,9 @@ int main (int argc, char *argv[])
   generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_1_app_3_OnOffStateTrace.dat");
   generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_0_app_1_OnOffStateTrace.dat");
   generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_1_app_3_OnOffStateTrace.dat");
+
+  generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
+  generate2DGnuPlotFromDatFile(dirToSave + "/port_1_queue_3_PacketsInQueueTrace.dat", "Low");
 
   // Simulator::Cancel();
   Simulator::Destroy ();

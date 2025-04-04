@@ -151,13 +151,23 @@ public:
     }
 
     // Method to get the packet at a specific index (for given packet type)
-    std::pair<int64_t, int> GetPacketByIndex(int packetType, size_t index) {
-        if (packetType == 1 && index < packetType1Log.size()) {
-            return packetType1Log[index];
-        } else if (packetType == 2 && index < packetType2Log.size()) {
-            return packetType2Log[index];
-        }
-        throw std::out_of_range("Index out of range for the given packet type");
+    std::pair<int64_t, int> GetPacketByIndex(int packetType, size_t index) 
+    {
+      if ((packetType == 1 && packetType1Log.empty()) || (packetType == 2 && packetType2Log.empty())) 
+      {
+        return {0, 0};  // Return default pair for empty log
+      }
+      
+      // Return the packet at the given index if the index is valid
+      if (packetType == 1 && index < packetType1Log.size()) 
+      {
+          return packetType1Log[index];
+      } 
+      else if (packetType == 2 && index < packetType2Log.size()) 
+      {
+          return packetType2Log[index];
+      }
+      throw std::out_of_range("Index out of range for the given packet type");
     }
 
     // Method to get the last packet logged for a given type
@@ -666,6 +676,9 @@ class TrafficControlLayer : public Object
     // Log Packets Parameters:
     int m_time_index = 0; //!< the index that represents the order of registery for packets that arrive at the exact same time
     int64_t m_lastArrivalTime = 0; //!< store the arrival time for the last (before current) packet
+    int64_t m_nextPacketArrivalTime; //!< the arrival time for the next packet of priority (p) 
+    int64_t m_timeTillNextPacket; //!< the time interval between current packet arrival time and the next High priority packet arrival time
+    
     // Flow Classification Parameters
     double_t m_Tau; //!< the length of the winddow in time to monitor incoming traffic, to estimate local d 
     double_t m_Num_M_High;  //!< the number of OnOff machines that generate High Priority traffic
@@ -675,6 +688,9 @@ class TrafficControlLayer : public Object
     uint8_t m_flow_priority;   //< Flow priority assigned to each recieved packet, based on the flow priority assigned by sender
     // to collect statistics at the end of the flow
     TCStats m_stats;    //!< The collected statistics
+
+    // for TCP re-transmit monitor
+    std::set<uint32_t> m_seenSequenceNumbers; //!< Set to store seen TCP sequence numbers
 ////////////////////////////////////////////////////////////////////////////////////
 
     /**

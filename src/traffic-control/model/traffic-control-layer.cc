@@ -31,6 +31,8 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/queue.h"
 #include "ns3/string.h"
+
+#include "ns3/tcp-header.h"
 //////////////////////////////
 
 #include <iostream>
@@ -186,6 +188,7 @@ void
 TrafficControlLayer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
+    m_seenSequenceNumbers.clear(); // Clear the set of seen sequence numbers
     m_node = nullptr;
     m_handlers.clear();
     m_netDevices.clear();
@@ -1152,15 +1155,15 @@ TrafficControlLayer::EstimateNewLocalD()
     }
 
     // for debug:
-    std::cout << "Window start time: " << currentRow.time << std::endl;
-    std::cout << "Total sum of packets: " << currentRow.var1 << std::endl;
-    std::cout << "Sum of high priority packets: " << currentRow.var2 << std::endl;
-    std::cout << "Sum of low priority packets: " << currentRow.var3 << std::endl;
+    // std::cout << "Window start time: " << currentRow.time << std::endl;
+    // std::cout << "Total sum of packets: " << currentRow.var1 << std::endl;
+    // std::cout << "Sum of high priority packets: " << currentRow.var2 << std::endl;
+    // std::cout << "Sum of low priority packets: " << currentRow.var3 << std::endl;
 
-    std::cout << "Window end time: " << lastRow.time << std::endl;
-    std::cout << "Total sum of packets: " << lastRow.var1 << std::endl;
-    std::cout << "Sum of high priority packets " << lastRow.var2 << std::endl;
-    std::cout << "Sum of low priority packets: " << lastRow.var3 << std::endl;
+    // std::cout << "Window end time: " << lastRow.time << std::endl;
+    // std::cout << "Total sum of packets: " << lastRow.var1 << std::endl;
+    // std::cout << "Sum of high priority packets " << lastRow.var2 << std::endl;
+    // std::cout << "Sum of low priority packets: " << lastRow.var3 << std::endl;
 
     m_predictedArrivingTraffic = lastRow.var1 - currentRow.var1;
     m_predictedArrivingHighPriorityTraffic = lastRow.var2 - currentRow.var2;
@@ -1983,6 +1986,18 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 m_flow_priority = flowPrioTag.GetSimpleValue();
             }
 
+            // TCP Debug:
+            TcpHeader tcpHeader;
+            if (item->GetPacket()->PeekHeader(tcpHeader)) // Extract the TCP header
+            {
+                uint32_t seqNumber = tcpHeader.GetSequenceNumber().GetValue();
+                std::cout << "TCP Sequence Number: " << seqNumber << std::endl;
+                std::cout << "Source Port: " << tcpHeader.GetSourcePort() << 
+                " destenation Port: " << tcpHeader.GetDestinationPort() << std::endl;
+                std::cout << "Ack Number: " << tcpHeader.GetAckNumber().GetValue() << std::endl;
+                std::cout << "packet payload: " << item->GetPacket()->GetSize() << std::endl;
+            }
+
             std::string nodeName = Names::FindName(m_node); // Get the name of the Node
             std::cout << "Node Name is: " << nodeName << std::endl;
             if (nodeName.compare("RouterPredict") == 0)
@@ -1995,21 +2010,26 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 }
                 // log each packet arrival time (add 20[mSec] to align with real packet arrival times):
                 std::ofstream packetArrivalTimesOutputFile("Predictive_Packet_Arrival_Times.dat", std::ios::app); 
-                packetArrivalTimesOutputFile << (Simulator::Now () + Seconds(0.2)).GetFemtoSeconds() << " " << int(m_flow_priority) << std::endl;
+                packetArrivalTimesOutputFile << (Simulator::Now () + Seconds(0.2)).GetFemtoSeconds() // normalize arriving packet times to be at t-Tau/2
+                << " " << int(m_flow_priority) << std::endl;
                 packetArrivalTimesOutputFile.close();
 
 
                 DropBeforeEnqueue(item); // all Predictive packets are logged in the DropBeforeEnque function
             }
-            else if (nodeName.find("Router") == 0)
+            // else if (nodeName.find("Router") == 0 && (tcpHeader.GetSourcePort() != 50000 && tcpHeader.GetSourcePort() != 50001 && tcpHeader.GetSourcePort() != 50002 &&  tcpHeader.GetSourcePort() != 50003 &&  tcpHeader.GetSourcePort() != 50004))
+            // pass only Data packets through the Shared Buffer
+            else if (nodeName.find("Router") == 0 && item->GetPacket()->GetSize() > 100)
             {
                 // log each packet arrival time in a sepparate file:
                 std::ofstream packetArrivalTimesOutputFile("Real_Packet_Arrival_Times.dat",
                                             std::ios::app);
-                packetArrivalTimesOutputFile << Simulator::Now ().GetFemtoSeconds() << " " << int(m_flow_priority) << std::endl; // normalize arriving packet times to be at t-Tau/2
+                packetArrivalTimesOutputFile << Simulator::Now ().GetFemtoSeconds() << " " 
+                                            << int(m_flow_priority) << " " 
+                                            << GetCurrentSharedBufferSize().GetValue() << std::endl; 
                 packetArrivalTimesOutputFile.close();
                 
-                // add index counter for packets that arrive at the exact same time:
+                // index counter for packets that arrive at the exact same time:
                 if (m_lastArrivalTime == Simulator::Now ().GetFemtoSeconds())
                 {
                     m_time_index++;
@@ -2020,10 +2040,10 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 }
                 m_lastArrivalTime = Simulator::Now ().GetFemtoSeconds(); // register current arrival time as lastArrivalTime for next packet arrival
 
-                // for Algorythem (desicion):
                 PacketLog predictedPacketArrivalLog;
                 predictedPacketArrivalLog.LoadPacketsFromFile("Predictive_Packet_Arrival_Times.dat", Simulator::Now ().GetFemtoSeconds(), m_time_index);
                 // predictedPacketArrivalLog.PrintLog();
+
 
                 std::cout << "Current Shared Buffer size is "
                           << GetCurrentSharedBufferSize().GetValue()
@@ -2071,7 +2091,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     {
                         std::cout << "packet: " << item->GetPacket() << " ToS : " << 0 << std::endl;
                     }
-                    ////////////////////////////////////////
+                    ///////////////////////////////////////
                     internal_qDisc = qDisc->GetQueueDiscClass(subQueueIndex)->GetQueueDisc();
                     NS_ASSERT(internal_qDisc);
                     m_multiQueuePerPort = true;
@@ -2111,17 +2131,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     m_alpha_l = alphas.second;
 
                     // get the time till next high priority packet is supposed to arrive
-                    // try
-                    // {
-                    //     PacketLog::SinglePacket p = predictedPacketArrivalLog.getPacketByType(1);
-                    //     std::cout << "Packet of type 1: Arrival Time " << p.arrivalTime << std::endl;
-                    // }
-                    // catch(const std::out_of_range& e) // in case no high piority packets are suppose to arrive during the prediction window
-                    // {
-                    //     std::cout << e.what() << std::endl;
-                    // }
-                    
-                    
+                    m_nextPacketArrivalTime = predictedPacketArrivalLog.GetPacketByIndex(1,0).first;
+                    m_timeTillNextPacket = Simulator::Now ().GetFemtoSeconds() - m_nextPacketArrivalTime;
                 }
                 // perform enqueueing process based on incoming flow priority
                 if (m_flow_priority == 1)
@@ -2336,7 +2347,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     }
                 }
             }
-            else // for a node that's not the router
+            else // for a node that's not the router or it's TCP Ack packet
             {
                 // Enqueue the packet in the queue disc associated with the netdevice queue
                 // selected for the packet and try to dequeue packets from such queue disc

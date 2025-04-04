@@ -122,7 +122,7 @@ int main (int argc, char *argv[])
   // Set up some default values for the simulation.
   double simulationTime = 50; //seconds
   std::string applicationType = "standardClient"; // "standardClient"/"OnOff"/"customApplication"/"customOnOff"
-  std::string transportProt = "Udp";
+  std::string transportProt = "Tcp";
   std::string socketType;
   std::string queue_capacity;
   bool eraseOldData = true; // true/false

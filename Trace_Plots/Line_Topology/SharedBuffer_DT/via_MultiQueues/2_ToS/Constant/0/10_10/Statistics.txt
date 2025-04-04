@@ -1,0 +1,34 @@
+Topology: Line
+Queueing Algorithm: SharedBuffer_DT
+Implementation Method: via_MultiQueues/2_ToS
+Used D value: 0
+Alpha High = 10 Alpha Low = 10
+Application: prioOnOff
+
+*** Flow monitor statistics ***
+  Tx Packets/Bytes:   1284 / 475704
+  Rx Packets/Bytes:   1263 / 464188
+  Packets/Bytes Dropped by Queue Disc:   0 / 0
+  Packets/Bytes Dropped by NetDevice:   0 / 0
+  Throughput: 0.415653 Mbps
+
+*** TC Layer statistics ***
+
+Packets/Bytes dropped by Traffic Control Layer: 21 / 11516
+High Priority Packets/Bytes dropped by Traffic Control Layer: 21 / 11516
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
+
+
+*** QueueDisc Layer statistics ***
+Queue Disceplene 0:
+
+Packets/Bytes received: 755 / 433112
+Packets/Bytes enqueued: 755 / 433112
+Packets/Bytes dequeued: 755 / 433112
+Packets/Bytes requeued: 0 / 0
+Packets/Bytes dropped: 0 / 0
+Packets/Bytes dropped before enqueue: 0 / 0
+Packets/Bytes dropped after dequeue: 0 / 0
+Packets/Bytes sent: 755 / 433112
+Packets/Bytes marked: 0 / 0
+

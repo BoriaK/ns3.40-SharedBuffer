@@ -62,14 +62,15 @@
 #define SWITCH_COUNT 1
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  500000        // Leaf-Spine Capacity 500Kbps/queue/port
-#define SERVER_SWITCH_CAPACITY 5000000          // Total Serever-Leaf Capacity 5Mbps/queue/port
+#define SWITCH_RECIEVER_CAPACITY  500*1e3        // Leaf-Spine Capacity 500Kbps/queue/port
+#define SERVER_SWITCH_CAPACITY 5*1e6          // Total Serever-Leaf Capacity 5Mbps/queue/port
 #define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
 #define BUFFER_SIZE 500                         // Shared Buffer Size for a single queue per port. 500 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
-#define END_TIME 30
+#define DURATION_TIME 2
+#define END_TIME 60
 
 // The flow port range, each flow will be assigned a random port number within this range
 #define SERV_PORT_P0 50000
@@ -78,26 +79,23 @@
 #define SERV_PORT_P3 50003
 #define SERV_PORT_P4 50004
  
-
-// Adopted from the simulation from snowzjx
-// Acknowledged to https://github.com/snowzjx/ns3-load-balance.git
 #define PACKET_SIZE 1024 // 1024 [bytes]
 
 using namespace ns3;
-
-uint32_t prev = 0;
-Time prevTime = Seconds (0);
 
 // std::string dir = "./Trace_Plots/2In2Out/test_Alphas/" + ToString(alpha_high) + "_" + ToString(alpha_low) + "/";
 std::string dir = "./Trace_Plots/2In2Out/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "DT"/"FB"
-std::string onOffTrafficMode = "Exponential"; // "Constant"/"Uniform"/"Normal"/"Exponential"
+std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"/"Exponential"
 // for OnOff Aplications
 uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
 // time interval values
-double_t trafficGenDuration = 2; // [sec] initilize for a single OnOff segment
+double_t trafficGenDuration = DURATION_TIME; // [sec] initilize for a single OnOff segment
+
+uint32_t prev = 0;
+Time prevTime = Seconds (0);
 
 NS_LOG_COMPONENT_DEFINE ("2In2Out");
 
@@ -334,6 +332,65 @@ generate1DGnuPlotFromDatFile(std::string datFileName)
 }
 
 void
+generate2DGnuPlotFromDatFile(std::string datFileName, std::string priority)
+{
+  std::string location = datFileName.substr(0, datFileName.length() - 38);
+  std::string plotFileName = datFileName.substr(0, datFileName.length() - 23) + priority;
+  std::string portInd = datFileName.substr(datFileName.length() - 33, 1);
+  std::string queueInd = datFileName.substr(datFileName.length() - 25, 1);
+  Gnuplot plot(plotFileName + ".png");
+  std::string plotTitle = "port " + portInd + " queue " + queueInd + " " + priority + " Priority Packets vs Threshold";
+  plot.SetTitle(plotTitle);
+  // Make the graphics file, which the plot file will create when it
+  // is used with Gnuplot, be a PNG file.
+  plot.SetTerminal("png");
+  // Set the labels for each axis. xlabel/ylabel
+  plot.SetLegend("Time[sec]", "PacketsInQueue");
+  
+  // add the desired trace parameters to plot
+  Gnuplot2dDataset dataset1, dataset2;
+
+  dataset1.SetTitle("generated Packets");
+  dataset1.SetStyle(Gnuplot2dDataset::LINES);
+  
+  // load a dat file as data set for plotting
+  std::ifstream file1(datFileName);
+  double x, y;
+  x = 0;
+  y = 0;
+
+  while (file1 >> x >> y) 
+  {
+    dataset1.Add(x, y);
+  }
+  // Add the dataset to the plot.
+  plot.AddDataset(dataset1);
+  
+  dataset2.SetTitle(priority + " PriorityQueueThreshold");
+  dataset2.SetStyle(Gnuplot2dDataset::LINES);
+  // load a dat file as data set for plotting
+  std::ifstream file2(location + "TrafficControl" + priority + "PriorityQueueThreshold_" + portInd + ".dat");
+  x = 0;
+  y = 0;
+  while (file2 >> x >> y) 
+  {
+    dataset2.Add(x, y);
+  }
+  // Add the dataset to the plot.
+  plot.AddDataset(dataset2);
+
+  // Open the plot file.
+  std::ofstream plotFile(plotFileName + ".plt");
+  // Write the plot file.
+  plot.GenerateOutput(plotFile);
+  // Close the plot file.
+  plotFile.close();
+  // command line needs to be in ./ns-3-dev-git$ inorder for the script to produce gnuplot correctly///
+  system (("gnuplot " + plotFileName + ".plt").c_str ());
+}
+
+
+void
 SojournTimeTrace (Time sojournTime)
 {
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
@@ -343,13 +400,18 @@ int main (int argc, char *argv[])
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
-  double_t miceElephantProb = 0.3;
+  // Change the current working directory to the desired path
+  std::string currentPath = "/home/boris/workspace/ns3.40-SharedBuffer";
+  // Set the current working directory
+  system (("cd " + currentPath).c_str ());
+
+  double_t miceElephantProb = 0.1;
   double_t alpha_high = 15;
   double_t alpha_low = 5;
 
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
   // Command line parameters parsing
-  std::string transportProt = "UDP"; // "UDP"/"TCP"
+  std::string transportProt = "TCP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
 
@@ -403,6 +465,16 @@ int main (int argc, char *argv[])
   // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   {
+    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
+    Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+    // Set default segment size of TCP packet to a specified value:
+    // Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(100*PACKET_SIZE));
+    Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                       TypeIdValue(TypeId::LookupByName("ns3::TcpClassicRecovery")));
+    
+    // Set default initial congestion window as 1000 segments
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));
+    
     socketType = "ns3::TcpSocketFactory";
   }
   else
@@ -480,7 +552,7 @@ int main (int argc, char *argv[])
     switchDevicesOut.Add(tempNetDevice.Get(0));
     recieverDevices.Add(tempNetDevice.Get(1));
 
-    NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << " at capacity: " << switchRecieverCapacity);     
   }
 
   for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
@@ -511,8 +583,6 @@ int main (int argc, char *argv[])
 
   QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
 
-  
-
   ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
   Ptr<TrafficControlLayer> tc;
@@ -532,8 +602,6 @@ int main (int argc, char *argv[])
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_0", MakeBoundCallback (&TrafficControlThresholdLowTrace, 0));  
   tc->TraceConnectWithoutContext("EnqueueingThreshold_High_1", MakeBoundCallback (&TrafficControlThresholdHighTrace, 1));
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_1", MakeBoundCallback (&TrafficControlThresholdLowTrace, 1));
-
-  /////////////////////////////////////////////////////////////////////////////
 
   //////////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
@@ -858,7 +926,7 @@ int main (int argc, char *argv[])
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
   
-  //monitor OnOff Traffic generated from the OnOff Applications:
+  //monitor OnOff Traffic generated from all the OnOff Applications (combined):
   Simulator::Schedule (Seconds (1.0), &returnOnOffTraffic, sourceApps, 3.1, Simulator::Now().GetSeconds());
 
   NS_LOG_INFO ("Enabling flow monitor");
@@ -870,12 +938,15 @@ int main (int argc, char *argv[])
   Simulator::Run ();
 
   // print the tested scenario at the top of the terminal: Topology, Queueing Algorithm and Application.
-  std::cout << std::endl << "Topology: 2In2Out" << std::endl;
-  std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type << std::endl;
-  std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
-  std::cout << std::endl << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
-  std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
-  std::cout << std::endl << "Application: " + applicationType << std::endl;
+  std::cout << std::endl 
+            << "Topology: 2In2Out" << std::endl;
+  std::cout << "Queueing Algorithm: " + traffic_control_type << std::endl;
+  std::cout << "Implementation Method: " + implementation << std::endl;
+  std::cout << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
+  std::cout << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
+  std::cout << "Application: " + applicationType << std::endl;
+  std::cout << "traffic Mode " + onOffTrafficMode + "Random" << std::endl;
+  std::cout << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
   std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats ();
@@ -984,6 +1055,7 @@ int main (int argc, char *argv[])
   testFlowStatistics << "Topology: 2In2Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
+  testFlowStatistics << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
   testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl; 
@@ -1007,13 +1079,17 @@ int main (int argc, char *argv[])
   testFlowStatistics.close ();
 
   // move all the produced files to dirToSave
-  system (("mv -f " + dir + traffic_control_type + "/" + implementation + + "/*.dat " + dirToSave).c_str ());
-  // system (("mv -f " + dir + traffic_control_type + "/" + implementation + + "/*.txt " + dirToSave).c_str ());
+  system (("mv -f " + dir + traffic_control_type + "/" + implementation + "/*.dat " + dirToSave).c_str ());
+  // system (("mv -f " + dir + traffic_control_type + "/" + implementation + "/*.txt " + dirToSave).c_str ());
 
   // Create the gnuplot.//////////////////////////////
   generate1DGnuPlotFromDatFile(dirToSave + "/generatedOnOffTrafficTrace.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "/port_0_app_0_OnOffStateTrace.dat");
   generate1DGnuPlotFromDatFile(dirToSave + "/port_0_app_1_OnOffStateTrace.dat");
   generate1DGnuPlotFromDatFile(dirToSave + "/port_1_app_3_OnOffStateTrace.dat");
+
+  generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
+  generate2DGnuPlotFromDatFile(dirToSave + "/port_1_queue_3_PacketsInQueueTrace.dat", "Low");
 
   Simulator::Destroy ();
   NS_LOG_INFO ("Stop simulation");

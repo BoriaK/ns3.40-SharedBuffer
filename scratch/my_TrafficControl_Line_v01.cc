@@ -131,15 +131,14 @@ int main (int argc, char *argv[])
 { 
   // Set up some default values for the simulation.
   double simulationTime = 50; //seconds
-  std::string applicationType = "customOnOff"; // "standardClient"/"OnOff"/"customApplication"/"customOnOff"
-  std::string transportProt = "Udp";
+  std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"customApplication"/"customOnOff"/"prioOnOff"
+  std::string transportProt = "Tcp";
   std::string socketType;
   std::string queue_capacity;
-  uint32_t alpha_high = 2;
+  uint32_t alpha_high = 10;
   uint32_t alpha_low = 1;
   bool enablePcap = false;  // true/false
   bool eraseOldData = true; // true/false
-
 
   if (eraseOldData == true)
   {
@@ -147,7 +146,6 @@ int main (int argc, char *argv[])
     system (("rm " + dir + queue_disc_type + "/*.txt").c_str ()); // to erasethe previous test run summary, and collect new data
     std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
   }
-  
 
   CommandLine cmd (__FILE__);
   cmd.AddValue("Simulation Time", "The total time for the simulation to run", simulationTime);
@@ -160,11 +158,11 @@ int main (int argc, char *argv[])
   // Config::SetDefault ("ns3::TcpL4Protocol::RecoveryType", TypeIdValue (TypeId::LookupByName ("ns3::TcpClassicRecovery")));
 
   // Application type dependent parameters
-  if (applicationType.compare("standardClient") == 0)
+  if (applicationType.compare("standardClient") == 0 || applicationType.compare("prioClient") == 0)
     {
       queue_capacity = "20p"; // B, the total space on the buffer
     }
-  else if (applicationType.compare("OnOff") == 0 || applicationType.compare("customOnOff") == 0 || applicationType.compare("customApplication") == 0)
+  else
     {
       queue_capacity = "100p"; // B, the total space on the buffer [packets]
     }
@@ -238,9 +236,9 @@ int main (int argc, char *argv[])
 
   TrafficControlHelper tch;
   // tch.SetRootQueueDisc ("ns3::RedQueueDisc", "MaxSize", StringValue ("5p"));
-  // tch.SetRootQueueDisc ("ns3::FifoQueueDisc", "MaxSize", StringValue ("20p"));
-  tch.SetRootQueueDisc ("ns3::" + queue_disc_type, "MaxSize", StringValue (queue_capacity), 
-                        "Alpha_High", DoubleValue (alpha_high), "Alpha_Low", DoubleValue (alpha_low));
+  tch.SetRootQueueDisc ("ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity));
+  // tch.SetRootQueueDisc ("ns3::" + queue_disc_type, "MaxSize", StringValue (queue_capacity), 
+  //                       "Alpha_High", DoubleValue (alpha_high), "Alpha_Low", DoubleValue (alpha_low));
                                                    
   QueueDiscContainer qdiscs = tch.Install (dev1);
 

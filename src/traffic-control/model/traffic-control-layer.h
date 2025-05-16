@@ -50,13 +50,13 @@ class NetDeviceQueueInterface;
 /// Priority map
 typedef std::array<uint16_t, 16> TcPriomap;
 //////////////////////////////////////////////////////////////////////////////////
-// Custom data structure to store var1 and var2 for each time
 struct DataPoint 
 {
-double time;
-double var1;
-double var2;
-double var3;
+int64_t time;
+int8_t var1;
+int32_t var2;
+int32_t var3;
+int32_t var4;
 };
 
 class DataSet 
@@ -79,7 +79,7 @@ class DataSet
         timeIss >> data.time;
 
         // Parse var1 and var2
-        iss >> data.var1 >> data.var2 >> data.var3;
+        iss >> data.var1 >> data.var2 >> data.var3 >> data.var4;
 
         m_data.push_back(data);
       }
@@ -96,16 +96,16 @@ class DataSet
       else 
       {
         // Return a default DataPoint if the dataset is empty
-        return {0.0, 0.0, 0.0, 0.0};
+        return {0, 0, 0, 0, 0};
       }
     }
 
   
-    DataPoint GetRow(double time) const 
+    DataPoint GetRow(int64_t time) const 
     {
       if (m_data.empty()) 
       {
-          return {0.0, 0.0, 0.0, 0.0}; // Return default if dataset is empty
+          return {0, 0, 0, 0, 0}; // Return default if dataset is empty
       }
 
       // Find the closest time stamp
@@ -127,7 +127,7 @@ class DataSet
       else 
       {
         // Return a default DataPoint if the dataset is empty
-        return {0.0, 0.0, 0.0, 0.0};
+        return {0, 0, 0, 0, 0};
       }
     }
 
@@ -181,9 +181,11 @@ public:
     }
 
     // Method to load packets from a file starting from a specific arrival time and index for duplicates
-    void LoadPacketsFromFile(const std::string& filename, int64_t startTime, size_t startIndex = 0) {
+    void LoadPacketsFromFile(const std::string& filename, int64_t startTime, size_t startIndex = 0) 
+    {
         std::ifstream inputFile(filename);
-        if (!inputFile.is_open()) {
+        if (!inputFile.is_open()) 
+        {
             std::cerr << "Error: Unable to open file " << filename << std::endl;
             return;
         }
@@ -191,7 +193,8 @@ public:
         std::string line;
         std::unordered_map<int64_t, size_t> packetCount;  // To count occurrences of a specific timestamp
 
-        while (std::getline(inputFile, line)) {
+        while (std::getline(inputFile, line)) 
+        {
             std::stringstream ss(line);
             int64_t packetTime;
             int packetType;
@@ -200,8 +203,10 @@ public:
             ss >> packetTime >> packetType;
 
             // Only load packets with a timestamp >= startTime
-            if (packetTime >= startTime) {
-                if (packetCount[packetTime] >= startIndex) {
+            if (packetTime >= startTime) 
+            {
+                if (packetCount[packetTime] >= startIndex) 
+                {
                     Enqueue(packetType, packetTime);
                 }
                 packetCount[packetTime]++;
@@ -210,7 +215,15 @@ public:
 
         inputFile.close();
     }
-
+    // Method to get the size of the log for a specific packet type
+    size_t GetLogSize(int packetType) const {
+        if (packetType == 1) {
+            return packetType1Log.size();
+        } else if (packetType == 2) {
+            return packetType2Log.size();
+        }
+        return 0;
+    }
     // Print method for debugging
     void PrintLog() const {
         std::cout << "Packet Type 1 Log:" << std::endl;
@@ -590,9 +603,10 @@ class TrafficControlLayer : public Object
      * \returns the 1 decimal precission value of num.
      */
     double_t RoundToOneDecimal(double_t num);
-    
+
     /**
      * \brief calculate the new local mouse/elephant probability d from the predicted traffic in the time interval t: t+Tau.
+     * based on total arriving predictive packets to the shared buffer. for TCP traffic.
      * \returns the upcomming d value.
      */
     double_t EstimateNewLocalD();
@@ -656,16 +670,23 @@ class TrafficControlLayer : public Object
     float_t m_gamma;  //!< Normalized de-queue rate per port/queue in a single FIFO per port scenario.
     uint8_t m_nonEmpty; //!< number of non empty queues on each port.
     // Predictive queue disc parameters:
+    uint32_t predictivePacketsArrivalCount = 0; //!< the number of predictive packets that arrived to the shared buffer
+    uint32_t predictivePacketsHighPriorityArrivalCount = 0; //!< the number of high priority predictive packets that arrived to the shared buffer
+    uint32_t predictivePacketsLowPriorityArrivalCount = 0; //!< the number of low priority predictive packets that arrived to the shared buffer
     double_t m_predicted_mice_elephant_prob;  //!< the predicted d value of the upcomming traffic returned by the function
     double_t m_estimated_mice_elephant_prob;  //!< the estimated d value of the traffic returned by the function
     double_t predictedMiceElephantProbVal;  //!< the predicted d value of the upcomming traffic
-    uint32_t totalEnqueuedPacketsInQueueCounter = 0;
-    uint32_t totalEnqueuedBytesInQueueCounter = 0;
     double_t m_predictedArrivingTraffic; //!< the total predicted number of packets arriving to shared buffer in time interval t - Tau/2: t + Tau/2
     double_t m_predictedArrivingHighPriorityTraffic; //!< the predicted number of user defined Priority packets arriving to shared buffer in time interval t - Tau/2: t + Tau/2
-    double_t m_nTotalEnqueuedPacketsInSharedBuffer; //!< the total number of packets enqueued on shared buffer from the beginning of the simulation
     double_t m_passedTraffic; //!< the total number of packets passed through shared buffer during time interval t-Tau: t
     double_t m_passedPriorityTraffic; //!< the total number of user defined Priority packets passed through shared buffer in time interval t-Tau: t
+    // real traffic monitoring parameters:
+    uint32_t totalEnqueuedPacketsInQueueCounter = 0; //!< the number of packets enqueued in the local queue
+    uint32_t totalEnqueuedBytesInQueueCounter = 0; //!< the number of bytes enqueued in the local queue
+    double_t m_nTotalEnqueuedPacketsInSharedBuffer; //!< the total number of packets enqueued on shared buffer from the beginning of the simulation
+    uint32_t realPacketsArrivalCount = 0; //!< the number of predictive packets that arrived to the shared buffer
+    uint32_t realPacketsHighPriorityArrivalCount = 0; //!< the number of high priority predictive packets that arrived to the shared buffer
+    uint32_t realPacketsLowPriorityArrivalCount = 0; //!< the number of low priority predictive packets that arrived to the shared buffer
     // uint8_t queue_priority;   //< the priority of the queue that's currently being checked
     uint32_t m_nConjestedQueues;   //!< number of queues that are conjested at current time instance
     uint32_t m_nConjestedQueues_p;   //!< number of queues of priority p that are conjested at current time instance
@@ -685,6 +706,7 @@ class TrafficControlLayer : public Object
     MiceElephantProbabilityTag miceElephantProbTag;  //!< a Tag that represents the mice/elephant probability assigned to the flow by the user
     double_t m_miceElephantProbValFromTag;  //!< the d value of the flow that was assigned at the OnOff application
     SharedPriorityTag flowPrioTag;    //< a tag that's added to each sent packet based on the priority assigned by the Sender application
+    ApplicationTosTag appTosTag;  //< a tag that's added to each sent packet based on the ToS assigned to the On Off application
     uint8_t m_flow_priority;   //< Flow priority assigned to each recieved packet, based on the flow priority assigned by sender
     // to collect statistics at the end of the flow
     TCStats m_stats;    //!< The collected statistics

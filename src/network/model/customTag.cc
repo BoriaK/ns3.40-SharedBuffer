@@ -166,3 +166,51 @@ MiceElephantProbabilityTag::GetSimpleValue (void) const
 {
   return m_dValue;
 }
+
+TypeId 
+ApplicationTosTag::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::ApplicationTosTag")
+    .SetParent<Tag> ()
+    .AddConstructor<ApplicationTosTag> ()
+  ;
+  return tid;
+}
+TypeId 
+ApplicationTosTag::GetInstanceTypeId (void) const
+{
+  return GetTypeId ();
+}
+uint32_t 
+ApplicationTosTag::GetSerializedSize (void) const
+{
+  return 1;
+}
+void 
+ApplicationTosTag::Serialize (TagBuffer i) const
+{
+  // i.WriteDouble (m_dValue);
+  i.WriteU8 (m_tosValue);
+}
+void 
+ApplicationTosTag::Deserialize (TagBuffer i)
+{
+  // m_tosValue = i.ReadDouble ();
+  m_tosValue = i.ReadU8 ();
+}
+void 
+ApplicationTosTag::Print (std::ostream &os) const
+{
+  // os << "v=" << (double)m_tosValue;
+  os << "v=" << (int32_t)m_tosValue;
+}
+void 
+ApplicationTosTag::SetTosValue (uint8_t tosValue)
+{
+  m_tosValue = tosValue;
+}
+uint8_t
+ApplicationTosTag::GetTosValue (void) const
+{
+  return m_tosValue;
+}

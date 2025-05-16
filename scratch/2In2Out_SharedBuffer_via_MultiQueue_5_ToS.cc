@@ -392,7 +392,7 @@ viaMQueues5ToS (std::string traffic_control_type, double_t alpha_high, double_t 
     tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
     tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
     tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-    tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+    tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
     tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
     // monitor the packets in the Shared Buffer in Traffic Control Layer:

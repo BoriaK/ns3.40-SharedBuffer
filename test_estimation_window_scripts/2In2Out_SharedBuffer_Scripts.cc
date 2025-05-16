@@ -442,7 +442,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   tc = router.Get(0)->GetObject<TrafficControlLayer>();
   tc->SetAttribute("SharedBuffer", BooleanValue(true));
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
   tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(win_length));
 

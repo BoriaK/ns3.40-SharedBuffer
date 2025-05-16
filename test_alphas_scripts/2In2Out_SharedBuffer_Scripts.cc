@@ -399,7 +399,7 @@ viaFIFO(std::string traffic_control_type, std::string onoff_traffic_mode, double
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
   tc->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPacketsInSharedQueueTrace));
@@ -1043,7 +1043,7 @@ viaMQueues2ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -1683,7 +1683,7 @@ viaMQueues2ToSVaryingD (std::string traffic_control_type, std::string onoff_traf
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("AdjustableAlphas", BooleanValue(adjustableAlphas));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
@@ -2378,7 +2378,7 @@ viaMQueuesPredictive2ToS (std::string traffic_control_type, std::string onoff_tr
   tc = router.Get(0)->GetObject<TrafficControlLayer>();
   tc->SetAttribute("SharedBuffer", BooleanValue(true));
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -3131,7 +3131,7 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -3871,7 +3871,7 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
   tc->SetAttribute("NumberOfHighProbabilityOnOffMachines", DoubleValue (Num_M_High));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -4575,7 +4575,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("AdjustableAlphas", BooleanValue(adjustableAlphas));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
@@ -5346,7 +5346,7 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("AdjustableAlphas", BooleanValue(adjustableAlphas));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
@@ -6156,7 +6156,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   tc = router.Get(0)->GetObject<TrafficControlLayer>();
   tc->SetAttribute("SharedBuffer", BooleanValue(true));
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
   tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(win_length));
 

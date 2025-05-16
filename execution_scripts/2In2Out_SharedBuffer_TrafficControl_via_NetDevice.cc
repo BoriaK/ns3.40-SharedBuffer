@@ -426,7 +426,7 @@ int main (int argc, char *argv[])
     tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
     tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
     tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-    tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+    tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
 
     // monitor the packets in the Shared Buffer in Traffic Control Layer:
     tc->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPacketsInSharedQueueTrace));

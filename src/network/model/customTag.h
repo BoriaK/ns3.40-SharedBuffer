@@ -129,4 +129,36 @@ class MiceElephantProbabilityTag : public Tag
     int32_t m_dValue;  //!< tag value
 };
 
+/**
+ * \ingroup network
+ * A Tag that represents the ToS that was assigned to the OnOff application
+ */
+class ApplicationTosTag : public Tag
+{
+  public:
+    /**
+     * \brief Get the type ID.
+     * \return the object TypeId
+     */
+    static TypeId GetTypeId (void);
+    virtual TypeId GetInstanceTypeId (void) const;
+    virtual uint32_t GetSerializedSize (void) const;
+    virtual void Serialize (TagBuffer i) const;
+    virtual void Deserialize (TagBuffer i);
+    virtual void Print (std::ostream &os) const;
+
+    // these are our accessors to our tag structure
+    /**
+     * Set the tag value
+     * \param tosValue The tag value.
+     */
+    void SetTosValue (uint8_t tosValue);
+    /**
+     * Get the tag value
+     * \return the tag value.
+     */
+    uint8_t GetTosValue (void) const;
+  private:
+    uint8_t m_tosValue;  //!< tag value
+};
 #endif /* CUSTOM_TAGG_H */

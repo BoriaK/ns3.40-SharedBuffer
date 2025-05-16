@@ -2834,6 +2834,52 @@ TcpSocketBase::SendEmptyPacket(uint8_t flags)
     }
 
     m_txTrace(p, header, this);
+    
+    // for Shared-Buffer in TCP mode:///////////////////////////////////////////////
+    int m_priority = 0;
+    // if (m_endPoint->GetPeerPort() == 50000)
+    // {
+    //     m_priority = 1;
+    // }
+    // else if (m_endPoint->GetPeerPort() == 50001 || m_endPoint->GetPeerPort() == 50002 || 
+    //          m_endPoint->GetPeerPort() == 50003 || m_endPoint->GetPeerPort() == 50004)
+    // {
+    //     m_priority = 2;
+    // }
+    
+    if (m_endPoint->GetPeerPort() == 50000 || m_endPoint->GetPeerPort() == 50001 || m_endPoint->GetPeerPort() == 50002 || 
+             m_endPoint->GetPeerPort() == 50003 || m_endPoint->GetPeerPort() == 50004)
+    {
+        // open TCP_Socket_Priority_per_Port.dat and assign priority to the current packet according to this mapping
+        // TCP_Socket_Priority_per_Port.dat is constructed: {[nodeID] [port] [priority]}
+        std::ifstream infile("TCP_Socket_Priority_per_Port.dat");
+        std::string line;
+        while (std::getline(infile, line))
+        {
+            std::istringstream iss(line);
+            int nodeID;
+            int port;
+            int priority;
+            if (!(iss >> nodeID >> port >> priority)) { break; } // error
+            if (m_node->GetId() == nodeID && m_endPoint->GetPeerPort() == port)
+            {
+                m_priority = priority;
+                break;
+            }
+        }
+    }
+
+    flowPrioTag.SetSimpleValue (m_priority);
+    // store the tag in a packet.
+    if (p->PeekPacketTag(flowPrioTag) == false)
+    {
+        p->AddPacketTag (flowPrioTag);
+    }
+    else
+    {
+        std::cout << "retransmit" << std::endl;
+    }
+    ///////////////////////////////////////////////////////////////
 
     if (m_endPoint != nullptr)
     {

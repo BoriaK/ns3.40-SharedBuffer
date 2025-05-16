@@ -41,6 +41,7 @@
 #include "ns3/string.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/udp-socket-factory.h"
+#include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
 #include "ns3/core-module.h"
 
@@ -74,7 +75,7 @@ PrioOnOffApplication::GetTypeId()
                           "The size of packets sent in on state",
                           UintegerValue(512),
                           MakeUintegerAccessor(&PrioOnOffApplication::m_pktSize),
-                          MakeUintegerChecker<uint32_t>(1))
+                          MakeUintegerChecker<uint32_t>())
             .AddAttribute("Remote",
                           "The address of the destination",
                           AddressValue(),
@@ -86,6 +87,11 @@ PrioOnOffApplication::GetTypeId()
                           AddressValue(),
                           MakeAddressAccessor(&PrioOnOffApplication::m_local),
                           MakeAddressChecker())
+            .AddAttribute("ApplicationToS",
+                            "The Type of Service for all packets sent by this application. ",
+                            UintegerValue(0x0),
+                            MakeUintegerAccessor(&PrioOnOffApplication::m_appTos),
+                            MakeUintegerChecker<uint32_t>())
             .AddAttribute("OnTime",
                           "A RandomVariableStream used to pick the duration of the 'On' state.",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
@@ -264,6 +270,9 @@ PrioOnOffApplication::StartApplication() // Called at time specified by Start
     {
         m_socket = Socket::CreateSocket(GetNode(), m_tid);
         int ret = -1;
+
+        // Set the ToS on the application level
+        m_socket->SetIpTos(m_appTos);
 
         if (!m_local.IsInvalid())
         {
@@ -512,7 +521,7 @@ PrioOnOffApplication::SendPacket()
         }
         /////////////////////// option 3: add a priority to a packet based on ToS value.
         // Tos 0x0 -> Low Priority -> TagValue->0x2 (Low Priority)
-        // ToS 0x6 -> High Priority -> TagValue->0x1 (High Priority)
+        // ToS 0x10 -> High Priority -> TagValue->0x1 (High Priority)
         case 3:
         {
             if (packet->PeekPacketTag(ipTosTag))
@@ -545,7 +554,28 @@ PrioOnOffApplication::SendPacket()
     
     // packet->AddPacketTag (flowPrioTag);
 
+    //debug:
+    packet->PeekPacketTag(ipTosTag);
+    std::cout << "packet: " << packet << " ToS from tag : " << int(ipTosTag.GetTos()) << std::endl;
+    std::cout << "socket: " << m_socket << std::endl;
+    std::cout << "packet: " << packet << " ToS from socket : " << int(m_socket->GetIpTos()) << std::endl;
+    /////////////
+    if (m_tid == ns3::TcpSocketFactory::GetTypeId())
+    {
+        // ipTosTag.SetTos(m_socket->GetIpTos()); // set Tos value from socket
+        ipTosTag.SetTos(m_appTos); // directly set the ToS value from Application
+        std::cout << "packet: " << packet << " ToS from tag : " << int(ipTosTag.GetTos()) << std::endl;
+        appTosTag.SetTosValue(m_appTos); // force set the ToS value from Application
+        std::cout << "packet: " << packet << " ToS from force tag : " << int(appTosTag.GetTosValue()) << std::endl;
+    }
+    else if (m_tid == ns3::UdpSocketFactory::GetTypeId())
+    {
+        std::cout << "Application port: " << "" << " is Type : UDP" << std::endl;
+    }
+    
+
     int actual = m_socket->Send(packet);
+
     if ((unsigned)actual == m_pktSize)
     {
         m_txTrace(packet);
@@ -583,7 +613,7 @@ PrioOnOffApplication::SendPacket()
     packet->PeekPacketTag(ipTosTag);
     
     // for debug:
-    // std::cout << "packet: " << packet << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
+    std::cout << "packet: " << packet << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
     ///////////////////////
     
     m_lastStartTime = Simulator::Now();

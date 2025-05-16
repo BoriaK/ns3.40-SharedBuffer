@@ -31,6 +31,8 @@
 #include "ns3/timer.h"
 #include "ns3/traced-value.h"
 
+#include "ns3/customTag.h"
+
 #include <queue>
 #include <stdint.h>
 
@@ -1367,6 +1369,9 @@ class TcpSocketBase : public TcpSocket
     Ptr<TcpCongestionOps> m_congestionControl; //!< Congestion control
     Ptr<TcpRecoveryOps> m_recoveryOps;         //!< Recovery Algorithm
     Ptr<TcpRateOps> m_rateOps;                 //!< Rate operations
+    
+    // for Priority transmit of TCP non-data packets
+    SharedPriorityTag  flowPrioTag;   //< a tag that's added to each sent packet based on the priority assigned by the SendPacket () function
 
     // Guesses over the other connection end
     bool m_isFirstPartialAck{true}; //!< First partial ACK during RECOVERY

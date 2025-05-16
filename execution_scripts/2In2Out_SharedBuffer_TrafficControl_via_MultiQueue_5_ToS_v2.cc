@@ -83,7 +83,7 @@
 
 using namespace ns3;
 
-// std::string dir = "./Trace_Plots/2In2Out/test_Alphas/" + ToString(alpha_high) + "_" + ToString(alpha_low) + "/";
+
 std::string dir = "./Trace_Plots/2In2Out/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
@@ -405,7 +405,7 @@ int main (int argc, char *argv[])
   // Set the current working directory
   system (("cd " + currentPath).c_str ());
 
-  double_t miceElephantProb = 0.1;
+  double_t miceElephantProb = 0.2;
   double_t alpha_high = 15;
   double_t alpha_low = 5;
 
@@ -467,13 +467,18 @@ int main (int argc, char *argv[])
   {
     Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
     Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
-    // Set default segment size of TCP packet to a specified value:
-    // Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(100*PACKET_SIZE));
     Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                        TypeIdValue(TypeId::LookupByName("ns3::TcpClassicRecovery")));
-    
+    // Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+    //                     TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery")));
+    // Set default segment size of TCP packet to a specified value:
+    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
     // Set default initial congestion window as 1000 segments
     Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));
+    
+    // Set default sender and receiver buffer size as 1MB
+    // Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 20));
+    // Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 20));
     
     socketType = "ns3::TcpSocketFactory";
   }
@@ -581,7 +586,8 @@ int main (int argc, char *argv[])
   tch.AddChildQueueDisc(handle, cid[3], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[3] is < cid[2]
   tch.AddChildQueueDisc(handle, cid[4], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[4] is < cid[3]
 
-  QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  
 
   ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
@@ -591,7 +597,7 @@ int main (int argc, char *argv[])
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -675,7 +681,7 @@ int main (int argc, char *argv[])
 
   // create a vector of IP_ToS_Priorities: P0>P1>...>P4
   std::vector<uint32_t> ipTos_vector;
-  uint32_t ipTos_P0 = 0x08; 
+  uint32_t ipTos_P0 = 0x10; 
   ipTos_vector.push_back(ipTos_P0);
   uint32_t ipTos_P1 = 0x06; 
   ipTos_vector.push_back(ipTos_P1);
@@ -721,19 +727,20 @@ int main (int argc, char *argv[])
     sockptr =
         ns3::Socket::CreateSocket(servers.Get(serverIndex),
                 ns3::TcpSocketFactory::GetTypeId());
-    ns3::Ptr<ns3::TcpSocket> tcpsockptr =
-        ns3::DynamicCast<ns3::TcpSocket> (sockptr);
+    // sockptr->SetIpTos();          
+    // ns3::Ptr<ns3::TcpSocket> tcpsockptr =
+    //     ns3::DynamicCast<ns3::TcpSocket> (sockptr);
     } 
     else if (transportProt.compare("UDP") == 0) 
     {
-      // setup source socket
-      sockptr =
-          ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                  ns3::UdpSocketFactory::GetTypeId());
-          ////////Added by me///////////////        
-          ns3::Ptr<ns3::UdpSocket> udpsockptr =
-              ns3::DynamicCast<ns3::UdpSocket> (sockptr);
-          //////////////////////////////////
+      // // setup source socket
+      // sockptr =
+      //     ns3::Socket::CreateSocket(servers.Get(serverIndex),
+      //             ns3::UdpSocketFactory::GetTypeId());
+      //     ////////Added by me///////////////        
+      //     ns3::Ptr<ns3::UdpSocket> udpsockptr =
+      //         ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+      //     //////////////////////////////////
     } 
     else 
     {
@@ -888,6 +895,7 @@ int main (int argc, char *argv[])
         }
         clientHelpers_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpers_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
+        clientHelpers_vector[j].SetAttribute ("ApplicationToS", UintegerValue (ipTos_vector[j])); // set the IP ToS value for the application
         // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
         clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse

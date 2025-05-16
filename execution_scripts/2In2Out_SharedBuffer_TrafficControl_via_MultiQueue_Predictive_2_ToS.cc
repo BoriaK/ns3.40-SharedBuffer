@@ -451,7 +451,7 @@ int main (int argc, char *argv[])
   tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -470,7 +470,7 @@ int main (int argc, char *argv[])
   tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
   tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  // tcPredict->SetAttribute("TrafficControllAlgorythm", StringValue ("FB"));  // use FB for predictive model for now
+  // tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue ("FB"));  // use FB for predictive model for now
   tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
 
   ///////////Monitor data from q-disc//////////////////////////////////////////

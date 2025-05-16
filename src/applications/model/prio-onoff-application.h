@@ -167,6 +167,7 @@ class PrioOnOffApplication : public Application
     Ptr<Socket> m_socket;                //!< Associated socket
     Address m_peer;                      //!< Peer address
     Address m_local;                     //!< Local address to bind to
+    int32_t m_appTos;                    //!< Type of Service. determined by user for the Application
     bool m_connected;                    //!< True if connected
     Ptr<RandomVariableStream> m_onTime;  //!< rng for On Time
     Ptr<RandomVariableStream> m_offTime; //!< rng for Off Time
@@ -190,6 +191,7 @@ class PrioOnOffApplication : public Application
     std::string     m_miceElephantProb;  //!< the d parameter assigned to the flow by the user
     MiceElephantProbabilityTag miceElephantProbTag;  //!< a Tag that represents the mice/elephant probability assigned to the flow by the user
     SharedPriorityTag  flowPrioTag;   //< a tag that's added to each sent packet based on the priority assigned by the SendPacket () function
+    ApplicationTosTag appTosTag;  //< a tag that's added to each sent packet based on the ToS assigned to the On Off application
     uint64_t        m_packetSeqCount; //!< Number of packets sent in sequence, added by me
     // to monitor OnOff Aplication "state":
     bool m_isOn; // True if the application is in the "on" state, false if "off".

@@ -379,7 +379,7 @@ int main (int argc, char *argv[])
     tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
     tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
     tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-    tc->SetAttribute("TrafficControllAlgorythm", StringValue (usedAlgorythm));
+    tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
     tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
     
 

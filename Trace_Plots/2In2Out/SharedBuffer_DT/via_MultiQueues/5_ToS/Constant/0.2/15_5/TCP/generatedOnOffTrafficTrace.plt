@@ -1,5 +1,5 @@
 set terminal png
-set output "./Trace_Plots/2In2Out/SharedBuffer_DT/via_MultiQueues/5_ToS/Constant/0.2/15_5/generatedOnOffTrafficTrace.png"
+set output "/home/boris/workspace/ns3.40-SharedBuffer/Trace_Plots/2In2Out/SharedBuffer_DT/via_MultiQueues/5_ToS/Constant/0.2/15_5/TCP/generatedOnOffTrafficTrace.png"
 set title "generated On Off Traffic[packets] vs Time[sec]"
 set xlabel "Time[sec]"
 set ylabel "Traffic"

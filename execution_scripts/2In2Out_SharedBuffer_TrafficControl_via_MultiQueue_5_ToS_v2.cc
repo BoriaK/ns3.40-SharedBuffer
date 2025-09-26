@@ -38,9 +38,12 @@
 #include <fstream>
 #include <vector>
 #include <utility>
+#include <unistd.h>  // for getcwd
+#include <cstdlib>   // for free
 #include <string>
 #include <list>
 #include <array>
+#include <sstream>
 #include <filesystem>
 
 #include "ns3/core-module.h"
@@ -55,17 +58,20 @@
 #include "ns3/custom_onoff-application.h"
 #include "ns3/names.h"
 #include "ns3/stats-module.h"
-
+#include "ns3/object-factory.h"
+#include "ns3/tcp-socket-base.h"
+#include "ns3/tcp-socket-state.h"
+#include "ns3/tcp-header.h"
 
 // There are 2 servers connecting to a leaf switch
 #define SERVER_COUNT 2
 #define SWITCH_COUNT 1
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  500*1e3        // Leaf-Spine Capacity 500Kbps/queue/port
-#define SERVER_SWITCH_CAPACITY 5*1e6          // Total Serever-Leaf Capacity 5Mbps/queue/port
-#define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 500                         // Shared Buffer Size for a single queue per port. 500 Packets
+#define SWITCH_RECIEVER_CAPACITY  500*1e3       // Leaf-Spine Capacity 500[Kbps]/queue/port
+#define SERVER_SWITCH_CAPACITY 5*1e6            // Serever-Leaf Capacity 5[Mbps]/queue/port
+#define LINK_LATENCY MicroSeconds(20)           // each link latency 20 MicroSeconds 
+#define BUFFER_SIZE 500                         // Shared Buffer Size for a single queue/port. 500[Packets]
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -83,16 +89,61 @@
 
 using namespace ns3;
 
+// Function to get workspace root directory
+std::string GetWorkspaceRoot() {
+    // Try to get current working directory
+    char* cwd = getcwd(nullptr, 0);
+    if (cwd == nullptr) {
+        // Fallback to relative path if getcwd fails
+        return "./Trace_Plots/2In2Out/";
+    }
+    
+    std::string workspaceDir(cwd);
+    free(cwd);
+    
+    // Find the workspace root by looking for workspace identifier files
+    std::string wsRoot = workspaceDir;
+    
+    // Keep going up directories until we find ns3 workspace markers
+    while (wsRoot != "/" && wsRoot.length() > 1) {
+        // Check for ns3 workspace indicators
+        std::ifstream ns3_file(wsRoot + "/ns3");
+        std::ifstream cmake_file(wsRoot + "/CMakeLists.txt");
+        std::ifstream version_file(wsRoot + "/VERSION");
+        
+        if ((ns3_file.good() || cmake_file.good()) && version_file.good()) {
+            // Found workspace root
+            return wsRoot + "/Trace_Plots/2In2Out/";
+        }
+        
+        // Go up one directory level
+        size_t lastSlash = wsRoot.find_last_of('/');
+        if (lastSlash == std::string::npos || lastSlash == 0) {
+            break;
+        }
+        wsRoot = wsRoot.substr(0, lastSlash);
+    }
+    
+    // If we couldn't find the workspace root, use current directory
+    return workspaceDir + "/Trace_Plots/2In2Out/";
+}
 
-std::string dir = "./Trace_Plots/2In2Out/";
+std::string dir = GetWorkspaceRoot();
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "DT"/"FB"
 std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"/"Exponential"
+// per-run output directory (set in main)
+std::string runDir = "";
 // for OnOff Aplications
-uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
+uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application (increased to provoke congestion)
 // time interval values
 double_t trafficGenDuration = DURATION_TIME; // [sec] initilize for a single OnOff segment
+
+// counter for total OnOff Tx packets (incremented by trace callback)
+uint64_t g_totalOnOffTxPackets = 0;
+// counter for total OnOff Tx bytes (incremented by trace callback)
+uint64_t g_totalOnOffTxBytes = 0;
 
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
@@ -206,6 +257,188 @@ QueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldV
   qdpiq.close ();
   
   // std::cout << "QueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
+}
+
+// Traffic Control Layer drop trace
+void
+TrafficControlDropTrace (Ptr<const Packet> packet)
+{
+  std::ofstream f (dir + traffic_control_type + "/" + implementation + "/TrafficControl_Drop.dat", std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << (packet ? packet->GetSize() : 0) << std::endl;
+  f.close();
+}
+
+// TCP ECN/CE/CWR tracing
+void
+TcpEcnTrace (SequenceNumber32 oldSeq, SequenceNumber32 newSeq)
+{
+  std::ofstream f (dir + traffic_control_type + "/" + implementation + "/TcpEcnTrace.dat", std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newSeq.GetValue() << std::endl;
+  f.close();
+}
+
+// TCP RTO trace callback (free function so MakeCallback can deduce)
+// signature uses traced-value old/new pair
+void
+TcpRtoTraceCallback (Time oldRto, Time newRto)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpRtoTrace.dat") : (runDir + "/TcpRtoTrace.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newRto.GetSeconds() << std::endl;
+  f.close();
+}
+
+// TCP Retransmits trace callback (free function)
+// signature uses traced-value old/new pair
+void
+TcpRetransmitsCallback (uint32_t oldRetrans, uint32_t newRetrans)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpRetransmits.dat") : (runDir + "/TcpRetransmits.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newRetrans << std::endl;
+  f.close();
+}
+
+// TCP BytesInFlight trace callback
+void
+TcpBytesInFlightCallback (uint32_t oldBif, uint32_t newBif)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpBytesInFlight.dat") : (runDir + "/TcpBytesInFlight.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newBif << std::endl;
+  f.close();
+}
+
+// TCP EcnState trace callback (enum/int)
+void
+TcpEcnStateCallback (TcpSocketState::EcnState_t oldState, TcpSocketState::EcnState_t newState)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpEcnState.dat") : (runDir + "/TcpEcnState.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << static_cast<uint32_t>(newState) << std::endl;
+  f.close();
+}
+
+// TCP receiver window (RWND) trace callback
+void
+TcpRwndTraceCallback (uint32_t oldVal, uint32_t newVal)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpRWND.dat") : (runDir + "/TcpRWND.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newVal << std::endl;
+  f.close();
+}
+
+// TCP advertised window (AdvWND) trace callback
+void
+TcpAdvWndTraceCallback (uint32_t oldVal, uint32_t newVal)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpAdvWND.dat") : (runDir + "/TcpAdvWND.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newVal << std::endl;
+  f.close();
+}
+
+// TCP slow start threshold (ssthresh) trace callback
+void
+TcpSsthreshTraceCallback (uint32_t oldVal, uint32_t newVal)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpSsthresh.dat") : (runDir + "/TcpSsthresh.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newVal << std::endl;
+  f.close();
+}
+
+// TCP Tx/Rx traced callback: signature (Ptr<const Packet>, TcpHeader, Ptr<const TcpSocketBase>)
+void
+TcpTxRxCallback (Ptr<const Packet> p, const TcpHeader& header, Ptr<const TcpSocketBase> sock)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpTxRx.dat") : (runDir + "/TcpTxRx.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << (p ? p->GetSize() : 0) << " " << header.GetSequenceNumber().GetValue() << std::endl;
+  f.close();
+}
+
+// TCP segment sent tracer: logs time, nodeId, sequence number, and packet size
+void
+TcpSegmentSentTrace (Ptr<const Packet> p, const TcpHeader& header, Ptr<const TcpSocketBase> sock)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TcpSegmentsOut.dat") : (runDir + "/TcpSegmentsOut.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  if (!f.is_open()) return;
+  static bool printed = false;
+  uint32_t seq = header.GetSequenceNumber().GetValue();
+  uint32_t nodeId = 0;
+  if (sock && sock->GetNode())
+  {
+    nodeId = sock->GetNode()->GetId();
+  }
+  if (!printed)
+  {
+    std::cout << "TcpSegmentSentTrace attached - logging segments to: " << out << std::endl;
+    printed = true;
+  }
+  // write: time nodeId seq size
+  f << Simulator::Now().GetSeconds() << " " << nodeId << " " << seq << " " << (p ? p->GetSize() : 0) << std::endl;
+  f.close();
+}
+
+// OnOff applications Tx packet callback: increment global counter and log cumulative count
+void
+OnOffTxPacketCallback (Ptr<const Packet> p)
+{
+  // increment global counter
+  ++g_totalOnOffTxPackets;
+  // accumulate bytes sent by the OnOff applications
+  uint32_t pktSize = (p ? p->GetSize() : 0);
+  g_totalOnOffTxBytes += pktSize;
+
+  // append timestamp + cumulative count to a per-run dat file so we can plot if desired
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/OnOff_TxPackets.dat") : (runDir + "/OnOff_TxPackets.dat");
+  std::ofstream f(out, std::ios::out | std::ios::app);
+  // write: time cumulative_packets cumulative_bytes
+  f << Simulator::Now().GetSeconds() << " " << g_totalOnOffTxPackets << " " << g_totalOnOffTxBytes << std::endl;
+  f.close();
+}
+
+// Forward declaration for cwnd trace used later when attaching to sockets
+void TcpCwndTrace (uint32_t oldCwnd, uint32_t newCwnd);
+
+// Attach congestion-window traces directly to sockets created by applications.
+void
+AttachTcpSocketTraces(const ApplicationContainer& apps)
+{
+  for (size_t i = 0; i < apps.GetN(); ++i)
+  {
+    Ptr<Application> app = apps.Get(i);
+    Ptr<PrioOnOffApplication> poa = DynamicCast<PrioOnOffApplication>(app);
+    if (poa)
+    {
+      Ptr<Socket> s = poa->GetSocket();
+      if (s)
+      {
+        Ptr<TcpSocketBase> ts = DynamicCast<TcpSocketBase>(s);
+        if (ts)
+        {
+          ts->TraceConnectWithoutContext("CongestionWindow", MakeCallback(&TcpCwndTrace));
+          ts->TraceConnectWithoutContext("CongestionWindowInflated", MakeCallback(&TcpCwndTrace));
+          // Attach retransmit and RTO traces
+          ts->TraceConnectWithoutContext("RTO", MakeCallback(&TcpRtoTraceCallback));
+          ts->TraceConnectWithoutContext("Retransmits", MakeCallback(&TcpRetransmitsCallback));
+          // Attach additional sender-side traces
+          ts->TraceConnectWithoutContext("BytesInFlight", MakeCallback(&TcpBytesInFlightCallback));
+          ts->TraceConnectWithoutContext("EcnState", MakeCallback(&TcpEcnStateCallback));
+          ts->TraceConnectWithoutContext("RWND", MakeCallback(&TcpRwndTraceCallback));
+          ts->TraceConnectWithoutContext("AdvWND", MakeCallback(&TcpAdvWndTraceCallback));
+          ts->TraceConnectWithoutContext("SlowStartThreshold", MakeCallback(&TcpSsthreshTraceCallback));
+          ts->TraceConnectWithoutContext("Tx", MakeCallback(&TcpTxRxCallback));
+          ts->TraceConnectWithoutContext("Rx", MakeCallback(&TcpTxRxCallback));
+          // Also log per-segment sends (time, seq, size)
+          ts->TraceConnectWithoutContext("Tx", MakeCallback(&TcpSegmentSentTrace));
+        }
+      }
+    }
+  }
 }
 
 void
@@ -396,6 +629,53 @@ SojournTimeTrace (Time sojournTime)
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
 }
 
+// TCP congestion window trace
+void
+TcpCwndTrace (uint32_t oldCwnd, uint32_t newCwnd)
+{
+  std::string out = runDir.empty() ? (dir + traffic_control_type + "/" + implementation + "/TxCongestionWindowChange.dat") : (runDir + "/TxCongestionWindowChange.dat");
+  std::ofstream f (out, std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << newCwnd << std::endl;
+  f.close();
+}
+
+// forward declare so functions defined earlier can reference it
+void TcpCwndTrace (uint32_t oldCwnd, uint32_t newCwnd);
+
+// QueueDisc Drop/Mark trace callbacks
+void
+QueueDiscDropTrace (Ptr<const QueueDiscItem> item)
+{
+  std::ofstream f (dir + traffic_control_type + "/" + implementation + "/QueueDiscDropTrace.dat", std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << item->GetPacket()->GetSize() << std::endl;
+  f.close();
+}
+
+void
+QueueDiscMarkTrace (Ptr<const QueueDiscItem> item)
+{
+  std::ofstream f (dir + traffic_control_type + "/" + implementation + "/QueueDiscMarkTrace.dat", std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << item->GetPacket()->GetSize() << std::endl;
+  f.close();
+}
+
+// overloads that accept a reason string (some traces provide a reason param)
+void
+QueueDiscDropTrace (Ptr<const QueueDiscItem> item, const char* reason)
+{
+  std::ofstream f (dir + traffic_control_type + "/" + implementation + "/QueueDiscDropTrace.dat", std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << item->GetPacket()->GetSize() << " " << (reason ? reason : "") << std::endl;
+  f.close();
+}
+
+void
+QueueDiscMarkTrace (Ptr<const QueueDiscItem> item, const char* reason)
+{
+  std::ofstream f (dir + traffic_control_type + "/" + implementation + "/QueueDiscMarkTrace.dat", std::ios::out | std::ios::app);
+  f << Simulator::Now().GetSeconds() << " " << item->GetPacket()->GetSize() << " " << (reason ? reason : "") << std::endl;
+  f.close();
+}
+
 int main (int argc, char *argv[])
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
@@ -412,16 +692,23 @@ int main (int argc, char *argv[])
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
   // Command line parameters parsing
   std::string transportProt = "TCP"; // "UDP"/"TCP"
+  std::string cc = "ns3::TcpNoCongestion"; // if transportProt = "TCP", chose: "ns3::TcpNewReno"/"ns3::TcpNoCongestion"
   std::string socketType;
   std::string queue_capacity;
 
+  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
+  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
+
   // Create a new directory to store the output of the program
   // dir = "./Trace_Plots/2In2Out/";
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onOffTrafficMode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low);
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onOffTrafficMode + "/" + DoubleToString(miceElephantProb) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/" + transportProt;
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
   }
+
+  // set global runDir so trace callbacks write into this per-run directory
+  runDir = dirToSave;
 
 
   uint32_t flowletTimeout = 50;
@@ -440,6 +727,7 @@ int main (int argc, char *argv[])
 
   CommandLine cmd;
   cmd.AddValue ("transportProt", "Transport protocol to use: Udp, Tcp, DcTcp", transportProt);
+  cmd.AddValue ("cc", "TCP congestion control type (e.g. ns3::TcpNewReno or ns3::TcpNoCongestion)", cc);
   cmd.AddValue ("flowletTimeout", "flowlet timeout", flowletTimeout);
   cmd.Parse (argc, argv);
 
@@ -465,20 +753,61 @@ int main (int argc, char *argv[])
   // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   {
-    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
+  // Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno")); // "ns3::TcpNewReno"/"ns3::TcpNoCongestion"
+    // Select the congestion control via TcpL4Protocol::SocketType (can be overridden with --cc)
+    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue (cc));
     Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
     Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                        TypeIdValue(TypeId::LookupByName("ns3::TcpClassicRecovery")));
-    // Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
-    //                     TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery")));
-    // Set default segment size of TCP packet to a specified value:
-    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
-    // Set default initial congestion window as 1000 segments
-    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));
     
-    // Set default sender and receiver buffer size as 1MB
-    // Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 20));
-    // Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 20));
+  // Enlarge TCP send/receive buffers to avoid rwnd (flow-control) limiting BytesInFlight
+  // Default RcvBufSize in ns-3 is 131072 bytes, which capped BytesInFlight at 128 KiB in our runs.
+  // Use large buffers so advertised window (and rwnd) can grow well beyond the shared-buffer capacity.
+  // Note: Window scaling is enabled by default (TcpSocketBase::m_winScalingEnabled = true);
+  // these sizes ensure the scaled window is sufficiently large.
+  Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+  Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+  
+  // === Prevent spurious retransmits with user-specified settings ===
+  
+  // 1. Set very conservative RTO bounds to avoid premature timeouts in high-delay environment
+  Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(Seconds(5.0)));     // Min RTO = 5s (extra conservative for wireless)
+  Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(10))); // 10ms granularity (coarser for stability)
+  
+  // 2. Configure RTT estimation to be more conservative in wireless environment
+  Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.0625));  // Slower SRTT adaptation (default 0.125)
+  Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.125));    // Slower RTTVAR adaptation (default 0.25)
+  
+  // === User-specified TCP settings ===
+  
+  // 3. User-requested segment size and initial congestion window
+  Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 40)); // add 40 bytes for TCP/IP headers
+  Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));             // User-requested large initial window
+  
+  // 4. Enable TCP timestamps as requested (helps with RTT measurement and PAWS)
+  Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));        // Enable timestamps for better RTT estimation
+  Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));    // Keep window scaling (needed for large buffers)
+  
+  // === Anti-spurious retransmission optimizations ===
+  
+  // 5. Conservative delayed ACK to reduce reverse traffic and potential ACK compression
+  Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(500))); // Longer delay to avoid ACK storms
+  Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(4));               // Wait for more segments before ACKing
+  
+  // 6. Enable advanced recovery mechanisms
+  Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));             // Enable SACK for better recovery
+  Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(false)); // Disable limited transmit to reduce spurious sends
+  
+  // 7. Conservative data retry settings  
+  Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(12));           // More retries before giving up
+  
+  // 8. Additional anti-spurious optimizations
+  Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(false));          // Enable Nagle's algorithm to reduce small packets
+  Config::SetDefault("ns3::TcpSocket::PersistTimeout", TimeValue(Seconds(10))); // Longer persist timeout for window probes
+  
+  // 9. Connection establishment timeout (reduce SYN retransmissions) 
+  Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(5)));      // Longer connection timeout
+  Config::SetDefault("ns3::TcpSocket::ConnCount", UintegerValue(3));             // Fewer SYN retransmission attempts
     
     socketType = "ns3::TcpSocketFactory";
   }
@@ -520,12 +849,10 @@ int main (int argc, char *argv[])
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -608,6 +935,8 @@ int main (int argc, char *argv[])
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_0", MakeBoundCallback (&TrafficControlThresholdLowTrace, 0));  
   tc->TraceConnectWithoutContext("EnqueueingThreshold_High_1", MakeBoundCallback (&TrafficControlThresholdHighTrace, 1));
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_1", MakeBoundCallback (&TrafficControlThresholdLowTrace, 1));
+  // Also trace drops from TrafficControlLayer (TcDrop)
+  tc->TraceConnectWithoutContext("TcDrop", MakeCallback(&TrafficControlDropTrace));
 
   //////////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
@@ -618,6 +947,9 @@ int main (int argc, char *argv[])
       queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&QueueDiscPacketsInQueueTrace, i, j));
       // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityQueueDiscPacketsInQueueTrace, i, j)); 
       // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityQueueDiscPacketsInQueueTrace, i, j)); 
+      // also trace Drop and Mark events (use matching signatures)
+      queue->TraceConnectWithoutContext("Drop", MakeCallback(static_cast<void (*)(Ptr<const QueueDiscItem>)>(&QueueDiscDropTrace)));
+      queue->TraceConnectWithoutContext("Mark", MakeCallback(static_cast<void (*)(Ptr<const QueueDiscItem>, const char*)>(&QueueDiscMarkTrace)));
     }
   }
   ////////////////////////////////////////////////////////////////////////////////
@@ -723,24 +1055,24 @@ int main (int argc, char *argv[])
 
     if (transportProt.compare("TCP") == 0) 
     {
-    // setup source socket
-    sockptr =
-        ns3::Socket::CreateSocket(servers.Get(serverIndex),
-                ns3::TcpSocketFactory::GetTypeId());
-    // sockptr->SetIpTos();          
-    // ns3::Ptr<ns3::TcpSocket> tcpsockptr =
-    //     ns3::DynamicCast<ns3::TcpSocket> (sockptr);
+      // setup source socket
+      sockptr =
+          ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                  ns3::TcpSocketFactory::GetTypeId());
+      // sockptr->SetIpTos();          
+      // ns3::Ptr<ns3::TcpSocket> tcpsockptr =
+      //     ns3::DynamicCast<ns3::TcpSocket> (sockptr);
     } 
     else if (transportProt.compare("UDP") == 0) 
     {
-      // // setup source socket
-      // sockptr =
-      //     ns3::Socket::CreateSocket(servers.Get(serverIndex),
-      //             ns3::UdpSocketFactory::GetTypeId());
-      //     ////////Added by me///////////////        
-      //     ns3::Ptr<ns3::UdpSocket> udpsockptr =
-      //         ns3::DynamicCast<ns3::UdpSocket> (sockptr);
-      //     //////////////////////////////////
+      // setup source socket
+      sockptr =
+          ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                  ns3::UdpSocketFactory::GetTypeId());
+          ////////Added by me///////////////        
+          ns3::Ptr<ns3::UdpSocket> udpsockptr =
+              ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+          //////////////////////////////////
     } 
     else 
     {
@@ -761,6 +1093,7 @@ int main (int argc, char *argv[])
       clientHelpers_vector.push_back(tempClientHelper);
     }
 
+    NS_LOG_INFO ("Configure OnOff Applications");
     // create and install Client apps:    
     if (applicationType.compare("prioOnOff") == 0) 
     {
@@ -899,10 +1232,33 @@ int main (int argc, char *argv[])
         // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
         clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
-        sourceApps.Add(clientHelpers_vector[j].Install (servers.Get(serverIndex)));
+    sourceApps.Add(clientHelpers_vector[j].Install (servers.Get(serverIndex)));
 
-        //monitor OnOff Traffic generated from the OnOff Applications:
-        Simulator::Schedule (Seconds (1.0), &checkOnOffState, sourceApps.Get(j), i, j, 3.1, Simulator::Now().GetSeconds());
+    // attach OnOff Tx packet counter to this newly installed application
+    // schedule a short delay to ensure the app object exists
+    Simulator::Schedule(Seconds(1.0), [&, j]() {
+      Ptr<Application> app = sourceApps.Get(j);
+      if (app)
+      {
+        Ptr<PrioOnOffApplication> poa = DynamicCast<PrioOnOffApplication>(app);
+        if (poa)
+        {
+          poa->TraceConnectWithoutContext("Tx", MakeCallback(&OnOffTxPacketCallback));
+        }
+        else
+        {
+          // try generic CustomOnOffApplication
+          Ptr<CustomOnOffApplication> coa = DynamicCast<CustomOnOffApplication>(app);
+          if (coa)
+          {
+            coa->TraceConnectWithoutContext("Tx", MakeCallback(&OnOffTxPacketCallback));
+          }
+        }
+      }
+    });
+
+    //monitor OnOff Traffic generated from the OnOff Applications:
+    Simulator::Schedule (Seconds (1.0), &checkOnOffState, sourceApps.Get(j), i, j, 3.1, Simulator::Now().GetSeconds());
       }
     }
     else 
@@ -910,6 +1266,8 @@ int main (int argc, char *argv[])
       std::cerr << "unknown app type: " << applicationType << std::endl;
       exit(1);
     }
+    
+    NS_LOG_INFO ("Configure Packet Sinks");
     // setup sinks
     Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
     Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
@@ -931,9 +1289,46 @@ int main (int argc, char *argv[])
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
+  // Attach per-socket TCP traces shortly after applications start so sockets are created
+  // Schedule twice with small jitter to increase the chance of attaching to all sockets
+  Simulator::Schedule(Seconds(1.01), &AttachTcpSocketTraces, sourceApps);
+  Simulator::Schedule(Seconds(1.05), &AttachTcpSocketTraces, sourceApps);
+
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
-  
+
+  if (transportProt.compare("TCP") == 0) 
+  {
+    NS_LOG_INFO ("Configure TCP socket traces");
+    // Connect TCP congestion window traces for each server node (SocketList/0)
+    for (size_t i = 0; i < servers.GetN(); ++i)
+    {
+      std::ostringstream path;
+      path << "/NodeList/" << servers.Get(i)->GetId() << "/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow";
+      Config::ConnectWithoutContext(path.str(), MakeCallback(&TcpCwndTrace));
+    }
+    // Also connect a wildcard path to catch congestion window changes for any socket
+    // Config::ConnectWithoutContext("/NodeList/*/$ns3::TcpL4Protocol/SocketList/*/CongestionWindow", MakeCallback(&TcpCwndTrace));
+
+    // Connect TCP ECN trace sources (EcnEchoSeq, EcnCeSeq, EcnCwrSeq) for diagnosis
+    for (size_t i = 0; i < servers.GetN(); ++i)
+    {
+      std::ostringstream ecnPath;
+      ecnPath << "/NodeList/" << servers.Get(i)->GetId() << "/$ns3::TcpL4Protocol/SocketList/0/EcnEchoSeq";
+      Config::ConnectWithoutContext(ecnPath.str(), MakeCallback(&TcpEcnTrace));
+      std::ostringstream ecnCePath;
+      ecnCePath << "/NodeList/" << servers.Get(i)->GetId() << "/$ns3::TcpL4Protocol/SocketList/0/EcnCeSeq";
+      Config::ConnectWithoutContext(ecnCePath.str(), MakeCallback(&TcpEcnTrace));
+      std::ostringstream ecnCwrPath;
+      ecnCwrPath << "/NodeList/" << servers.Get(i)->GetId() << "/$ns3::TcpL4Protocol/SocketList/0/EcnCwrSeq";
+      Config::ConnectWithoutContext(ecnCwrPath.str(), MakeCallback(&TcpEcnTrace));
+    }
+  // Connect per-segment Tx trace for TCP sockets (log every segment sent)
+  // NOTE: per-socket segment traces are attached in AttachTcpSocketTraces to avoid
+  // duplicate logging that can occur with a wildcard Config connect.
+  // (per-socket attachment scheduled below)
+  }
+
   //monitor OnOff Traffic generated from all the OnOff Applications (combined):
   Simulator::Schedule (Seconds (1.0), &returnOnOffTraffic, sourceApps, 3.1, Simulator::Now().GetSeconds());
 
@@ -953,6 +1348,7 @@ int main (int argc, char *argv[])
   std::cout << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
   std::cout << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
   std::cout << "Application: " + applicationType << std::endl;
+  std::cout << "Transport Protocol: " + transportProt << std::endl;
   std::cout << "traffic Mode " + onOffTrafficMode + "Random" << std::endl;
   std::cout << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
 
@@ -1009,6 +1405,7 @@ int main (int argc, char *argv[])
   double TpT = 0;
   for (size_t i = 1; i <= stats.size(); i++)
   // stats indexing needs to start from 1
+  // sum all the flows [bybes], multiply by 8 to get [bits] and divide by the time duration of each flow [seconds]. devide the final result by 1,000,000 to get [Mbps]                               
   {
     TpT = TpT + (stats[i].rxBytes * 8.0 / (stats[i].timeLastRxPacket.GetSeconds () - stats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
   }
@@ -1035,17 +1432,19 @@ int main (int argc, char *argv[])
   // Simulator::Destroy ();
   
   std::cout << std::endl << "*** Application statistics ***" << std::endl;
-  double goodTpT = 0;
-
+  std::cout << "  Total OnOff Tx Packets: " << g_totalOnOffTxPackets << std::endl;
+  std::cout << "  Total OnOff Tx Bytes: " << g_totalOnOffTxBytes << std::endl;
+  // A time-series file of cumulative OnOff Tx is available at: OnOff_TxPackets.dat
+  
   uint64_t totalBytesRx = 0;
   for (size_t i = 0; i < sinkApps.GetN(); i++)
   {
     totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
   }
-
-  goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
   std::cout << "  Rx Bytes: " << totalBytesRx << std::endl;
-  std::cout << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;
+  // double goodTpT = 0;
+  // goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
+  // std::cout << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;
 
   std::cout << std::endl << "*** TC Layer statistics ***" << std::endl;
   std::cout << tc->GetStats() << std::endl;
@@ -1065,8 +1464,10 @@ int main (int argc, char *argv[])
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
   testFlowStatistics << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
   testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
-  testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl; 
+  testFlowStatistics << "Transport Protocol: " + transportProt << std::endl;
+  testFlowStatistics << "traffic Mode " + onOffTrafficMode + "Random" << std::endl;
+  testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
   testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;
   testFlowStatistics << "  Rx Packets/Bytes:   " << statRxPackets << " / " << statRxBytes << std::endl;
@@ -1074,7 +1475,11 @@ int main (int argc, char *argv[])
                       << " / " << bytesDroppedByQueueDisc << std::endl;
   testFlowStatistics << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
                       << " / " << bytesDroppedByNetDevice << std::endl;
-  testFlowStatistics << "  Throughput: " << TpT << " Mbps" << std::endl;                   
+  testFlowStatistics << "  Throughput: " << TpT << " Mbps" << std::endl;
+  testFlowStatistics << std::endl << "*** Application statistics ***" << std::endl;
+  testFlowStatistics << "  Total OnOff Tx Packets: " << g_totalOnOffTxPackets << std::endl;
+  testFlowStatistics << "  Total OnOff Tx Bytes: " << g_totalOnOffTxBytes << std::endl;
+  testFlowStatistics << "  Rx Bytes: " << totalBytesRx << std::endl;                  
   testFlowStatistics << std::endl << "*** TC Layer statistics ***" << std::endl;
   testFlowStatistics << tc->GetStats () << std::endl;
   testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;
@@ -1083,11 +1488,12 @@ int main (int argc, char *argv[])
     testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
     testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
   }
-  
+
   testFlowStatistics.close ();
 
   // move all the produced files to dirToSave
   system (("mv -f " + dir + traffic_control_type + "/" + implementation + "/*.dat " + dirToSave).c_str ());
+  // OnOff_TxPackets.dat is written directly into runDir by the trace callback. No extra move required.
   // system (("mv -f " + dir + traffic_control_type + "/" + implementation + "/*.txt " + dirToSave).c_str ());
 
   // Create the gnuplot.//////////////////////////////
@@ -1095,6 +1501,8 @@ int main (int argc, char *argv[])
   generate1DGnuPlotFromDatFile(dirToSave + "/port_0_app_0_OnOffStateTrace.dat");
   generate1DGnuPlotFromDatFile(dirToSave + "/port_0_app_1_OnOffStateTrace.dat");
   generate1DGnuPlotFromDatFile(dirToSave + "/port_1_app_3_OnOffStateTrace.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "/TxCongestionWindowChange.dat");
+  generate1DGnuPlotFromDatFile(dirToSave + "/TrafficControl_Drop.dat");
 
   generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
   generate2DGnuPlotFromDatFile(dirToSave + "/port_1_queue_3_PacketsInQueueTrace.dat", "Low");

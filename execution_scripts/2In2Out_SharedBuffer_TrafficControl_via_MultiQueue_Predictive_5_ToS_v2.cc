@@ -506,7 +506,7 @@ int main (int argc, char *argv[])
     // Set default segment size of TCP packet to a specified value:
     Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
     // Set default initial congestion window as 1000 segments
-    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1e6));
     
     socketType = "ns3::TcpSocketFactory";
   }
@@ -1244,15 +1244,12 @@ int main (int argc, char *argv[])
   uint64_t statRxBytes = 0;
   // NEED TO ADJUST STATISTICS SUCH THAT IT COUNTS ONLY REAL DATA SENT, AND NOT PREDICTIVE DATA
   // (i.e. packets sent by the actual model and not the predictive packets)
-  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
+  for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1. first half of the flows are the predictive flows
   {
-    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
-    {
-      statTxPackets = statTxPackets + flowStats[i].txPackets;
-      statTxBytes = statTxBytes + flowStats[i].txBytes;
-      statRxPackets = statRxPackets + flowStats[i].rxPackets;
-      statRxBytes = statRxBytes + flowStats[i].rxBytes;
-    }
+    statTxPackets = statTxPackets + flowStats[i].txPackets;
+    statTxBytes = statTxBytes + flowStats[i].txBytes;
+    statRxPackets = statRxPackets + flowStats[i].rxPackets;
+    statRxBytes = statRxBytes + flowStats[i].rxBytes;
   }
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
@@ -1262,15 +1259,12 @@ int main (int argc, char *argv[])
 
   uint32_t packetsDroppedByQueueDisc = 0;
   uint64_t bytesDroppedByQueueDisc = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
+  for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1. first half of the flows are the predictive flows
   {
-    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
+    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
     {
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-      {
-        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-      }
+      packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+      bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
     }
   }
   std::cout << "  Packets/Bytes Dropped by Queue Disc:   " << packetsDroppedByQueueDisc
@@ -1278,50 +1272,38 @@ int main (int argc, char *argv[])
   
   uint32_t packetsDroppedByNetDevice = 0;
   uint64_t bytesDroppedByNetDevice = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
+  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1. first half of the flows are the predictive flows
   {
-    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
+    if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
     {
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-      {
-        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-      }
+      packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+      bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
     }
   }
   std::cout << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
               << " / " << bytesDroppedByNetDevice << std::endl;
   
   double TpT = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
+  for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1. first half of the flows are the predictive flows
   {
-    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
-    {
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-    }
+    TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
   }
   std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
                                   
   double AVGDelaySum = 0;
   double AVGDelay = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
+  for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1. first half of the flows are the predictive flows
   {
-    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
-    {
     AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-    }
   }
   AVGDelay = AVGDelaySum / (flowStats.size()/2);
   std::cout << "  Mean delay:   " << AVGDelay << std::endl;
   
   double AVGJitterSum = 0;
   double AVGJitter = 0;
-  for (size_t i = 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1
+  for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size(); i++) // stats indexing needs to start from 1. first half of the flows are the predictive flows
   {
-    if (flowStats[i].rxPackets > 0) //count only packets sent by the actual model (not the predictive packets)
-    {
     AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
-    }
   }
   AVGJitter = AVGJitterSum / (flowStats.size()/2);
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;

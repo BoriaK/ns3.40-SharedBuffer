@@ -2013,7 +2013,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     if (predictivePacketsArrivalCount == 0) // means that this is the first time the simulation get's here
                     {
                         std::remove("Predictive_Packet_Arrival_Times.dat");
-                        std::remove("Real_Packet_Arrival_Times.dat");
+                        std::remove("Real_Packet_Arrival_Times_Normalized.dat");
                     }
                     // count the total number of Predictive packets that arrive to shared buffer
                     predictivePacketsArrivalCount++;
@@ -2046,14 +2046,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 }
                 else
                 {
-                    // log each packet arrival time in a sepparate file:
-                    // std::ofstream packetArrivalTimesOutputFile("Real_Packet_Arrival_Times.dat",
-                    //     std::ios::app);
-                    // packetArrivalTimesOutputFile << Simulator::Now ().GetMicroSeconds() << " " 
-                    //                     << int(m_flow_priority) << " " 
-                    //                     << GetCurrentSharedBufferSize().GetValue() << std::endl; 
-                    // packetArrivalTimesOutputFile.close();
-                    
                     // count the total number of Real packets that arrive to shared buffer
                     realPacketsArrivalCount++;
                     if (m_flow_priority == 1)
@@ -2067,7 +2059,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         realPacketsLowPriorityArrivalCount++;
                     }
                     // match the format to the predictive packets (reduce 20[mSec] to align with predictive packet arrival times):
-                    std::ofstream packetArrivalTimesOutputFile("Real_Packet_Arrival_Times.dat",
+                    std::ofstream packetArrivalTimesOutputFile("Real_Packet_Arrival_Times_Normalized.dat",
                         std::ios::app);
                     packetArrivalTimesOutputFile << (Simulator::Now () - Seconds(0.2)).GetMicroSeconds () << " ";
                     packetArrivalTimesOutputFile << int(m_flow_priority) << " ";

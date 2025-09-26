@@ -1,47 +1,54 @@
 Topology: 2In2Out
-Queueing Algorithm: SharedBuffer_DTPredictive
+Queueing Algorithm: SharedBuffer_DT
 Implementation Method: via_MultiQueues/5_ToS
 Used D value: 0.2
-Traffic Duration: 2 [Sec]
+Alpha High = 15 Alpha Low = 5
 Application: prioOnOff
+Transport Protocol: UDP
 traffic Mode ConstantRandom
+Traffic Duration: 2 [Sec]
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   3680 / 2659280
-  Rx Packets/Bytes:   3680 / 2659280
+  Tx Packets/Bytes:   3930 / 4134360
+  Rx Packets/Bytes:   3621 / 3809292
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 5.0716 Mbps
+  Throughput: 5.12414 Mbps
+
+*** Application statistics ***
+  Total OnOff Tx Packets: 3930
+  Total OnOff Tx Bytes: 4024320
+  Rx Bytes: 3707904
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 0 / 0
+Packets/Bytes dropped by Traffic Control Layer: 309 / 325068
 High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 309 / 325068
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1225 / 1297640
-Packets/Bytes enqueued: 1225 / 1297640
-Packets/Bytes dequeued: 1225 / 1297640
+Packets/Bytes received: 1815 / 1909380
+Packets/Bytes enqueued: 1815 / 1909380
+Packets/Bytes dequeued: 1815 / 1909380
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1225 / 1297640
+Packets/Bytes sent: 1815 / 1909380
 Packets/Bytes marked: 0 / 0
 
 Queue Disceplene 1:
 
-Packets/Bytes received: 1225 / 1297640
-Packets/Bytes enqueued: 1225 / 1297640
-Packets/Bytes dequeued: 1225 / 1297640
+Packets/Bytes received: 1806 / 1899912
+Packets/Bytes enqueued: 1806 / 1899912
+Packets/Bytes dequeued: 1806 / 1899912
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1225 / 1297640
+Packets/Bytes sent: 1806 / 1899912
 Packets/Bytes marked: 0 / 0
 

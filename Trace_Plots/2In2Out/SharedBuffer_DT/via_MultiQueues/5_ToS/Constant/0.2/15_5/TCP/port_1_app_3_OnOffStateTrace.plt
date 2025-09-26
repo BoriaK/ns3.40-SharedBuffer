@@ -1,5 +1,5 @@
 set terminal png
-set output "./Trace_Plots/2In2Out/SharedBuffer_DT/via_MultiQueues/5_ToS/Constant/0.2/15_5/port_0_app_1_OnOffStateTrace.png"
+set output "/home/boris/workspace/ns3.40-SharedBuffer/Trace_Plots/2In2Out/SharedBuffer_DT/via_MultiQueues/5_ToS/Constant/0.2/15_5/TCP/port_1_app_3_OnOffStateTrace.png"
 set title "generated On Off Traffic[packets] vs Time[sec]"
 set xlabel "Time[sec]"
 set ylabel "Traffic"
@@ -105,7 +105,7 @@ plot "-"  title "generated Packets" with lines
 1.098 0
 1.099 0
 1.1 0
-1.101 1
+1.101 0
 1.102 1
 1.103 1
 1.104 1
@@ -605,7 +605,7 @@ plot "-"  title "generated Packets" with lines
 1.598 1
 1.599 1
 1.6 1
-1.601 0
+1.601 1
 1.602 0
 1.603 0
 1.604 0
@@ -705,7 +705,7 @@ plot "-"  title "generated Packets" with lines
 1.698 0
 1.699 0
 1.7 0
-1.701 1
+1.701 0
 1.702 1
 1.703 1
 1.704 1
@@ -1205,7 +1205,7 @@ plot "-"  title "generated Packets" with lines
 2.198 1
 2.199 1
 2.2 1
-2.201 0
+2.201 1
 2.202 0
 2.203 0
 2.204 0
@@ -1305,7 +1305,7 @@ plot "-"  title "generated Packets" with lines
 2.298 0
 2.299 0
 2.3 0
-2.301 1
+2.301 0
 2.302 1
 2.303 1
 2.304 1
@@ -1805,7 +1805,7 @@ plot "-"  title "generated Packets" with lines
 2.798 1
 2.799 1
 2.8 1
-2.801 0
+2.801 1
 2.802 0
 2.803 0
 2.804 0
@@ -1905,7 +1905,7 @@ plot "-"  title "generated Packets" with lines
 2.898 0
 2.899 0
 2.9 0
-2.901 1
+2.901 0
 2.902 1
 2.903 1
 2.904 1

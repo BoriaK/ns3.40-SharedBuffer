@@ -1,5 +1,5 @@
 set terminal png
-set output "/home/boris/workspace/ns3.40-SharedBuffer/Trace_Plots/2In2Out/SharedBuffer_DT/via_MultiQueues/5_ToS/Constant/0.2/15_5/TCP/port_0_queue_0_High.png"
+set output "/home/boris/workspace/ns-allinone-3.40/ns-3.40/Trace_Plots/2In2Out/SharedBuffer_DT/via_MultiQueues/5_ToS/Constant/0.2/15_5/TCP/port_0_queue_0_High.png"
 set title "port 0 queue 0 High Priority Packets vs Threshold"
 set xlabel "Time[sec]"
 set ylabel "PacketsInQueue"
@@ -791,8 +791,6 @@ plot "-"  title "generated Packets" with lines, "-"  title "High PriorityQueueTh
 7.73575 1
 7.74602 0
 e
-1.00004 37500
-1.00053 37470
 1.01495 37500
 1.10688 37440
 1.11098 37410
@@ -1107,5 +1105,4 @@ e
 2.97338 750
 2.99173 705
 7.71849 36870
-7.73575 36990
 e

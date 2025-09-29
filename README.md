@@ -213,15 +213,26 @@ More information on how to submit an ns-3 module to the ns-3 App Store is availa
 in the [ns-3 App Store documentation](https://www.nsnam.org/docs/contributing/html/external.html).
 
 # ns-3.4-shared-buffer
-this version is an Addon on top of the ns-3.38.
-in order to get it, first download the official ns-3.38 version.
-in "Edit CMake Cache": NS3_WARNINGS_AS_ERRORS -> off
-"Clean Rebuild All Projects"
+this version is an Addon on top of the ns-3.40.
+in order to get it, first download the official ns-3.40 version.
 delete the following files and folders from the project: 
 * CMakeLists.txt
 * README.md
 * VERSION
 * scratch/
 * src/
+
 then perform git pull from the repository.
-clean re-build (CMake)
+# Initialize git repository
+git init
+# Add your remote repository
+git remote add origin https://github.com/BoriaK/ns3.40-SharedBuffer.git
+# try: "nice" pull
+git pull origin master
+# if it failes due to some untracked working tree files, Force overwrite by checking out the remote branch directly:
+git fetch origin
+git reset --hard origin/master
+
+CMake: 
+in "Edit CMake Cache": NS3_WARNINGS_AS_ERRORS -> off
+"Clean Rebuild All Projects"

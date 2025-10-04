@@ -38,6 +38,8 @@
 #include <fstream>
 #include <vector>
 #include <utility>
+#include <unistd.h>  // for getcwd
+#include <cstdlib>   // for free
 #include <string>
 #include <list>
 #include <array>
@@ -83,11 +85,54 @@
 
 using namespace ns3;
 
-std::string datDir = "./Trace_Plots/2In2Out/Predictive/";
+// Function to get workspace root directory
+std::string GetWorkspaceRoot() {
+    // Try to get current working directory
+    char* cwd = getcwd(nullptr, 0);
+    if (cwd == nullptr) {
+        // Fallback to relative path if getcwd fails
+        return "./Trace_Plots/2In2Out/";
+    }
+    
+    std::string workspaceDir(cwd);
+    free(cwd);
+    
+    // Find the workspace root by looking for workspace identifier files
+    std::string wsRoot = workspaceDir;
+    
+    // Keep going up directories until we find ns3 workspace markers
+    while (wsRoot != "/" && wsRoot.length() > 1) {
+        // Check for ns3 workspace indicators
+        std::ifstream ns3_file(wsRoot + "/ns3");
+        std::ifstream cmake_file(wsRoot + "/CMakeLists.txt");
+        std::ifstream version_file(wsRoot + "/VERSION");
+        
+        if ((ns3_file.good() || cmake_file.good()) && version_file.good()) {
+            // Found workspace root
+            return wsRoot + "/Trace_Plots/2In2Out/";
+        }
+        
+        // Go up one directory level
+        size_t lastSlash = wsRoot.find_last_of('/');
+        if (lastSlash == std::string::npos || lastSlash == 0) {
+            break;
+        }
+        wsRoot = wsRoot.substr(0, lastSlash);
+    }
+    
+    // If we couldn't find the workspace root, use current directory
+    return workspaceDir + "/Trace_Plots/2In2Out/";
+}
+
+std::string root = GetWorkspaceRoot();
+// std::string datDir = root + "/Trace_Plots/2In2Out/Predictive/";
+std::string datDir = root + "/Predictive/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/5_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "PredictiveDT"/"PredictiveFB"
 std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
+// // per-run output directory (set in main)
+// std::string runDir = "";
 // for OnOff Aplications
 uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
 // time interval values
@@ -455,6 +500,9 @@ int main (int argc, char *argv[])
     system (("mkdir -p " + dirToSave).c_str ());
   }
 
+  // // set global runDir so trace callbacks write into this per-run directory
+  // runDir = dirToSave;
+
   uint32_t flowletTimeout = 50;
   bool eraseOldData = true; // true/false
 
@@ -497,16 +545,59 @@ int main (int argc, char *argv[])
   // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   {
-    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
+    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno")); // "ns3::TcpNewReno"/"ns3::TcpNoCongestion"
     Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
     Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                        TypeIdValue(TypeId::LookupByName("ns3::TcpClassicRecovery")));
-    // Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
-    //                     TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery")));
-    // Set default segment size of TCP packet to a specified value:
-    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
-    // Set default initial congestion window as 1000 segments
-    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1e6));
+    
+    // Enlarge TCP send/receive buffers to avoid rwnd (flow-control) limiting BytesInFlight
+    // Default RcvBufSize in ns-3 is 131072 bytes, which capped BytesInFlight at 128 KiB in our runs.
+    // Use large buffers so advertised window (and rwnd) can grow well beyond the shared-buffer capacity.
+    // Note: Window scaling is enabled by default (TcpSocketBase::m_winScalingEnabled = true);
+    // these sizes ensure the scaled window is sufficiently large.
+    Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+    Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+    
+    // === Prevent spurious retransmits with user-specified settings ===
+  
+    // 1. Set very conservative RTO bounds to avoid premature timeouts in high-delay environment
+    Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(Seconds(5.0)));     // Min RTO = 5s (extra conservative for wireless)
+    Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(10))); // 10ms granularity (coarser for stability)
+    
+    // 2. Configure RTT estimation to be more conservative in wireless environment
+    Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.0625));  // Slower SRTT adaptation (default 0.125)
+    Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.125));    // Slower RTTVAR adaptation (default 0.25)
+    
+    // === User-specified TCP settings ===
+  
+    // 3. User-requested segment size and initial congestion window
+    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 40)); // add 40 bytes for TCP/IP headers
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));             // User-requested large initial window
+    
+    // 4. Enable TCP timestamps as requested (helps with RTT measurement and PAWS)
+    Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));        // Enable timestamps for better RTT estimation
+    Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));    // Keep window scaling (needed for large buffers)
+    
+    // === Anti-spurious retransmission optimizations ===
+  
+    // 5. Conservative delayed ACK to reduce reverse traffic and potential ACK compression
+    Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(500))); // Longer delay to avoid ACK storms
+    Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(4));               // Wait for more segments before ACKing
+    
+    // 6. Enable advanced recovery mechanisms
+    Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));             // Enable SACK for better recovery
+    Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(false)); // Disable limited transmit to reduce spurious sends
+    
+    // 7. Conservative data retry settings  
+    Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(12));           // More retries before giving up
+    
+    // 8. Additional anti-spurious optimizations
+    Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(false));          // Enable Nagle's algorithm to reduce small packets
+    Config::SetDefault("ns3::TcpSocket::PersistTimeout", TimeValue(Seconds(10))); // Longer persist timeout for window probes
+    
+    // 9. Connection establishment timeout (reduce SYN retransmissions) 
+    Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(5)));      // Longer connection timeout
+    Config::SetDefault("ns3::TcpSocket::ConnCount", UintegerValue(3));             // Fewer SYN retransmission attempts
     
     socketType = "ns3::TcpSocketFactory";
   }
@@ -596,7 +687,7 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Install NetDevices on all Nodes");
   NS_LOG_INFO ("Configuring Servers");
-  for (int i = 0; i < SERVER_COUNT; i++)
+  for (size_t i = 0; i < SERVER_COUNT; i++)
   {
     NS_LOG_INFO ("Server " << i << " is connected to switch");
 
@@ -614,7 +705,7 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Configuring switches");
 
 
-  for (int i = 0; i < RECIEVER_COUNT; i++)
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)
   {
     NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
     switchDevicesOut.Add(tempNetDevice.Get(0));
@@ -738,7 +829,7 @@ int main (int argc, char *argv[])
   
   NS_LOG_INFO ("Configuring servers");
 
-  for (int i = 0; i < SERVER_COUNT; i++)
+  for (size_t i = 0; i < SERVER_COUNT; i++)
   {
     NetDeviceContainer tempNetDevice;
     tempNetDevice.Add(serverDevices.Get(i));
@@ -760,7 +851,7 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Configuring switch");
 
-  for (int i = 0; i < RECIEVER_COUNT; i++)
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)
   {
     NetDeviceContainer tempNetDevice;
     tempNetDevice.Add(switchDevicesOut.Get(i));
@@ -822,7 +913,7 @@ int main (int argc, char *argv[])
   double_t numHpMachines = miceElephantProb * 10; // total number of OnOff machines that generate High priority traffic
   // int Num_E = 10 - numHpMachines; // number of OnOff machines that generate Low priority traffic
   bool unequalNum = false; // a flag that's raised if the number of High/Low priority OnOff applications created is diffeent for each Port
-  if ((int(miceElephantProb * 10) % 2) != 0)
+  if ((uint16_t(miceElephantProb * 10) % 2) != 0)
   {
     unequalNum = true;
   }
@@ -831,8 +922,8 @@ int main (int argc, char *argv[])
 
   for (size_t i = 0; i < 2; i++)
   {
-    int serverIndex = i;
-    int recieverIndex = i;
+    size_t serverIndex = i;
+    size_t recieverIndex = i;
     // create sockets
     ns3::Ptr<ns3::Socket> sockptr, sockptrPredict;
 
@@ -916,7 +1007,7 @@ int main (int argc, char *argv[])
           // divide the High/Low priority OnOff applications between the 2 servers such that:
           // 1st server recives the higher number of High priority and lower number of Low priority OnOff applications
           // and the 2nd server recives lower number of High priority and higher number of Low priority OnOff applications
-          if (i == 0 && j < int(ceil(numHpMachines/2)) || i == 1 && j < int(floor(numHpMachines/2)))
+          if ((i == 0 && j < size_t(ceil(numHpMachines/2))) || (i == 1 && j < size_t(floor(numHpMachines/2))))
           {
             if (onOffTrafficMode.compare("Constant") == 0)
             { 
@@ -1027,7 +1118,7 @@ int main (int argc, char *argv[])
         }
         else
         {
-          if (j < int(numHpMachines/2)) // create OnOff machines that generate High priority traffic
+          if (j < size_t(numHpMachines/2)) // create OnOff machines that generate High priority traffic
           {
             if (onOffTrafficMode.compare("Constant") == 0)
             { 

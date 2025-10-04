@@ -89,7 +89,7 @@
 
 using namespace ns3;
 
-// Function to get workspace root directory
+// Method to get workspace root directory
 std::string GetWorkspaceRoot() {
     // Try to get current working directory
     char* cwd = getcwd(nullptr, 0);
@@ -696,8 +696,8 @@ int main (int argc, char *argv[])
   std::string socketType;
   std::string queue_capacity;
 
-  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
-  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
+  uint32_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
+  uint32_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
 
   // Create a new directory to store the output of the program
   // dir = "./Trace_Plots/2In2Out/";
@@ -753,7 +753,7 @@ int main (int argc, char *argv[])
   // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   {
-  // Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno")); // "ns3::TcpNewReno"/"ns3::TcpNoCongestion"
+    // Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno")); // "ns3::TcpNewReno"/"ns3::TcpNoCongestion"
     // Select the congestion control via TcpL4Protocol::SocketType (can be overridden with --cc)
     Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue (cc));
     Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
@@ -865,7 +865,7 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Install NetDevices on all Nodes");
   NS_LOG_INFO ("Configuring Servers");
-  for (int i = 0; i < SERVER_COUNT; i++)
+  for (size_t i = 0; i < SERVER_COUNT; i++)
   {
     NS_LOG_INFO ("Server " << i << " is connected to switch");
 
@@ -878,7 +878,7 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Configuring switches");
 
 
-  for (int i = 0; i < RECIEVER_COUNT; i++)
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)
   {
     NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
     switchDevicesOut.Add(tempNetDevice.Get(0));
@@ -973,7 +973,7 @@ int main (int argc, char *argv[])
   
   NS_LOG_INFO ("Configuring servers");
 
-  for (int i = 0; i < SERVER_COUNT; i++)
+  for (size_t i = 0; i < SERVER_COUNT; i++)
   {
     NetDeviceContainer tempNetDevice;
     tempNetDevice.Add(serverDevices.Get(i));
@@ -987,7 +987,7 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Configuring switch");
 
-  for (int i = 0; i < RECIEVER_COUNT; i++)
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)
   {
       NetDeviceContainer tempNetDevice;
       tempNetDevice.Add(switchDevicesOut.Get(i));
@@ -1041,15 +1041,15 @@ int main (int argc, char *argv[])
   double_t numHpMachines = miceElephantProb * 10; // number of OnOff machines that generate High priority traffic
   // int Num_E = 10 - numHpMachines; // number of OnOff machines that generate Low priority traffic
   bool unequalNum = false; // a flag that's raised if the number of High/Low priority OnOff applications created is diffeent for each Port
-  if ((int(miceElephantProb * 10) % 2) != 0)
+  if ((uint16_t(miceElephantProb * 10) % 2) != 0)
   {
     unequalNum = true;
   }
   
   for (size_t i = 0; i < 2; i++)
   {
-    int serverIndex = i;
-    int recieverIndex = i;
+    size_t serverIndex = i;
+    size_t recieverIndex = i;
     // create sockets
     ns3::Ptr<ns3::Socket> sockptr;
 
@@ -1106,7 +1106,7 @@ int main (int argc, char *argv[])
           // divide the High/Low priority OnOff applications between the 2 servers such that:
           // 1st server recives the higher number of High priority and lower number of Low priority OnOff applications
           // and the 2nd server recives lower number of High priority and higher number of Low priority OnOff applications
-          if (i == 0 && j < int(ceil(numHpMachines/2)) || i == 1 && j < int(floor(numHpMachines/2)))
+          if ((i == 0 && j < size_t(ceil(numHpMachines/2))) || (i == 1 && j < size_t(floor(numHpMachines/2))))
           {
             if (onOffTrafficMode.compare("Constant") == 0)
             { 
@@ -1167,7 +1167,7 @@ int main (int argc, char *argv[])
         }
         else
         {
-          if (j < int(numHpMachines/2)) // create OnOff machines that generate High priority traffic
+          if (j < size_t(numHpMachines/2)) // create OnOff machines that generate High priority traffic
           {
             if (onOffTrafficMode.compare("Constant") == 0)
             { 

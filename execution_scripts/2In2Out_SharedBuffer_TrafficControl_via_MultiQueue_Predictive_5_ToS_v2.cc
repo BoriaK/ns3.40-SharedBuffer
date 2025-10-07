@@ -14,8 +14,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
 
- * Basic Topology, with 2 ports p0 and p1 with 5 client servers [t0,...t5] on each port, a switch S, 2 Tx ports connected to 5 
- * recievers [r0,...,r5] each
+ * Basic Topology, with 2 ports p0 and p1 with 5 client servers [t0,...t4] on each port, a switch S, 2 Tx ports connected to 5 
+ * receivers [r0,...,r4] each
+ * Basic Topology: 
+ * 2 groups of 5 client servers: [t0,...t4], connected to 2 Rx ports: p0 and p1 (5 servers connected to each port), on a switch: S,
+ * and 2 Tx ports: p0 and p1, connected to 5 receivers: [r0,...,r4], each.
  * this design is based on DumbellTopoplogy model.
  * in this version all the NetDevices are created first and the TrafficControllHelper is installed on them simultanoiusly
  *
@@ -31,6 +34,20 @@
  *     t3__|    |     |    |__r3
  *     t4__|    |_____|    |__r4
  * 
+ * 
+ * Additional "model" at t-T/2 to predict traffic:
+ * 
+ *     t0__      _____      __r0
+ *     t1__|    |     |    |__r1
+ *     t2__|--p0|     |p0--|__r2
+ *     t3__|    |     |    |__r3
+ *     t4__|    |     |    |__r4
+ *              |  S  |
+ *     t0__     |     |     __r0
+ *     t1__|    |     |    |__r1
+ *     t2__|--p1|     |p1--|__r2
+ *     t3__|    |     |    |__r3
+ *     t4__|    |_____|    |__r4
  */
 
 
@@ -64,10 +81,10 @@
 #define SWITCH_COUNT 1
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  500*1e3        // Leaf-Spine Capacity 500Kbps/queue/port
+#define SWITCH_RECIEVER_CAPACITY 500*1e3        // Leaf-Spine Capacity 500Kbps/queue/port
 #define SERVER_SWITCH_CAPACITY 5*1e6          // Total Serever-Leaf Capacity 5Mbps/queue/port
 #define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 500                        // Shared Buffer Size for a single queue/port. 250 [Packets]
+#define BUFFER_SIZE 250                         // Shared Buffer Size for a single queue per port. 250 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -538,8 +555,8 @@ int main (int argc, char *argv[])
   }
   else
   {
-    queue_capacity = ToString(5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
-    // queue_capacity = ToString(7 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(2 * 5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    // queue_capacity = ToString(2 * 7 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -786,8 +803,8 @@ int main (int argc, char *argv[])
   {
     // the Predictive model will function just like a real non-predictive Shared Buffer would
     tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-    tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
-    tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
+    // tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+    // tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
     // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
     tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
   }
@@ -920,7 +937,7 @@ int main (int argc, char *argv[])
   
   std::remove("TCP_Socket_Priority_per_Port.dat"); // remove it here, to create a new one with every run
 
-  for (size_t i = 0; i < 2; i++)
+  for (size_t i = 0; i < 2; i++) // over all ports
   {
     size_t serverIndex = i;
     size_t recieverIndex = i;
@@ -995,7 +1012,7 @@ int main (int argc, char *argv[])
     // create and install Client apps:    
     if (applicationType.compare("prioOnOff") == 0) 
     {
-      for (size_t j = 0; j < 5; j++) 
+      for (size_t j = 0; j < 5; j++) //over all servers
       {
         clientHelpers_vector[j].SetAttribute ("Remote", AddressValue (socketAddress_vector[j]));
         // for predicting traffic in queue
@@ -1296,6 +1313,7 @@ int main (int argc, char *argv[])
   sourceApps.Start (Seconds (1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
+  // start predictive model at t0 - Tau
   sourceAppsPredict.Start (Seconds (1.0 - win_length*future_possition));
   sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
 
@@ -1311,6 +1329,9 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Enabling flow monitor");
   FlowMonitorHelper flowmon;
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
+  // ns3::NodeContainer activeTrafficNodes;
+  // activeTrafficNodes.Add(servers, router, recievers);
+  // Ptr<FlowMonitor> monitor = flowmon.Install(activeTrafficNodes);
 
   NS_LOG_INFO ("Start simulation");
   Simulator::Stop (Seconds (END_TIME + 10));
@@ -1471,4 +1492,6 @@ int main (int argc, char *argv[])
   // Simulator::Cancel();
   Simulator::Destroy ();
   NS_LOG_INFO ("Stop simulation");
+  
+  return 0;
 }

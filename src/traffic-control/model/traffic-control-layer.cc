@@ -819,7 +819,7 @@ TrafficControlLayer::GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uin
                 {
                     Ptr<QueueDisc> qDisc =
                         ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
-                    if (portIndex == 0 && j < int(ceil(m_Num_M_High/2)) || portIndex == 1 && j < int(floor(m_Num_M_High/2)))
+                    if ((portIndex == 0 && j < size_t(ceil(m_Num_M_High/2))) || (portIndex == 1 && j < size_t(floor(m_Num_M_High/2))))
                     {
                         // if queue_i(t) is either non empty or it's the same queue_i(t) that's about to
                         // recieve the next packet
@@ -836,7 +836,7 @@ TrafficControlLayer::GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uin
                 {
                     Ptr<QueueDisc> qDisc =
                         ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
-                    if (portIndex == 0 && j >= int(ceil(m_Num_M_High/2)) || portIndex == 1 && j >= int(floor(m_Num_M_High/2)))
+                    if ((portIndex == 0 && j >= size_t(ceil(m_Num_M_High/2))) || (portIndex == 1 && j >= size_t(floor(m_Num_M_High/2))))
                     {
                         // if queue_i(t) is either non empty or it's the same queue_i(t) that's about to
                         // recieve the next packet
@@ -1717,7 +1717,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     size_t txPortIndex = 0;
                     if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
                     {
-                        size_t netDeviceIndex = GetNetDeviceIndex(device);
+                        // size_t netDeviceIndex = GetNetDeviceIndex(device);
                         // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
                         // txPortIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then,
                         // the port index is the netDeviceIndex modulu 2.
@@ -1989,7 +1989,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
             TcpHeader tcpHeader;
             if (item->GetPacket()->PeekHeader(tcpHeader)) // Extract the TCP header
             {
-                uint32_t seqNumber = tcpHeader.GetSequenceNumber().GetValue();
+                // uint32_t seqNumber = tcpHeader.GetSequenceNumber().GetValue();
                 // std::cout << "TCP Sequence Number: " << seqNumber << std::endl;
                 std::cout << "Source Port: " << tcpHeader.GetSourcePort() << 
                 " destenation Port: " << tcpHeader.GetDestinationPort() << std::endl;
@@ -2111,7 +2111,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     size_t txPortIndex = 0;
                     if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
                     {
-                        size_t netDeviceIndex = GetNetDeviceIndex(device);
+                        // size_t netDeviceIndex = GetNetDeviceIndex(device);
                         // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
                         // txPortIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then the port index is the netDeviceIndex modulu 2
                         
@@ -2163,7 +2163,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             item->GetPacket()->RemovePacketTag(ipTosTag);
                             ipTosTag.SetTos(realOnOffApplicationTos);
                             item->GetPacket()->AddPacketTag(ipTosTag);
-                            std::cout << "packet: " << item->GetPacket() << " force IP ToS : " << int(ipTosTag.GetTos()) << std::endl;
+                            // std::cout << "packet: " << item->GetPacket() << " force IP ToS : " << int(ipTosTag.GetTos()) << std::endl;
                             subQueueIndex = m_tosPrioMap[(ipTosTag.GetTos() / 2) & 0x0f];
                         }
                         else if (destinationPort == 50003)
@@ -2172,7 +2172,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             item->GetPacket()->RemovePacketTag(ipTosTag);
                             ipTosTag.SetTos(realOnOffApplicationTos);
                             item->GetPacket()->AddPacketTag(ipTosTag);
-                            std::cout << "packet: " << item->GetPacket() << " force IP ToS : " << int(ipTosTag.GetTos()) << std::endl;
+                            // std::cout << "packet: " << item->GetPacket() << " force IP ToS : " << int(ipTosTag.GetTos()) << std::endl;
                             subQueueIndex = m_tosPrioMap[(ipTosTag.GetTos() / 2) & 0x0f];
                         }
                         else

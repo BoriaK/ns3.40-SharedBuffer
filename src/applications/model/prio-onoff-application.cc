@@ -555,18 +555,18 @@ PrioOnOffApplication::SendPacket()
     // packet->AddPacketTag (flowPrioTag);
 
     //debug:
-    packet->PeekPacketTag(ipTosTag);
-    std::cout << "packet: " << packet << " ToS from tag : " << int(ipTosTag.GetTos()) << std::endl;
-    std::cout << "socket: " << m_socket << std::endl;
-    std::cout << "packet: " << packet << " ToS from socket : " << int(m_socket->GetIpTos()) << std::endl;
+    // packet->PeekPacketTag(ipTosTag);
+    // std::cout << "packet: " << packet << " ToS from tag : " << int(ipTosTag.GetTos()) << std::endl;
+    // std::cout << "socket: " << m_socket << std::endl;
+    // std::cout << "packet: " << packet << " ToS from socket : " << int(m_socket->GetIpTos()) << std::endl;
     /////////////
     if (m_tid == ns3::TcpSocketFactory::GetTypeId())
     {
         // ipTosTag.SetTos(m_socket->GetIpTos()); // set Tos value from socket
         ipTosTag.SetTos(m_appTos); // directly set the ToS value from Application
-        std::cout << "packet: " << packet << " ToS from tag : " << int(ipTosTag.GetTos()) << std::endl;
+        // std::cout << "packet: " << packet << " ToS from tag : " << int(ipTosTag.GetTos()) << std::endl;
         appTosTag.SetTosValue(m_appTos); // force set the ToS value from Application
-        std::cout << "packet: " << packet << " ToS from force tag : " << int(appTosTag.GetTosValue()) << std::endl;
+        // std::cout << "packet: " << packet << " ToS from force tag : " << int(appTosTag.GetTosValue()) << std::endl;
     }
     else if (m_tid == ns3::UdpSocketFactory::GetTypeId())
     {
@@ -613,7 +613,7 @@ PrioOnOffApplication::SendPacket()
     packet->PeekPacketTag(ipTosTag);
     
     // for debug:
-    std::cout << "packet: " << packet << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
+    // std::cout << "packet: " << packet << " ToS : " << int(ipTosTag.GetTos()) << std::endl;
     ///////////////////////
     
     m_lastStartTime = Simulator::Now();

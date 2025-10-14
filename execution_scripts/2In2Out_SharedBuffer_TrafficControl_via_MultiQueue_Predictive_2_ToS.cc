@@ -740,7 +740,8 @@ int main (int argc, char *argv[])
   tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc" , "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
   tch.AddChildQueueDisc(handle, cid[1], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[1] is Low Priority
 
-  QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  
   // for predictive model Install Traffic Control Helper on the Predictive model
   QueueDiscContainer qdiscsPredict = tch.Install(switchDevicesOutPredict);
 
@@ -778,8 +779,8 @@ int main (int argc, char *argv[])
   {
     // the Predictive model will function just like a real non-predictive Shared Buffer would
     tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-    // tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
-    // tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
+    tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+    tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
     // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
     tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
   }
@@ -822,44 +823,44 @@ int main (int argc, char *argv[])
 
   for (size_t i = 0; i < SERVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(serverDevices.Get(i));
-      tempNetDevice.Add(switchDevicesIn.Get(i));
-      Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
-      serverIFs.Add(ifcServers.Get(0));
-      switchInIFs.Add(ifcServers.Get(1));
-      server2switchIPs.NewNetwork ();
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
+    server2switchIPs.NewNetwork ();
 
-      //for prdictive model
-      NetDeviceContainer tempNetDevicePredict;
-      tempNetDevicePredict.Add(serverDevicesPredict.Get(i));
-      tempNetDevicePredict.Add(switchDevicesInPredict.Get(i));
-      Ipv4InterfaceContainer ifcServersPredict = server2switchIPs.Assign(tempNetDevicePredict);
-      serverIFsPredict.Add(ifcServersPredict.Get(0));
-      switchInIFsPredict.Add(ifcServersPredict.Get(1));
-      server2switchIPs.NewNetwork ();
+    //for prdictive model
+    NetDeviceContainer tempNetDevicePredict;
+    tempNetDevicePredict.Add(serverDevicesPredict.Get(i));
+    tempNetDevicePredict.Add(switchDevicesInPredict.Get(i));
+    Ipv4InterfaceContainer ifcServersPredict = server2switchIPs.Assign(tempNetDevicePredict);
+    serverIFsPredict.Add(ifcServersPredict.Get(0));
+    switchInIFsPredict.Add(ifcServersPredict.Get(1));
+    server2switchIPs.NewNetwork ();
   }
 
   NS_LOG_INFO ("Configuring switch");
 
   for (size_t i = 0; i < RECIEVER_COUNT; i++)
   {
-      NetDeviceContainer tempNetDevice;
-      tempNetDevice.Add(switchDevicesOut.Get(i));
-      tempNetDevice.Add(recieverDevices.Get(i));
-      Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
-      switchOutIFs.Add(ifcSwitch.Get(0));
-      recieverIFs.Add(ifcSwitch.Get(1));
-      switch2recieverIPs.NewNetwork ();
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
+    switch2recieverIPs.NewNetwork ();
 
-      //for prdictive model        
-      NetDeviceContainer tempNetDevicePredict;
-      tempNetDevicePredict.Add(switchDevicesOutPredict.Get(i));
-      tempNetDevicePredict.Add(recieverDevicesPredict.Get(i));
-      Ipv4InterfaceContainer ifcSwitchPredict = switch2recieverIPs.Assign(tempNetDevicePredict);
-      switchOutIFsPredict.Add(ifcSwitchPredict.Get(0));
-      recieverIFsPredict.Add(ifcSwitchPredict.Get(1));
-      switch2recieverIPs.NewNetwork ();    
+    //for prdictive model        
+    NetDeviceContainer tempNetDevicePredict;
+    tempNetDevicePredict.Add(switchDevicesOutPredict.Get(i));
+    tempNetDevicePredict.Add(recieverDevicesPredict.Get(i));
+    Ipv4InterfaceContainer ifcSwitchPredict = switch2recieverIPs.Assign(tempNetDevicePredict);
+    switchOutIFsPredict.Add(ifcSwitchPredict.Get(0));
+    recieverIFsPredict.Add(ifcSwitchPredict.Get(1));
+    switch2recieverIPs.NewNetwork ();    
   }
 
 
@@ -870,6 +871,7 @@ int main (int argc, char *argv[])
 
   uint32_t ipTos_HP = 0x10;  //High priority: Maximize Throughput
   uint32_t ipTos_LP = 0x00; //Low priority: Best Effort
+  // uint32_t ipTos_LP = 0x06; //Low priority: Best Effort
   
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
   // time interval values for OnOff Aplications
@@ -1064,10 +1066,10 @@ int main (int argc, char *argv[])
       // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       
-      clientHelperP0.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
       // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP0.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-      clientHelperP0.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG for each OnOff application instance
+      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG for each OnOff application instance
       
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
       // clientHelperP1.AssignStreams(servers, 1);
@@ -1082,13 +1084,13 @@ int main (int argc, char *argv[])
       }
       else if (onOffTrafficMode.compare("Uniform") == 0)
       {
-        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
-        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOnTimeMax) + "]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(miceOffTimeMax) + "]"));
       }
       else if (onOffTrafficMode.compare("Normal") == 0)
       {
-        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
-        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
+        clientHelperP0Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOnTime) + "|Variance=" + DoubleToString(miceOnTime) + "|Bound=" + DoubleToString(miceOnTime) + "]"));
+        clientHelperP0Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(miceOffTime) + "|Variance=" + DoubleToString(miceOffTime) + "|Bound=" + DoubleToString(miceOffTime) + "]"));
       }
       else 
       {
@@ -1135,6 +1137,14 @@ int main (int argc, char *argv[])
       // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
       
+      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG for each OnOff application instance
+
+      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
+      // clientHelperP1Predict.AssignStreams(serversPredict, 1);
+
       // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
       // {[nodeID] [port] [priority]}
       std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
@@ -1143,14 +1153,6 @@ int main (int argc, char *argv[])
       tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl; 
       tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl;
       tcpPriorityPerPortOutputFile.close();
-      
-      clientHelperP0Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
-      // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP0Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-      clientHelperP0Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG for each OnOff application instance
-
-      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
-      // clientHelperP1Predict.AssignStreams(serversPredict, 1);
     }
     else 
     {
@@ -1345,13 +1347,15 @@ int main (int argc, char *argv[])
 
   // Create the gnuplot.//////////////////////////////
   generate1DGnuPlotFromDatFile(dirToSave + "/generatedOnOffTrafficTrace.dat");
-  generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_0_app_1_OnOffStateTrace.dat");
-  generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_1_app_3_OnOffStateTrace.dat");
-  generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_0_app_1_OnOffStateTrace.dat");
-  generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_1_app_3_OnOffStateTrace.dat");
+  // generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_0_app_1_OnOffStateTrace.dat");
+  // generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_1_app_1_OnOffStateTrace.dat");
+  // generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_0_app_1_OnOffStateTrace.dat");
+  // generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_1_app_3_OnOffStateTrace.dat");
 
   generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
-  generate2DGnuPlotFromDatFile(dirToSave + "/port_1_queue_3_PacketsInQueueTrace.dat", "Low");
+  generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_1_PacketsInQueueTrace.dat", "Low");
+  generate2DGnuPlotFromDatFile(dirToSave + "/port_1_queue_0_PacketsInQueueTrace.dat", "High");
+  generate2DGnuPlotFromDatFile(dirToSave + "/port_1_queue_1_PacketsInQueueTrace.dat", "Low");
 
   // Simulator::Cancel();
   Simulator::Destroy ();

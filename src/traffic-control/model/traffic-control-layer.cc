@@ -1201,7 +1201,7 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
     Ptr<NetDevice> ndev = device;
     std::map<Ptr<NetDevice>, NetDeviceInfo>::iterator ndi = m_netDevices.find(ndev);
 
-    if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 5) // always in use in the current model
+    if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 5 || ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 2) // always in use in the current model
     {
         if (m_usedAlgorythm.compare("PredictiveDT") == 0 || m_usedAlgorythm.compare("DT") == 0)
         {
@@ -1993,7 +1993,12 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 // std::cout << "TCP Sequence Number: " << seqNumber << std::endl;
                 std::cout << "Source Port: " << tcpHeader.GetSourcePort() << 
                 " destenation Port: " << tcpHeader.GetDestinationPort() << std::endl;
-                // std::cout << "Ack Number: " << tcpHeader.GetAckNumber().GetValue() << std::endl;
+                std::cout << "TCP Flags: ";
+                if (tcpHeader.GetFlags() & TcpHeader::SYN) std::cout << "SYN ";
+                if (tcpHeader.GetFlags() & TcpHeader::ACK) std::cout << "ACK ";
+                if (tcpHeader.GetFlags() & TcpHeader::FIN) std::cout << "FIN ";
+                if (tcpHeader.GetFlags() & TcpHeader::RST) std::cout << "RST ";
+                std::cout << std::endl;
                 std::cout << "packet payload: " << item->GetPacket()->GetSize() << std::endl;
             }
 
@@ -2001,9 +2006,9 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
             std::cout << "Node Name is: " << nodeName << std::endl;
             // pass only packets that are from the OnOff Servers to Packet Sinck, and are not Control packets
             // if (nodeName.find("Router") == 0 && (tcpHeader.GetSourcePort() != 50000 && tcpHeader.GetSourcePort() != 50001 && tcpHeader.GetSourcePort() != 50002 &&  tcpHeader.GetSourcePort() != 50003 &&  tcpHeader.GetSourcePort() != 50004))
-            if (nodeName.find("Router") == 0 && (tcpHeader.GetSourcePort() != 50000 && tcpHeader.GetSourcePort() != 50001 && tcpHeader.GetSourcePort() != 50002 &&  tcpHeader.GetSourcePort() != 50003 &&  tcpHeader.GetSourcePort() != 50004) && (item->GetPacket()->PeekPacketTag(flowPrioTag)))
+            if (nodeName.find("Router") == 0 && (tcpHeader.GetSourcePort() != 50000 && tcpHeader.GetSourcePort() != 50001 && tcpHeader.GetSourcePort() != 50002 &&  tcpHeader.GetSourcePort() != 50003 &&  tcpHeader.GetSourcePort() != 50004) && (item->GetPacket()->PeekPacketTag(flowPrioTag)) && (item->GetPacket()->GetSize() >= 1024)) // 1024 [Bytes] is the minimum payload size of data packets
             {
-                // set a besic Packet clasification based on arbitrary Tag from recieved packet:
+                // set a basic Packet clasification based on arbitrary Tag from recieved packet:
                 // flow_priority = 1 is high priority, flow_priority = 2 is low priority
                 m_flow_priority = flowPrioTag.GetSimpleValue();
 
@@ -2108,8 +2113,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 {
                     // determine the port index of current net-device:
                     std::string netDeviceName = Names::FindName(device); // Get the name of the net-device
-                    size_t txPortIndex = 0;
-                    if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
+                    size_t txPortIndex = 0; // initilize to 0
+                    if (netDeviceName.find("switchDeviceOut")!=std::string::npos)  // if the current net-device is a "switchDeviceOut"
                     {
                         // size_t netDeviceIndex = GetNetDeviceIndex(device);
                         // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;

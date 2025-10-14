@@ -803,8 +803,8 @@ int main (int argc, char *argv[])
   {
     // the Predictive model will function just like a real non-predictive Shared Buffer would
     tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-    // tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
-    // tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
+    tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+    tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
     // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
     tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
   }

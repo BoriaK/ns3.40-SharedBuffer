@@ -536,7 +536,7 @@ int main (int argc, char *argv[])
   }
   else
   {
-    queue_capacity = ToString(2 * 2 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(2 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -649,7 +649,7 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   
   // Setting servers
-  uint64_t serverSwitchCapacity =  2 * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = 2 * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -887,7 +887,7 @@ int main (int argc, char *argv[])
   
   std::remove("TCP_Socket_Priority_per_Port.dat"); // remove it here, to create a new one with every run
 
-  for (size_t i = 0; i < 2; i++)
+  for (size_t i = 0; i < SERVER_COUNT; i++)
   {
     size_t serverIndex = i;
     size_t recieverIndex = i;
@@ -1329,7 +1329,10 @@ int main (int argc, char *argv[])
                       << " / " << bytesDroppedByQueueDisc << std::endl;
   testFlowStatistics << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
                       << " / " << bytesDroppedByNetDevice << std::endl;
-  testFlowStatistics << "  Throughput: " << TpT << " Mbps" << std::endl;                   
+  testFlowStatistics << "  Throughput: " << TpT << " Mbps" << std::endl;
+  testFlowStatistics << std::endl << "*** Application statistics ***" << std::endl;
+  testFlowStatistics << "  Rx Bytes: " << totalBytesRx << std::endl;
+  testFlowStatistics << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;
   testFlowStatistics << std::endl << "*** TC Layer statistics ***" << std::endl;
   testFlowStatistics << tcStats << std::endl;
   testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;

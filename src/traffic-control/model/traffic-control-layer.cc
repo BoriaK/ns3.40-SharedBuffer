@@ -2204,25 +2204,30 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         ////////////////////////////
                         internal_qDisc = qDisc;
                     }
-                    // read the miceElephantProb (D) Tag assigned by the user at the OnOff App
-                    // if D > 0 and adjustableAlphas = True than update Alpha High/Low values according
-                    // to D
-                    if (item->GetPacket()->PeekPacketTag(miceElephantProbTag) && m_adjustableAlphas)
+
+                    if (m_adjustableAlphas)
                     {
-                        // std::cout << "d value assigned by OnOff Application is: " <<
-                        // miceElephantProbTag.GetSimpleValue() << std::endl;
-                        m_miceElephantProbValFromTag = miceElephantProbTag.GetSimpleValue();  // the retrived d value will be an Int (10*d)
-                        alphas = GetNewAlphaHighAndLow(device, m_miceElephantProbValFromTag); //because the switch function in GetNewAlphaHighAndLow() operates with Ints
+                        if (item->GetPacket()->PeekPacketTag(miceElephantProbTag))
+                        {
+                            // read the miceElephantProb (D) Tag assigned by the user at the OnOff App
+                            // if D > 0 and adjustableAlphas = True than update Alpha High/Low values according to D
+                            
+                            // std::cout << "d value assigned by OnOff Application is: " <<
+                            // miceElephantProbTag.GetSimpleValue() << std::endl;
+                            m_miceElephantProbValFromTag = miceElephantProbTag.GetSimpleValue();  // the retrived d value will be an Int (10*d)
+                            alphas = GetNewAlphaHighAndLow(device, m_miceElephantProbValFromTag); //because the switch function in GetNewAlphaHighAndLow() operates with Ints
+                        }
+                        else if (m_usedAlgorythm.compare("PredictiveFB") == 0 || m_usedAlgorythm.compare("PredictiveDT") == 0)
+                        {
+                            // estimate the miceElephantProb (D) value based on predicted packet arrivals log
+                            predictedMiceElephantProbVal = EstimateNewLocalD();
+                            alphas = GetNewAlphaHighAndLow(device, 10 * predictedMiceElephantProbVal); // the switch function in GetNewAlphaHighAndLow() operates with Integers
+                        }
                         m_alpha_h = alphas.first;
                         m_alpha_l = alphas.second;
                     }
                     else if (m_usedAlgorythm.compare("PredictiveFB") == 0 || m_usedAlgorythm.compare("PredictiveDT") == 0)
                     {
-                        predictedMiceElephantProbVal = EstimateNewLocalD();
-                        alphas = GetNewAlphaHighAndLow(device, 10 * predictedMiceElephantProbVal); // the switch function in GetNewAlphaHighAndLow() operates with Integers
-                        m_alpha_h = alphas.first;
-                        m_alpha_l = alphas.second;
-
                         // get the time till next high priority packet is supposed to arrive
                         if (predictedPacketArrivalLog.GetLogSize(1) > 1)
                         {
@@ -2235,7 +2240,6 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             std::cout << "No more packets in the log file" << std::endl;
                             m_timeTillNextPacket = 0;
                         }
-                        
                     }
                     // perform enqueueing process based on incoming flow priority
                     if (m_flow_priority == 1)

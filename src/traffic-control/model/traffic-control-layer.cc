@@ -2346,25 +2346,10 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         m_alpha = m_alpha_l;
                         if (m_usedAlgorythm.compare("DT") == 0 || m_usedAlgorythm.compare("PredictiveDT") == 0)
                         {
+                            size_t queueThresholdDT = GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue();
                             if (internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue() <
-                                GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue())
+                                queueThresholdDT)
                             {
-                                // to trace Threshold per port
-                                if (nodeName.compare("Router") == 0)
-                                {
-                                    if (txPortIndex == 0)
-                                    {
-                                        m_p_trace_threshold_l_0 =
-                                            GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
-                                                .GetValue(); // for tracing
-                                    }
-                                    else if (txPortIndex == 1)
-                                    {
-                                        m_p_trace_threshold_l_1 =
-                                            GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
-                                                .GetValue(); // for tracing
-                                    }
-                                }
                                 qDisc->Enqueue(item);
                                 qDisc->Run();
                             }
@@ -2373,6 +2358,18 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 std::cout << "Low Priority packet was dropped by Shared-Buffer"
                                         << std::endl;
                                 DropBeforeEnqueue(item);
+                            }
+                            // to trace Threshold per port
+                            if (nodeName.compare("Router") == 0)
+                            {
+                                if (txPortIndex == 0)
+                                {
+                                    m_p_trace_threshold_l_0 =queueThresholdDT; // for tracing
+                                }
+                                else if (txPortIndex == 1)
+                                {
+                                    m_p_trace_threshold_l_1 = queueThresholdDT; // for tracing
+                                }
                             }
                         }
                         else if (m_usedAlgorythm.compare("FB") == 0 || m_usedAlgorythm.compare("PredictiveFB") == 0)
@@ -2392,51 +2389,15 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                     << " is: " << conjestedQueues << std::endl;
                             // step 3: use calculated gamma_i(t) and Np(t) to calculate the
                             // FB_Threshold_c(t)
-                            if (internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue() <
-                                GetQueueThreshold_FB(m_alpha,
-                                                        m_alpha_l,
-                                                        m_alpha_h,
-                                                        conjestedQueues,
-                                                        gamma_i)
-                                    .GetValue())
+                            size_t queueThresholdFB = GetQueueThreshold_FB(m_alpha, m_alpha_l, m_alpha_h, conjestedQueues, gamma_i).GetValue();
+                            if (internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue() < queueThresholdFB)
                             {
                                 // for debug loop issue:
                                 std::cout << "number of Low Priority packets in queue: "
                                         << internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue()
                                         << std::endl;
                                 std::cout << "Low Priority packet threshold is: "
-                                        << GetQueueThreshold_FB(m_alpha,
-                                                                    m_alpha_l,
-                                                                    m_alpha_h,
-                                                                    conjestedQueues,
-                                                                    gamma_i)
-                                                .GetValue()
-                                        << std::endl;
-
-                                // to trace Threshold per port
-                                if (nodeName.compare("Router") == 0)
-                                {
-                                    if (txPortIndex == 0)
-                                    {
-                                        m_p_trace_threshold_l_0 =
-                                            GetQueueThreshold_FB(m_alpha,
-                                                                    m_alpha_l,
-                                                                    m_alpha_h,
-                                                                    conjestedQueues,
-                                                                    gamma_i)
-                                                .GetValue(); // for tracing
-                                    }
-                                    else if (txPortIndex == 1)
-                                    {
-                                        m_p_trace_threshold_l_1 =
-                                            GetQueueThreshold_FB(m_alpha,
-                                                                    m_alpha_l,
-                                                                    m_alpha_h,
-                                                                    conjestedQueues,
-                                                                    gamma_i)
-                                                .GetValue(); // for tracing
-                                    }
-                                }
+                                        << queueThresholdFB << std::endl;
                                 qDisc->Enqueue(item);
                                 qDisc->Run();
                             }
@@ -2445,6 +2406,18 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 std::cout << "Low Priority packet was dropped by Shared-Buffer"
                                         << std::endl;
                                 DropBeforeEnqueue(item);
+                            }
+                            // to trace Threshold per port
+                            if (nodeName.compare("Router") == 0)
+                            {
+                                if (txPortIndex == 0)
+                                {
+                                    m_p_trace_threshold_l_0 = queueThresholdFB; // for tracing
+                                }
+                                else if (txPortIndex == 1)
+                                {
+                                    m_p_trace_threshold_l_1 = queueThresholdFB; // for tracing
+                                }
                             }
                         }
                         else

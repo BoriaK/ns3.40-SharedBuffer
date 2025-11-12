@@ -3,37 +3,37 @@ Queueing Algorithm: SharedBuffer_DTPredictive
 Implementation Method: via_MultiQueues/2_ToS
 Used D value: 0.2
 Traffic Duration: 2 [Sec]
-Application: prioOnOff
+Application: prioBulkSend
 traffic Mode ConstantRandom
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   550 / 608592
-  Rx Packets/Bytes:   481 / 530208
-  Packets/Bytes Dropped by Queue Disc:   0 / 0
+  Tx Packets/Bytes:   2038 / 2311920
+  Rx Packets/Bytes:   2036 / 2309648
+  Packets/Bytes Dropped by Queue Disc:   2 / 2272
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 0.498728 Mbps
+  Throughput: 0.268599 Mbps
 
 *** Application statistics ***
-  Rx Bytes: 498688
-  Average Goodput: 0.0664917 Mbit/s
+  Rx Bytes: 2125724
+  Average Goodput: 0.28343 Mbit/s
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 69 / 78384
+Packets/Bytes dropped by Traffic Control Layer: 0 / 0
 High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 69 / 78384
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 481 / 530208
-Packets/Bytes enqueued: 481 / 530208
-Packets/Bytes dequeued: 481 / 530208
+Packets/Bytes received: 2036 / 2309648
+Packets/Bytes enqueued: 2036 / 2309648
+Packets/Bytes dequeued: 2036 / 2309648
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 481 / 530208
+Packets/Bytes sent: 2036 / 2309648
 Packets/Bytes marked: 0 / 0
 

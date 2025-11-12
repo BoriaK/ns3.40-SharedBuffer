@@ -57,6 +57,7 @@
 // There are 2 servers connecting to a leaf switch
 #define SERVER_COUNT 1
 #define SWITCH_COUNT 1
+#define PORTS_PER_SWITCH 1
 #define RECIEVER_COUNT 1
 
 #define SWITCH_RECIEVER_CAPACITY 500*1e3        // Leaf-Spine Capacity 500Kbps/queue/port
@@ -470,7 +471,7 @@ int main (int argc, char *argv[])
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
-  std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
+  std::string applicationType = "prioBulkSend"; // "prioOnOff"/"prioBulkSend"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
@@ -529,66 +530,103 @@ int main (int argc, char *argv[])
   }
   else
   {
-    queue_capacity = ToString(RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(PORTS_PER_SWITCH * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
-  // client type dependant parameters:
+  
   if (transportProt.compare ("TCP") == 0)
-  {
-    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno")); // "ns3::TcpNewReno"/"ns3::TcpNoCongestion"
-    Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
-    Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
-                       TypeIdValue(TypeId::LookupByName("ns3::TcpClassicRecovery")));
-    
-    // Enlarge TCP send/receive buffers to avoid rwnd (flow-control) limiting BytesInFlight
-    // Default RcvBufSize in ns-3 is 131072 bytes, which capped BytesInFlight at 128 KiB in our runs.
-    // Use large buffers so advertised window (and rwnd) can grow well beyond the shared-buffer capacity.
-    // Note: Window scaling is enabled by default (TcpSocketBase::m_winScalingEnabled = true);
-    // these sizes ensure the scaled window is sufficiently large.
-    Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
-    Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
-    
-    // === Prevent spurious retransmits with user-specified settings ===
-  
-    // 1. Set very conservative RTO bounds to avoid premature timeouts in high-delay environment
-    Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(Seconds(5.0)));     // Min RTO = 5s (extra conservative for wireless)
-    Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(10))); // 10ms granularity (coarser for stability)
-    
-    // 2. Configure RTT estimation to be more conservative in wireless environment
-    Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.0625));  // Slower SRTT adaptation (default 0.125)
-    Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.125));    // Slower RTTVAR adaptation (default 0.25)
-    
-    // === User-specified TCP settings ===
-  
-    // 3. User-requested segment size and initial congestion window
-    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // add 60 bytes for TCP/IP headers
-    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000));             // User-requested large initial window
-    
-    // 4. Enable TCP timestamps as requested (helps with RTT measurement and PAWS)
-    Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));        // Enable timestamps for better RTT estimation
-    Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));    // Keep window scaling (needed for large buffers)
-    
-    // === Anti-spurious retransmission optimizations ===
-  
-    // 6. Conservative delayed ACK to reduce reverse traffic and potential ACK compression
-    Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(500))); // Longer delay to avoid ACK storms
-    Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(4));               // Wait for more segments before ACKing
+  { 
+    std::string tcpType = "TcpBbr"; // "TcpNewReno"/"TcpBbr"
 
-    // 7. Enable advanced recovery mechanisms
-    Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));             // Enable SACK for better recovery
-    Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(false)); // Disable limited transmit to reduce spurious sends
-
-    // 8. Conservative data retry settings
-    Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(12));           // More retries before giving up
-
-    // 9. Additional anti-spurious optimizations
-    Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(false));          // Enable Nagle's algorithm to reduce small packets
-    Config::SetDefault("ns3::TcpSocket::PersistTimeout", TimeValue(Seconds(10))); // Longer persist timeout for window probes
-
-    // 10. Connection establishment timeout (reduce SYN retransmissions)
-    Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(5)));      // Longer connection timeout
-    Config::SetDefault("ns3::TcpSocket::ConnCount", UintegerValue(3));             // Fewer SYN retransmission attempts
+    if (tcpType.compare("TcpBbr") == 0)
+    {
+      // Use TcpBbr for best steady-state behavior
+      Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpBbr"));
+      
+      // === DISABLE ECN - Let drops happen ===
+      Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+      
+      // === Allow aggressive buffer filling ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB - keep large
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB - keep large
+      
+      // === Aggressive initial window and growth ===
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60));
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100)); // Very aggressive start
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000)); // Effectively infinite
+      
+      // === BBR-specific: Aggressive probing but stable steady state ===
+      Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(2.89)); // Default aggressive probing
+      Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // RTT samples for BW estimation
+      Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10))); // Long RTT window
+      Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Probe interval
+      
+      // === Fast reaction to drops (short RTO) ===
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200))); // Faster timeout detection
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1))); // Fine-grained timing
+      
+      // === Fast RTT estimation for quick adaptation ===
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125)); // Default SRTT weight
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));   // Default RTTVAR weight
+      Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+      
+      // === Enable features for better performance ===
+      Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true)); // SACK for better recovery
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Quick loss detection
+      
+      // === Reasonable delayed ACK ===
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(40)));
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+      
+      // === Connection settings ===
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6)); // Reasonable retries
+      Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(3)));
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Disable Nagle for immediate sends
+    }
+    else if (tcpType.compare("TcpNewReno") == 0)
+    {
+      // NewReno with aggressive initial growth but controlled steady state
+      Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
+      Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                       TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery"))); // Better recovery than Classic
     
+      // === DISABLE ECN ===
+      Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+      
+      // === Large buffers ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26));
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26));
+      
+      // === Aggressive initial behavior ===
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60));
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100)); // Very aggressive
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000));
+      
+      // === Fast loss detection and recovery ===
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+      
+      // === Standard RTT estimation ===
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125));
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));
+      Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+      
+      // === Enable advanced features ===
+      Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true));
+      
+      // === Normal delayed ACK ===
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(40)));
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+      
+      // === Standard settings ===
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
+    }
     socketType = "ns3::TcpSocketFactory";
   }
   else
@@ -606,11 +644,11 @@ int main (int argc, char *argv[])
   {
       LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0)&& transportProt.compare ("Tcp") == 0)
+  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Tcp") == 0)
   {
       LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0) && transportProt.compare ("Udp") == 0)
+  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Udp") == 0)
   {
       LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
@@ -642,12 +680,12 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   
   // Setting servers
-  uint64_t serverSwitchCapacity = SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = PORTS_PER_SWITCH * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = PORTS_PER_SWITCH * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -1015,6 +1053,43 @@ int main (int argc, char *argv[])
       // clientHelperP1Predict.AssignStreams(serversPredict, 1);
 
       // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+      // {[nodeID] [port] [priority]}
+      std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
+      tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl; 
+      tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl;
+      tcpPriorityPerPortOutputFile.close();
+    }
+    else if (applicationType.compare("prioBulkSend") == 0) 
+    {
+      // Create the PrioBulkSend applications to send TCP to the server
+      
+      PrioBulkSendHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 means unlimited
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+
+      // for predicting traffic in queue
+
+      PrioBulkSendHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
+      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
+      clientHelperP1Predict.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 means unlimited
+      // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+
+      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
+
+      // for TCP control packets. need to map the Rx Port to the priority of the BulkSend Application
       // {[nodeID] [port] [priority]}
       std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
       tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl; 

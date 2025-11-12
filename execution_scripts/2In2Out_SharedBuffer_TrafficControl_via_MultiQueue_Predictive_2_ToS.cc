@@ -952,55 +952,8 @@ int main (int argc, char *argv[])
     
     
     // create and install Client apps:    
-    if (applicationType.compare("standardClient") == 0) 
-    {
-
-      UdpClientHelper clientHelperP0 (socketAddressP0);
-      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-      UdpClientHelper clientHelperP1 (socketAddressP1);
-      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-    } 
-    else if (applicationType.compare("OnOff") == 0) 
-    {
-      // Create the OnOff applications to send TCP/UDP to the server
-      OnOffHelper clientHelperP0 (socketType, socketAddressP0);
-      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
-      clientHelperP0.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOnTime) + "]"));
-      clientHelperP0.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(miceOffTime) + "]"));
-      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-
-      OnOffHelper clientHelperP1 (socketType, socketAddressP1);
-      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
-      clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
-      clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
-      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-    } 
-    else if (applicationType.compare("prioClient") == 0)
-    {
-      UdpPrioClientHelper clientHelperP0 (socketAddressP0);
-      clientHelperP0.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
-      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
-      
-      UdpPrioClientHelper clientHelperP1 (socketAddressP1);
-      clientHelperP1.SetAttribute ("Interval", TimeValue (Seconds (0.1)));
-      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-    }
-    else if (applicationType.compare("prioOnOff") == 0) 
+    
+    if (applicationType.compare("prioOnOff") == 0) 
     {
       // Create the OnOff applications to send TCP/UDP to the server
       PrioOnOffHelper clientHelperP0 (socketType, socketAddressP0);

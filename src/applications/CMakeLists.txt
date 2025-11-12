@@ -13,9 +13,11 @@ build_lib(
     # added by me ####
     model/custom_onoff-application.cc
     model/prio-onoff-application.cc
+    model/prio-bulk-send-application.cc
     model/tutorial-app.cc
     model/udp-prio-client.cc
     helper/prio-on-off-helper.cc
+    helper/prio-bulk-send-helper.cc
     helper/udp-prio-client-server-helper.cc
     ##################
     model/packet-loss-counter.cc
@@ -34,6 +36,7 @@ build_lib(
     model/udp-trace-client.cc
   HEADER_FILES
     helper/bulk-send-helper.h
+    
     helper/on-off-helper.h
     helper/packet-sink-helper.h
     helper/three-gpp-http-helper.h
@@ -45,9 +48,11 @@ build_lib(
     # added by me ####
     model/custom_onoff-application.h
     model/prio-onoff-application.h
+    model/prio-bulk-send-application.h
     model/tutorial-app.h
     model/udp-prio-client.h
     helper/prio-on-off-helper.h
+    helper/prio-bulk-send-helper.h
     helper/udp-prio-client-server-helper.h
     ##################
     model/packet-loss-counter.h

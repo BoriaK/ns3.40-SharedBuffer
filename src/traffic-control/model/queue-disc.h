@@ -205,10 +205,10 @@ class QueueDisc : public Object
         /// Number of the total enqueued High Priority packets (from the beginning of the simulation)
         uint32_t nTotalEnqueuedPackets_h;
         /// Number of the total enqueued Low Priority packets (from the beginning of the simulation)
-        uint32_t nTotalEnqueuedPackets_l;
-        /// Number of the total enqueued High Priority bytes (from the beginning of the simulation)
         uint32_t nTotalEnqueuedBytes_h;  
         /// Number of the total enqueued Low Priority packets (from the beginning of the simulation)
+        uint32_t nTotalEnqueuedPackets_l;
+        /// Number of the total enqueued High Priority bytes (from the beginning of the simulation)
         uint32_t nTotalEnqueuedBytes_l;  
         ////////////////////////////////////////////
         

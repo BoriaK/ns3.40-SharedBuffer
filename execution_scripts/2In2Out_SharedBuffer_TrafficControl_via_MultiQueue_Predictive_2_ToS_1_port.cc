@@ -474,7 +474,7 @@ int main (int argc, char *argv[])
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
-  std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
+  std::string applicationType = "prioBulkSend"; // "prioOnOff"/"prioBulkSend"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
@@ -647,11 +647,11 @@ int main (int argc, char *argv[])
   {
       LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0)&& transportProt.compare ("Tcp") == 0)
+  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Tcp") == 0)
   {
       LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0) && transportProt.compare ("Udp") == 0)
+  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Udp") == 0)
   {
       LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
@@ -910,9 +910,9 @@ int main (int argc, char *argv[])
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
 
   // time interval values for OnOff Aplications
-  double_t miceOnTime = 0.05; // [sec]
+  // double_t miceOnTime = 0.05; // [sec]
   // double_t miceOnTime = 1;
-  // double_t miceOnTime = 0;
+  double_t miceOnTime = 0;
   // double_t elephantOnTime = 0.5; // [sec]
   // double_t elephantOnTime = trafficGenDuration; // [sec]
   double_t elephantOnTime = 0; // [sec]
@@ -1140,21 +1140,76 @@ int main (int argc, char *argv[])
 
       sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
       // clientHelperP1Predict.AssignStreams(serversPredict, 1);
+    }
+    else if (applicationType.compare("prioBulkSend") == 0) 
+    {
+      // Create the PrioBulkSend applications to send TCP to the server
+      
+      PrioBulkSendHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      clientHelperP0.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("MaxBytes", UintegerValue (10 * PACKET_SIZE)); // 10 packets
+      // clientHelperP0.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP0.SetAttribute ("ApplicationToS", UintegerValue (ipTos_HP)); // set the IP ToS value for the application
+      clientHelperP0.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
 
-      // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
-      // {[nodeID] [port] [priority]}
-      std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
-      tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 << " " << 1 << std::endl; 
-      tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 << " " << 1 << std::endl;
-      tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl; 
-      tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl;
-      tcpPriorityPerPortOutputFile.close();
+      PrioBulkSendHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 means unlimited
+      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+
+      // for predicting traffic in queue
+
+      PrioBulkSendHelper clientHelperP0Predict (socketType, socketAddressP0Predict);
+      clientHelperP0Predict.SetAttribute ("Remote", AddressValue (socketAddressP0Predict));
+      clientHelperP0Predict.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 means unlimited
+      // clientHelperP0Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP0Predict.SetAttribute("FlowPriority", UintegerValue (0x1));  // manually set generated packets priority: 0x1 high, 0x2 low
+
+      clientHelperP0Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_HP)); // set the IP ToS value for the application
+      clientHelperP0Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+
+      sourceAppsPredict.Add(clientHelperP0Predict.Install (serversPredict.Get(serverIndex)));
+
+      PrioBulkSendHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
+      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
+      clientHelperP1Predict.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 means unlimited
+      // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
+      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+
+      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
     }
     else 
     {
       std::cerr << "unknown app type: " << applicationType << std::endl;
       exit(1);
     }
+
+    // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+    // {[nodeID] [port] [priority]}
+    std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
+    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 << " " << 1 << std::endl; 
+    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 << " " << 1 << std::endl;
+    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl; 
+    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl;
+    tcpPriorityPerPortOutputFile.close();
+
     // setup sinks
     Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
     Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
@@ -1174,14 +1229,15 @@ int main (int argc, char *argv[])
   // double_t trafficGenDuration = 2; // for a single OnOff segment
   // sourceApps.Start (Seconds (1.0));
   // sepparate sourceApps to HP and LP to be able to start HP after a delay
-  // sourceApps.Get(0)->SetStartTime(Seconds(1.0 + 2.5));  // add the time it takes to reach steady state for low priority packets with TCP-BBR
-  // sourceApps.Get(0)->SetStartTime(Seconds(1.0 + 4.1));  // add the time it takes to reach steady state for low priority packets with TCP-NewReno
-  sourceApps.Get(0)->SetStartTime(Seconds(1.0));  // add the time it takes to reach steady state for low priority packets with UDP
+  double_t appDelay = 2.5; // time to reach steady state for low priority packets, 2.5 [sec] TCP-BBR, 4.1 [sec] TCP-NewReno
+  sourceApps.Get(0)->SetStartTime(Seconds(1.0 + appDelay));  // add the time it takes to reach steady state for low priority packets with TCP-BBR
   sourceApps.Get(1)->SetStartTime(Seconds(1.0));
   sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
 
   // start predictive model at t0 - Tau
-  sourceAppsPredict.Start (Seconds (1.0 - win_length*future_possition));
+  // sourceAppsPredict.Start (Seconds (1.0 + appDelay - win_length*future_possition));
+  sourceAppsPredict.Get(0)->SetStartTime(Seconds(1.0 + appDelay - win_length*future_possition));  
+  sourceAppsPredict.Get(1)->SetStartTime(Seconds(1.0 - win_length*future_possition));
   sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
 
   sinkApps.Start (Seconds (START_TIME));

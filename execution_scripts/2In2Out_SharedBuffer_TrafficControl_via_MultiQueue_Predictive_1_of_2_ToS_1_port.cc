@@ -49,8 +49,9 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/traffic-control-module.h"
 #include "ns3/flow-monitor-module.h"
-#include "ns3/tutorial-app.h"
-#include "ns3/custom_onoff-application.h"
+#include "ns3/prio-on-off-helper.h"
+#include "ns3/prio-bulk-send-helper.h"
+
 #include "ns3/names.h"
 #include "ns3/stats-module.h"
 
@@ -473,6 +474,7 @@ int main (int argc, char *argv[])
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioBulkSend"; // "prioOnOff"/"prioBulkSend"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
+  std::string tcpType = "TcpBbr"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;
   
@@ -536,8 +538,6 @@ int main (int argc, char *argv[])
   
   if (transportProt.compare ("TCP") == 0)
   { 
-    std::string tcpType = "TcpBbr"; // "TcpNewReno"/"TcpBbr"
-
     if (tcpType.compare("TcpBbr") == 0)
     {
       // Use TcpBbr for best steady-state behavior
@@ -644,11 +644,11 @@ int main (int argc, char *argv[])
   {
       LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Tcp") == 0)
+  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Tcp") == 0)
   {
       LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Udp") == 0)
+  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Udp") == 0)
   {
       LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
@@ -768,7 +768,7 @@ int main (int argc, char *argv[])
   uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinTosQueueDisc", "TosMap", TosMapValue(tosMap));
 
   TrafficControlHelper::ClassIdList cid = tch.AddQueueDiscClasses(handle, 2, "ns3::QueueDiscClass");
-  tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc" , "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
+  tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
   tch.AddChildQueueDisc(handle, cid[1], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[1] is Low Priority
 
   // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
@@ -905,6 +905,7 @@ int main (int argc, char *argv[])
   // uint32_t ipTos_LP = 0x06; //Low priority: Best Effort
   
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
+
   // time interval values for OnOff Aplications
   double_t elephantOnTime = trafficGenDuration; // [sec]
   double_t elephantOffTime = 0.0; // [sec]
@@ -1051,13 +1052,6 @@ int main (int argc, char *argv[])
 
       sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
       // clientHelperP1Predict.AssignStreams(serversPredict, 1);
-
-      // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
-      // {[nodeID] [port] [priority]}
-      std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
-      tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl; 
-      tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl;
-      tcpPriorityPerPortOutputFile.close();
     }
     else if (applicationType.compare("prioBulkSend") == 0) 
     {
@@ -1088,19 +1082,20 @@ int main (int argc, char *argv[])
       clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
 
       sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
-
-      // for TCP control packets. need to map the Rx Port to the priority of the BulkSend Application
-      // {[nodeID] [port] [priority]}
-      std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
-      tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl; 
-      tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl;
-      tcpPriorityPerPortOutputFile.close();
     }
     else 
     {
       std::cerr << "unknown app type: " << applicationType << std::endl;
       exit(1);
     }
+    
+    // for TCP control packets. need to map the Rx Port to the priority of the Application
+    // {[nodeID] [port] [priority]}
+    std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
+    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl; 
+    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl;
+    tcpPriorityPerPortOutputFile.close();
+
     // setup sinks
     Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
     PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"

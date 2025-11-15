@@ -7,33 +7,33 @@ Application: prioBulkSend
 traffic Mode ConstantRandom
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   1603 / 1721760
-  Rx Packets/Bytes:   1497 / 1607704
-  Packets/Bytes Dropped by Queue Disc:   8 / 8608
+  Tx Packets/Bytes:   3858 / 4379440
+  Rx Packets/Bytes:   3792 / 4304464
+  Packets/Bytes Dropped by Queue Disc:   1 / 1136
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 0.186819 Mbps
+  Throughput: 0.499112 Mbps
 
 *** Application statistics ***
-  Rx Bytes: 1518592
-  Average Goodput: 0.202479 Mbit/s
+  Rx Bytes: 4063916
+  Average Goodput: 0.541855 Mbit/s
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 98 / 105448
+Packets/Bytes dropped by Traffic Control Layer: 0 / 0
 High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 98 / 105448
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 1497 / 1607704
-Packets/Bytes enqueued: 1497 / 1607704
-Packets/Bytes dequeued: 1497 / 1607704
+Packets/Bytes received: 3857 / 4378304
+Packets/Bytes enqueued: 3857 / 4378304
+Packets/Bytes dequeued: 3794 / 4306736
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 1497 / 1607704
+Packets/Bytes sent: 3794 / 4306736
 Packets/Bytes marked: 0 / 0
 

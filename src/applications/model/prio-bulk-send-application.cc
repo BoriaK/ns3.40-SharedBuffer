@@ -22,6 +22,8 @@
 
 #include "ns3/address.h"
 #include "ns3/boolean.h"
+#include "ns3/inet-socket-address.h"
+#include "ns3/inet6-socket-address.h"
 #include "ns3/log.h"
 #include "ns3/node.h"
 #include "ns3/nstime.h"
@@ -30,6 +32,7 @@
 #include "ns3/socket-factory.h"
 #include "ns3/socket.h"
 #include "ns3/tcp-socket-factory.h"
+#include "ns3/udp-socket-factory.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
 #include "ns3/string.h"
@@ -99,7 +102,8 @@ PrioBulkSendApplication::GetTypeId()
                           MakeUintegerAccessor(&PrioBulkSendApplication::m_maxBytes),
                           MakeUintegerChecker<uint64_t>())
             .AddAttribute("Protocol",
-                          "The type of protocol to use.",
+                          "The type of protocol to use. This should be "
+                          "a subclass of ns3::SocketFactory",
                           TypeIdValue(TcpSocketFactory::GetTypeId()),
                           MakeTypeIdAccessor(&PrioBulkSendApplication::m_tid),
                           MakeTypeIdChecker())
@@ -200,15 +204,6 @@ PrioBulkSendApplication::StartApplication() // Called at time specified by Start
         m_socket = Socket::CreateSocket(GetNode(), m_tid);
         int ret = -1;
 
-        // Fatal error if socket type is not NS3_SOCK_STREAM or NS3_SOCK_SEQPACKET
-        if (m_socket->GetSocketType() != Socket::NS3_SOCK_STREAM &&
-            m_socket->GetSocketType() != Socket::NS3_SOCK_SEQPACKET)
-        {
-            NS_FATAL_ERROR("Using PrioBulkSend with an incompatible socket type. "
-                           "PrioBulkSend requires SOCK_STREAM or SOCK_SEQPACKET. "
-                           "In other words, use TCP instead of UDP.");
-        }
-
         // Set the ToS on the socket
         m_socket->SetIpTos(m_appTos);
 
@@ -242,6 +237,17 @@ PrioBulkSendApplication::StartApplication() // Called at time specified by Start
         m_socket->ShutdownRecv();
         m_socket->SetConnectCallback(MakeCallback(&PrioBulkSendApplication::ConnectionSucceeded, this),
                                      MakeCallback(&PrioBulkSendApplication::ConnectionFailed, this));
+        
+        // For UDP, enable broadcast capability
+        if (m_tid == UdpSocketFactory::GetTypeId())
+        {
+            m_socket->SetAllowBroadcast(true);
+            // UDP is connectionless, so we mark as connected immediately
+            // The Connect() call just sets the default destination address
+            m_connected = true;
+        }
+        
+        // Set send callback for both TCP and UDP
         m_socket->SetSendCallback(MakeCallback(&PrioBulkSendApplication::DataSend, this));
     }
     if (m_connected)
@@ -380,14 +386,11 @@ PrioBulkSendApplication::SendData(const Address& from, const Address& to)
             packet->AddPacketTag(flowPrioTag);
         }
 
-        // Add Application ToS tag for TCP
-        if (m_tid == TcpSocketFactory::GetTypeId())
+        // Add Application ToS tag (for both TCP and UDP, but typically used with TCP)
+        appTosTag.SetTosValue(m_appTos);
+        if (!packet->PeekPacketTag(appTosTag))
         {
-            appTosTag.SetTosValue(m_appTos);
-            if (!packet->PeekPacketTag(appTosTag))
-            {
-                packet->AddPacketTag(appTosTag);
-            }
+            packet->AddPacketTag(appTosTag);
         }
 
         int actual = m_socket->Send(packet);
@@ -441,6 +444,8 @@ PrioBulkSendApplication::ConnectionSucceeded(Ptr<Socket> socket)
     NS_LOG_FUNCTION(this << socket);
     NS_LOG_LOGIC("PrioBulkSendApplication Connection succeeded");
     m_connected = true;
+    
+    // Start sending data immediately upon connection
     Address from;
     Address to;
     socket->GetSockName(from);

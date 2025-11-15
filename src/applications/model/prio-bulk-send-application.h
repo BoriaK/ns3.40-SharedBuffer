@@ -48,10 +48,14 @@ class Socket;
  *
  * \brief Send as much traffic as possible to a single address with priority support.
  *
- * This traffic generator simply sends data to a TCP/UDP socket as fast as
+ * This traffic generator simply sends data to a TCP or UDP socket as fast as
  * the network can consume it. Once Application::StartApplication() is called,
  * it will send "m_sendSize" bytes at a time to the socket until either
  * "m_maxBytes" bytes are sent or the Application is stopped.
+ *
+ * For TCP sockets, the application will respect flow control and send data
+ * as fast as TCP allows. For UDP sockets, data is sent continuously without
+ * flow control.
  *
  * Similar to BulkSendApplication but with added priority tagging capabilities
  * for SharedBuffer queue management.

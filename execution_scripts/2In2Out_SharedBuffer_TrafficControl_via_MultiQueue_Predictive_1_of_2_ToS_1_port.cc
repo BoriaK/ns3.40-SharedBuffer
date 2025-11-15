@@ -540,50 +540,80 @@ int main (int argc, char *argv[])
   { 
     if (tcpType.compare("TcpBbr") == 0)
     {
-      // Use TcpBbr for best steady-state behavior
+      // TcpBbr configured to aggressively reach traffic-control drops
       Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpBbr"));
       
-      // === DISABLE ECN - Let drops happen ===
+      // === DISABLE ECN - use drops as the congestion signal ===
       Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
-      
-      // === Allow aggressive buffer filling ===
-      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB - keep large
-      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB - keep large
-      
-      // === Aggressive initial window and growth ===
-      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60));
-      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100)); // Very aggressive start
-      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000)); // Effectively infinite
-      
-      // === BBR-specific: Aggressive probing but stable steady state ===
-      Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(2.89)); // Default aggressive probing
-      Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // RTT samples for BW estimation
-      Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10))); // Long RTT window
-      Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Probe interval
-      
-      // === Fast reaction to drops (short RTO) ===
-      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200))); // Faster timeout detection
-      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1))); // Fine-grained timing
-      
-      // === Fast RTT estimation for quick adaptation ===
-      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125)); // Default SRTT weight
-      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));   // Default RTTVAR weight
+
+      // === Large socket buffers ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+
+      // === Application-specific configurations ===
+      if (applicationType.compare("prioOnOff") == 0)
+      {
+        // PrioOnOff: Continuous traffic needs aggressive initial burst to reach dynamic threshold
+        // InitialCwnd = 250 packets = ~256KB instantly in flight -> fills buffer to dynamic threshold
+        Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE)); // 1024 bytes
+        Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(250)); 
+        Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(65535));
+
+        // === BBR very aggressive probing ===
+        Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(4.0));
+        Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10));
+        Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10)));
+        Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200)));
+      }
+      else if (applicationType.compare("prioBulkSend") == 0)
+      {
+        // PrioBulkSend: Eliminate sawtooth behavior - maintain queue occupancy like prioOnOff
+        // Strategy: Match prioOnOff configuration exactly
+        Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE)); // 1024 bytes
+        Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(250)); // Match prioOnOff
+        Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(65535));
+
+        // === BBR configuration to maintain steady queue occupancy ===
+        // Use same parameters as prioOnOff for consistent behavior
+        Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(4.0)); // Match prioOnOff
+        Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // Longer window = more stable BW estimate
+        Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10))); // Long RTT window = stable
+        Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Standard PROBE_RTT
+      }
+      else
+      {
+        // Default aggressive configuration for other application types
+        Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
+        Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100));
+        Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(65535));
+        
+        Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(4.0));
+        Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10));
+        Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10)));
+        Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200)));
+      }
+
+      // === Standard loss response ===
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+
+      // === RTT estimation ===
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125));
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));
       Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
-      
-      // === Enable features for better performance ===
+
+      // === Enable standard TCP features ===
       Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
       Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
-      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true)); // SACK for better recovery
-      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Quick loss detection
-      
-      // === Reasonable delayed ACK ===
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true));
+
+      // === Delayed ACKs and connection settings ===
       Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(40)));
       Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
-      
-      // === Connection settings ===
-      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6)); // Reasonable retries
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
       Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(3)));
-      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Disable Nagle for immediate sends
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
     }
     else if (tcpType.compare("TcpNewReno") == 0)
     {
@@ -599,10 +629,13 @@ int main (int argc, char *argv[])
       Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26));
       Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26));
       
-      // === Aggressive initial behavior ===
-      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60));
-      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100)); // Very aggressive
-      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000));
+      // === Conservative initial behavior for 500 Kbps bottleneck ===
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
+      // For 500 Kbps bottleneck with ~1ms RTT: BDP = 500Kb * 1ms = 500 bits = ~1 packet
+      // Start with 2 packets to allow for growth without immediate burst
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(2)); 
+      // Set threshold to ~10 packets (conservative for 250 packet buffer)
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(10));
       
       // === Fast loss detection and recovery ===
       Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));
@@ -1060,7 +1093,10 @@ int main (int argc, char *argv[])
       PrioBulkSendHelper clientHelperP1 (socketType, socketAddressP1);
       clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
       clientHelperP1.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 means unlimited
+      // MaxBytes: Increased to allow sustained transmission for full duration (like prioOnOff)
+      // Set to 500KB to ensure continuous sending for 2+ seconds at ~500Kbps bottleneck
+      // clientHelperP1.SetAttribute ("MaxBytes", UintegerValue (500000)); 
+      clientHelperP1.SetAttribute ("MaxBytes", UintegerValue (0));
       // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
       
@@ -1074,7 +1110,8 @@ int main (int argc, char *argv[])
       PrioBulkSendHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
       clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
       clientHelperP1Predict.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 means unlimited
+      // clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (500000));
+      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); 
       // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
       clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
       

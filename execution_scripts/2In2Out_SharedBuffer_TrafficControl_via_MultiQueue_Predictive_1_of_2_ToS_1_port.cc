@@ -51,6 +51,7 @@
 #include "ns3/flow-monitor-module.h"
 #include "ns3/prio-on-off-helper.h"
 #include "ns3/prio-bulk-send-helper.h"
+#include "ns3/prio-steady-on-helper.h"
 
 #include "ns3/names.h"
 #include "ns3/stats-module.h"
@@ -472,7 +473,7 @@ int main (int argc, char *argv[])
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
-  std::string applicationType = "prioOnOff"; // "prioOnOff"/"prioBulkSend"
+  std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
   std::string tcpType = "TcpBbr"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
   std::string socketType;
@@ -644,11 +645,11 @@ int main (int argc, char *argv[])
   {
       LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Tcp") == 0)
+  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0 || applicationType.compare("prioSteadyOn") == 0) && transportProt.compare ("Tcp") == 0)
   {
       LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Udp") == 0)
+  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0 || applicationType.compare("prioSteadyOn") == 0) && transportProt.compare ("Udp") == 0)
   {
       LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
@@ -1081,6 +1082,38 @@ int main (int argc, char *argv[])
       
       clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
       clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+
+      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
+    }
+    else if (applicationType.compare("prioSteadyOn") == 0) 
+    {
+      // Create the PrioSteadyOn applications to send TCP to the server
+      // PrioSteadyOn generates continuous CBR traffic (like prioOnOff but without ON/OFF periods)
+      
+      PrioSteadyOnHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+      
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+
+      // for predicting traffic in queue
+
+      PrioSteadyOnHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
+      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
+      clientHelperP1Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 = infinite
+      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
 
       sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
     }

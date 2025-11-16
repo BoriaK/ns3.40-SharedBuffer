@@ -51,8 +51,10 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/traffic-control-module.h"
 #include "ns3/flow-monitor-module.h"
-#include "ns3/tutorial-app.h"
-#include "ns3/custom_onoff-application.h"
+#include "ns3/prio-on-off-helper.h"
+#include "ns3/prio-bulk-send-helper.h"
+#include "ns3/prio-steady-on-helper.h"
+
 #include "ns3/names.h"
 #include "ns3/stats-module.h"
 
@@ -474,8 +476,9 @@ int main (int argc, char *argv[])
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
-  std::string applicationType = "prioBulkSend"; // "prioOnOff"/"prioBulkSend"
+  std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
+  std::string tcpType = "TcpBbr"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;
   
@@ -543,50 +546,52 @@ int main (int argc, char *argv[])
 
     if (tcpType.compare("TcpBbr") == 0)
     {
-      // Use TcpBbr for best steady-state behavior
+      // TcpBbr configured to aggressively reach traffic-control drops
       Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpBbr"));
       
-      // === DISABLE ECN - Let drops happen ===
+      // === DISABLE ECN - use drops as the congestion signal ===
       Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
-      
-      // === Allow aggressive buffer filling ===
-      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB - keep large
-      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB - keep large
-      
-      // === Aggressive initial window and growth ===
-      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60));
-      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100)); // Very aggressive start
-      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000)); // Effectively infinite
-      
-      // === BBR-specific: Aggressive probing but stable steady state ===
-      Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(2.89)); // Default aggressive probing
-      Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // RTT samples for BW estimation
-      Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10))); // Long RTT window
-      Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Probe interval
-      
-      // === Fast reaction to drops (short RTO) ===
-      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200))); // Faster timeout detection
-      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1))); // Fine-grained timing
-      
-      // === Fast RTT estimation for quick adaptation ===
-      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125)); // Default SRTT weight
-      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));   // Default RTTVAR weight
+
+      // === Large socket buffers ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+
+      // PrioBulkSend: Eliminate sawtooth behavior - maintain queue occupancy like prioOnOff
+      // Strategy: Match prioOnOff configuration exactly
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1024 bytes
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(250)); // Match prioOnOff
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000));
+
+      // === BBR configuration to maintain steady queue occupancy ===
+      // Use same parameters as prioOnOff for consistent behavior
+      Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(4.0)); // Match prioOnOff
+      // Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // Longer window = more stable BW estimate
+      Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(100)); // Very long window
+      Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10))); // Long RTT window = stable
+      // Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Standard PROBE_RTT
+      Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(Seconds(10)));
+
+      // === Standard loss response ===
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+
+      // === RTT estimation ===
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125));
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));
       Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
-      
-      // === Enable features for better performance ===
+
+      // === Enable standard TCP features ===
       Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
       Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
-      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true)); // SACK for better recovery
-      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Quick loss detection
-      
-      // === Reasonable delayed ACK ===
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true));
+
+      // === Delayed ACKs and connection settings ===
       Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(40)));
       Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
-      
-      // === Connection settings ===
-      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6)); // Reasonable retries
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
       Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(3)));
-      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Disable Nagle for immediate sends
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
     }
     else if (tcpType.compare("TcpNewReno") == 0)
     {
@@ -647,11 +652,11 @@ int main (int argc, char *argv[])
   {
       LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Tcp") == 0)
+  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0 || applicationType.compare("prioSteadyOn") == 0) && transportProt.compare ("Tcp") == 0)
   {
       LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("OnOff") == 0 || applicationType.compare("priorityOnOff") == 0 || applicationType.compare("priorityApplication") == 0 || applicationType.compare("prioBulkSend") == 0) && transportProt.compare ("Udp") == 0)
+  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0 || applicationType.compare("prioSteadyOn") == 0) && transportProt.compare ("Udp") == 0)
   {
       LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
@@ -744,7 +749,7 @@ int main (int argc, char *argv[])
     switchDevicesOutPredict.Add(tempNetDevicePredict.Get(0));
     recieverDevicesPredict.Add(tempNetDevicePredict.Get(1));
 
-    NS_LOG_INFO ("Switch is connected to Reciever " << i << " at capacity: " << switchRecieverCapacity);     
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
   }
 
   // add a "name" to the "switchDeviceOut" and "switchDeviceOutPredict" NetDevices
@@ -771,7 +776,7 @@ int main (int argc, char *argv[])
   uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinTosQueueDisc", "TosMap", TosMapValue(tosMap));
 
   TrafficControlHelper::ClassIdList cid = tch.AddQueueDiscClasses(handle, 2, "ns3::QueueDiscClass");
-  tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc" , "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
+  tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
   tch.AddChildQueueDisc(handle, cid[1], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[1] is Low Priority
 
   // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
@@ -910,9 +915,9 @@ int main (int argc, char *argv[])
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
 
   // time interval values for OnOff Aplications
-  // double_t miceOnTime = 0.05; // [sec]
+  double_t miceOnTime = 0.05; // [sec]
   // double_t miceOnTime = 1;
-  double_t miceOnTime = 0;
+  // double_t miceOnTime = 0;
   // double_t elephantOnTime = 0.5; // [sec]
   // double_t elephantOnTime = trafficGenDuration; // [sec]
   double_t elephantOnTime = 0; // [sec]
@@ -1195,6 +1200,63 @@ int main (int argc, char *argv[])
 
       sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
     }
+    else if (applicationType.compare("prioSteadyOn") == 0) 
+    {
+      // Create the PrioSteadyOn applications to send TCP to the server
+      // PrioSteadyOn generates continuous CBR traffic (like prioOnOff but without ON/OFF periods)
+      
+      PrioSteadyOnHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP0.SetAttribute ("ApplicationToS", UintegerValue (ipTos_HP)); // set the IP ToS value for the application
+      clientHelperP0.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP0.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+      
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      PrioSteadyOnHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+      
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+
+      // for predicting traffic in queue
+
+      PrioSteadyOnHelper clientHelperP0Predict (socketType, socketAddressP0Predict);
+      clientHelperP0Predict.SetAttribute ("Remote", AddressValue (socketAddressP0Predict));
+      clientHelperP0Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 = infinite
+      clientHelperP0Predict.SetAttribute("FlowPriority", UintegerValue (0x1));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP0Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_HP)); // set the IP ToS value for the application
+      clientHelperP0Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP0Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+
+      sourceAppsPredict.Add(clientHelperP0Predict.Install (serversPredict.Get(serverIndex)));
+
+      PrioSteadyOnHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
+      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
+      clientHelperP1Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 = infinite
+      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+
+      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
+    }
     else 
     {
       std::cerr << "unknown app type: " << applicationType << std::endl;
@@ -1229,16 +1291,20 @@ int main (int argc, char *argv[])
   // double_t trafficGenDuration = 2; // for a single OnOff segment
   // sourceApps.Start (Seconds (1.0));
   // sepparate sourceApps to HP and LP to be able to start HP after a delay
-  double_t appDelay = 2.5; // time to reach steady state for low priority packets, 2.5 [sec] TCP-BBR, 4.1 [sec] TCP-NewReno
+  double_t appDelay = 1.5; // time to reach steady state for low priority packets, 1.5 [sec] TCP-BBR
   sourceApps.Get(0)->SetStartTime(Seconds(1.0 + appDelay));  // add the time it takes to reach steady state for low priority packets with TCP-BBR
   sourceApps.Get(1)->SetStartTime(Seconds(1.0));
-  sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
+  // sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
+  sourceApps.Get(0)->SetStopTime(Seconds(1.0 + appDelay + miceOnTime));
+  sourceApps.Get(1)->SetStopTime(Seconds(1.0 + trafficGenDuration));
 
   // start predictive model at t0 - Tau
   // sourceAppsPredict.Start (Seconds (1.0 + appDelay - win_length*future_possition));
   sourceAppsPredict.Get(0)->SetStartTime(Seconds(1.0 + appDelay - win_length*future_possition));  
   sourceAppsPredict.Get(1)->SetStartTime(Seconds(1.0 - win_length*future_possition));
-  sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
+  // sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
+  sourceAppsPredict.Get(0)->SetStopTime(Seconds(1.0 + appDelay + miceOnTime - win_length*(1 - future_possition)));
+  sourceAppsPredict.Get(1)->SetStopTime(Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));

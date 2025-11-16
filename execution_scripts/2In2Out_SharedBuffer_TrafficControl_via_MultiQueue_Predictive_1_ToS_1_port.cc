@@ -122,7 +122,7 @@ std::string root = GetWorkspaceRoot();
 // std::string datDir = root + "/Trace_Plots/1In1Out/Predictive/";
 std::string datDir = root + "/Predictive/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
-std::string implementation = "via_MultiQueues/2_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
+std::string implementation = "via_MultiQueues/1_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "PredictiveDT"/"PredictiveFB"
 std::string onOffTrafficMode = "Constant"; // "Constant"/"Uniform"/"Normal"
 // // per-run output directory (set in main)
@@ -475,7 +475,7 @@ int main (int argc, char *argv[])
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
-  std::string tcpType = "TcpBbr"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
+  std::string tcpType = "TcpNewReno"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;
   
@@ -536,7 +536,7 @@ int main (int argc, char *argv[])
     queue_capacity = ToString(PORTS_PER_SWITCH * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
-  
+  // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   { 
     if (tcpType.compare("TcpBbr") == 0)
@@ -560,9 +560,11 @@ int main (int argc, char *argv[])
       // === BBR configuration to maintain steady queue occupancy ===
       // Use same parameters as prioOnOff for consistent behavior
       Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(4.0)); // Match prioOnOff
-      Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // Longer window = more stable BW estimate
+      // Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // Longer window = more stable BW estimate
+      Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(100)); // Very long window
       Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10))); // Long RTT window = stable
-      Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Standard PROBE_RTT
+      // Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Standard PROBE_RTT
+      Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(Seconds(10)));
 
       // === Standard loss response ===
       Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));

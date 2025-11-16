@@ -1,21 +1,21 @@
 Topology: 1In1Out
 Queueing Algorithm: SharedBuffer_DTPredictive
-Implementation Method: via_MultiQueues/2_ToS
+Implementation Method: via_MultiQueues/1_ToS
 Used D value: 0.2
 Traffic Duration: 2 [Sec]
 Application: prioSteadyOn
 traffic Mode ConstantRandom
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   14 / 5856
-  Rx Packets/Bytes:   14 / 5856
+  Tx Packets/Bytes:   483 / 535732
+  Rx Packets/Bytes:   472 / 523236
   Packets/Bytes Dropped by Queue Disc:   0 / 0
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 0.180548 Mbps
+  Throughput: 0.498728 Mbps
 
 *** Application statistics ***
-  Rx Bytes: 503808
-  Average Goodput: 0.0671744 Mbit/s
+  Rx Bytes: 498688
+  Average Goodput: 0.0664917 Mbit/s
 
 *** TC Layer statistics ***
 
@@ -27,13 +27,13 @@ Low Priority Packets/Bytes dropped by Traffic Control Layer: 11 / 12496
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 481 / 528828
-Packets/Bytes enqueued: 481 / 528828
-Packets/Bytes dequeued: 481 / 528828
+Packets/Bytes received: 472 / 523236
+Packets/Bytes enqueued: 472 / 523236
+Packets/Bytes dequeued: 472 / 523236
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 481 / 528828
+Packets/Bytes sent: 472 / 523236
 Packets/Bytes marked: 0 / 0
 

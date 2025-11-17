@@ -478,7 +478,7 @@ int main (int argc, char *argv[])
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
-  std::string tcpType = "TcpBbr"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
+  std::string tcpType = "TcpNewReno"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;
   
@@ -595,45 +595,94 @@ int main (int argc, char *argv[])
     }
     else if (tcpType.compare("TcpNewReno") == 0)
     {
-      // NewReno with aggressive initial growth but controlled steady state
+      // ========================================================================
+      // TcpNewReno optimized for fast convergence with 3 segments:
+      // 1. Linear fill to threshold (controlled slow start)
+      // 2. Stable plateau at threshold (minimal AIMD oscillations)
+      // 3. Clean drain at bottleneck rate
+      // ========================================================================
+      
       Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
       Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                        TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery"))); // Better recovery than Classic
     
-      // === DISABLE ECN ===
+      // === DISABLE ECN - use drops as congestion signal ===
       Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
       
-      // === Large buffers ===
-      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26));
-      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26));
+      // === Large buffers to prevent application-level blocking ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
       
-      // === Aggressive initial behavior ===
-      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60));
-      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100)); // Very aggressive
-      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000));
+      // ========================================================================
+      // SEGMENT 1: LINEAR FILL TO THRESHOLD
+      // Strategy: Start with high cwnd, trigger loss at target, stabilize after MD
+      // ========================================================================
       
-      // === Fast loss detection and recovery ===
-      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1084 bytes
+      
+      // Key insight: After first loss, cwnd will be halved (AIMD)
+      // We need: (InitialCwnd / 2) > (Bottleneck_Rate × RTT)
+      // 
+      // Bottleneck = 500 Kbps ≈ 57.7 packets/sec
+      // Full queue RTT ≈ 3.4s (209 packets @ 500 Kbps)
+      // BDP at full queue = 57.7 pkt/s × 3.4s ≈ 196 packets
+      // 
+      // After first drop at queue=209:
+      //   cwnd_new = InitialCwnd / 2
+      //   For stable plateau: cwnd_new ≥ BDP ≈ 196
+      //   Therefore: InitialCwnd ≥ 392
+      //
+      // Set InitialCwnd = 420 (safety margin)
+      // After MD: cwnd = 210, which exceeds BDP (196), maintaining queue
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(420)); // High initial cwnd
+      
+      // Set ssthresh to target queue depth - skip slow start, start in CA
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(210)); // Target queue
+      
+      // ========================================================================
+      // SEGMENT 2: STABLE PLATEAU AT THRESHOLD
+      // Strategy: Minimize AIMD oscillations by fast loss detection + gentle response
+      // ========================================================================
+      
+      // Fast loss detection to quickly react when hitting threshold
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(50))); // Faster than 200ms
       Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
       
-      // === Standard RTT estimation ===
-      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125));
-      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));
+      // Fast RTT estimation to quickly adapt to queue buildup
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.25)); // More responsive (was 0.125)
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.5));   // More responsive (was 0.25)
       Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
       
-      // === Enable advanced features ===
+      // Enable all advanced features for fast loss detection
       Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
       Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
-      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));
-      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));       // Critical for fast recovery
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Send new data on dupacks
       
-      // === Normal delayed ACK ===
-      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(40)));
-      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+      // Aggressive ACKs for faster feedback
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(10))); // Faster ACKs (was 40ms)
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1)); // ACK every packet (was 2)
       
-      // === Standard settings ===
+      // ========================================================================
+      // SEGMENT 3: CLEAN DRAIN
+      // Strategy: Normal TCP behavior - application stops, queue drains at bottleneck rate
+      // ========================================================================
+      
       Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
-      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Nagle off for immediate send
+      
+      // ========================================================================
+      // Alternative configuration (comment out above, uncomment below to try):
+      // This uses even more aggressive settings for perfectly linear fill
+      // ========================================================================
+      /*
+      // Perfect linear fill: Start with exactly target cwnd, disable slow start entirely
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(209)); // Exact target
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(209)); // No slow start!
+      // This starts directly in congestion avoidance with cwnd=ssthresh=209
+      // Result: No exponential growth, but also no fill phase - already at target
+      // Queue fills only due to application generating faster than bottleneck drains
+      */
     }
     socketType = "ns3::TcpSocketFactory";
   }
@@ -915,9 +964,9 @@ int main (int argc, char *argv[])
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
 
   // time interval values for OnOff Aplications
-  double_t miceOnTime = 0.05; // [sec]
+  // double_t miceOnTime = 0.05; // [sec]
   // double_t miceOnTime = 1;
-  // double_t miceOnTime = 0;
+  double_t miceOnTime = 0;
   // double_t elephantOnTime = 0.5; // [sec]
   // double_t elephantOnTime = trafficGenDuration; // [sec]
   double_t elephantOnTime = 0; // [sec]
@@ -1266,10 +1315,10 @@ int main (int argc, char *argv[])
     // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
     // {[nodeID] [port] [priority]}
     std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
-    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 << " " << 1 << std::endl; 
-    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 << " " << 1 << std::endl;
-    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl; 
-    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50001 << " " << 2 << std::endl;
+    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P0 << " " << 1 << std::endl; 
+    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P0 << " " << 1 << std::endl;
+    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl; 
+    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl;
     tcpPriorityPerPortOutputFile.close();
 
     // setup sinks
@@ -1291,8 +1340,8 @@ int main (int argc, char *argv[])
   // double_t trafficGenDuration = 2; // for a single OnOff segment
   // sourceApps.Start (Seconds (1.0));
   // sepparate sourceApps to HP and LP to be able to start HP after a delay
-  double_t appDelay = 1.5; // time to reach steady state for low priority packets, 1.5 [sec] TCP-BBR
-  sourceApps.Get(0)->SetStartTime(Seconds(1.0 + appDelay));  // add the time it takes to reach steady state for low priority packets with TCP-BBR
+  double_t appDelay = 1.5; // time to reach steady state for low priority packets, 1.5[sec]
+  sourceApps.Get(0)->SetStartTime(Seconds(1.0 + appDelay));  // add the time it takes to reach steady state for low priority packets
   sourceApps.Get(1)->SetStartTime(Seconds(1.0));
   // sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
   sourceApps.Get(0)->SetStopTime(Seconds(1.0 + appDelay + miceOnTime));
@@ -1363,20 +1412,17 @@ int main (int argc, char *argv[])
   // NEED TO ADJUST STATISTICS SUCH THAT IT COUNTS ONLY REAL DATA SENT, AND NOT PREDICTIVE DATA.
   // (i.e. packets sent by the actual model and not the predictive packets)
   // stats indexing needs to start from 1. 
-  // first half of the flows are the predictive flows
+  // all the flows are in chronological order
   // if TCP: flowStats[i].protocol == "TCP"
-  // first half of each group (predictive/real) is the actual DATA traffic. the second half is the back traffic of ACKs
-  if (transportProt.compare("TCP") == 0)
+  for (size_t i = 1; i <= flowStats.size(); i++)
   {
-    for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size() - flowStats.size()/4; i++) 
+    if (flowStats[i].timeFirstTxPacket.GetSeconds() == 1.0 || flowStats[i].timeFirstTxPacket.GetSeconds() == 1.0 + appDelay)
     {
-      if (classifier->FindFlow(i).protocol == 6) // TCP protocol number is 6
-      {
-        statTxPackets = statTxPackets + flowStats[i].txPackets;
-        statTxBytes = statTxBytes + flowStats[i].txBytes;
-        statRxPackets = statRxPackets + flowStats[i].rxPackets;
-        statRxBytes = statRxBytes + flowStats[i].rxBytes;
-      }
+      statTxPackets = statTxPackets + flowStats[i].txPackets;
+      statTxBytes = statTxBytes + flowStats[i].txBytes;
+      statRxPackets = statRxPackets + flowStats[i].rxPackets;
+      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+
       if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
       {
         packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
@@ -1392,32 +1438,7 @@ int main (int argc, char *argv[])
       AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
     }
   }
-  else // UDP
-  {
-    for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size(); i++) 
-    {
-      if (classifier->FindFlow(i).protocol == 17) // UDP protocol number is 17
-      {
-        statTxPackets = statTxPackets + flowStats[i].txPackets;
-        statTxBytes = statTxBytes + flowStats[i].txBytes;
-        statRxPackets = statRxPackets + flowStats[i].rxPackets;
-        statRxBytes = statRxBytes + flowStats[i].rxBytes;
-      }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-      {
-        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-      }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-      {
-        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-      }
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
-    }
-  }
+  
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
               << " / " << statTxBytes << std::endl;
@@ -1498,12 +1519,6 @@ int main (int argc, char *argv[])
   // system (("mv -f " + dir + traffic_control_type + "/" + implementation + + "/*.txt " + dirToSave).c_str ());
 
   // Create the gnuplot.//////////////////////////////
-  generate1DGnuPlotFromDatFile(dirToSave + "/generatedOnOffTrafficTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_0_app_1_OnOffStateTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_1_app_1_OnOffStateTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_0_app_1_OnOffStateTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_1_app_3_OnOffStateTrace.dat");
-
   generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
   generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_1_PacketsInQueueTrace.dat", "Low");
 

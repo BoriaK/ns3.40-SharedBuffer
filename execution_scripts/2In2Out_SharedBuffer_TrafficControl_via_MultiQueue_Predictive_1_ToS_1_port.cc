@@ -590,45 +590,94 @@ int main (int argc, char *argv[])
     }
     else if (tcpType.compare("TcpNewReno") == 0)
     {
-      // NewReno with aggressive initial growth but controlled steady state
+      // ========================================================================
+      // TcpNewReno optimized for fast convergence with 3 segments:
+      // 1. Linear fill to threshold (controlled slow start)
+      // 2. Stable plateau at threshold (minimal AIMD oscillations)
+      // 3. Clean drain at bottleneck rate
+      // ========================================================================
+      
       Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
       Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                        TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery"))); // Better recovery than Classic
     
-      // === DISABLE ECN ===
+      // === DISABLE ECN - use drops as congestion signal ===
       Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
       
-      // === Large buffers ===
-      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26));
-      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26));
+      // === Large buffers to prevent application-level blocking ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
       
-      // === Aggressive initial behavior ===
-      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60));
-      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(100)); // Very aggressive
-      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000));
+      // ========================================================================
+      // SEGMENT 1: LINEAR FILL TO THRESHOLD
+      // Strategy: Start with high cwnd, trigger loss at target, stabilize after MD
+      // ========================================================================
       
-      // === Fast loss detection and recovery ===
-      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1084 bytes
+      
+      // Key insight: After first loss, cwnd will be halved (AIMD)
+      // We need: (InitialCwnd / 2) > (Bottleneck_Rate × RTT)
+      // 
+      // Bottleneck = 500 Kbps ≈ 57.7 packets/sec
+      // Full queue RTT ≈ 3.4s (209 packets @ 500 Kbps)
+      // BDP at full queue = 57.7 pkt/s × 3.4s ≈ 196 packets
+      // 
+      // After first drop at queue=209:
+      //   cwnd_new = InitialCwnd / 2
+      //   For stable plateau: cwnd_new ≥ BDP ≈ 196
+      //   Therefore: InitialCwnd ≥ 392
+      //
+      // Set InitialCwnd = 420 (safety margin)
+      // After MD: cwnd = 210, which exceeds BDP (196), maintaining queue
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(420)); // High initial cwnd
+      
+      // Set ssthresh to target queue depth - skip slow start, start in CA
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(210)); // Target queue
+      
+      // ========================================================================
+      // SEGMENT 2: STABLE PLATEAU AT THRESHOLD
+      // Strategy: Minimize AIMD oscillations by fast loss detection + gentle response
+      // ========================================================================
+      
+      // Fast loss detection to quickly react when hitting threshold
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(50))); // Faster than 200ms
       Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
       
-      // === Standard RTT estimation ===
-      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125));
-      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));
+      // Fast RTT estimation to quickly adapt to queue buildup
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.25)); // More responsive (was 0.125)
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.5));   // More responsive (was 0.25)
       Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
       
-      // === Enable advanced features ===
+      // Enable all advanced features for fast loss detection
       Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
       Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
-      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));
-      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));       // Critical for fast recovery
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Send new data on dupacks
       
-      // === Normal delayed ACK ===
-      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(40)));
-      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+      // Aggressive ACKs for faster feedback
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(10))); // Faster ACKs (was 40ms)
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1)); // ACK every packet (was 2)
       
-      // === Standard settings ===
+      // ========================================================================
+      // SEGMENT 3: CLEAN DRAIN
+      // Strategy: Normal TCP behavior - application stops, queue drains at bottleneck rate
+      // ========================================================================
+      
       Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
-      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Nagle off for immediate send
+      
+      // ========================================================================
+      // Alternative configuration (comment out above, uncomment below to try):
+      // This uses even more aggressive settings for perfectly linear fill
+      // ========================================================================
+      /*
+      // Perfect linear fill: Start with exactly target cwnd, disable slow start entirely
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(209)); // Exact target
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(209)); // No slow start!
+      // This starts directly in congestion avoidance with cwnd=ssthresh=209
+      // Result: No exponential growth, but also no fill phase - already at target
+      // Queue fills only due to application generating faster than bottleneck drains
+      */
     }
     socketType = "ns3::TcpSocketFactory";
   }

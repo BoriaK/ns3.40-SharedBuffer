@@ -1348,6 +1348,27 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
     return std::make_pair(alpha_h, alpha_l);
 }
 
+uint32_t 
+TrafficControlLayer::GetDeltaAlphas(uint32_t incoming_transient_lentgh)
+{
+    switch (incoming_transient_lentgh)
+    {
+    // case 0:  // need to figure out what does 0 mean???
+    //     m_deltaAlphas = 0;
+    //     break;
+    // case 12288:
+    //     m_deltaAlphas = 4;
+    //     break;
+    case 61440:
+        m_deltaAlphas = 5;
+        break;
+    default:
+        break;
+    }
+
+    return m_deltaAlphas;
+}
+
 void
 TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
 {
@@ -2086,7 +2107,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
 
                     // load all the future arriving packets from the predictive log file to a special dataset
                     // inorder to estimate the time until the arrival of the next High/Low priority packet.
-                    // since the arrival times in the predictive log are 20 [mSec] earlier, need to subtract 20 [mSec] 
+                    // since the arrival times in the predictive log are 200 [mSec] earlier, need to subtract 200 [mSec] 
                     // from the current time when looking at predictive packet arrival times logs, in order to get the correct time for the next packet
                     // predictedPacketArrivalLog.LoadPacketsFromFile("Predictive_Packet_Arrival_Times.dat", Simulator::Now ().GetMicroSeconds(), m_time_index);
                     predictedPacketArrivalLog.LoadPacketsFromFile("Predictive_Packet_Arrival_Times.dat", (Simulator::Now () - Seconds(0.2)).GetMicroSeconds(), m_time_index);
@@ -2231,13 +2252,35 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         // get the time till next high priority packet is supposed to arrive
                         if (predictedPacketArrivalLog.GetLogSize(1) > 1)
                         {
-                            m_nextPacketArrivalTime = predictedPacketArrivalLog.GetPacketByIndex(1,1).first + Seconds(0.2).GetMicroSeconds(); // add 20 [mSec] to align with real packet arrival times
-                            m_timeTillNextPacket = m_nextPacketArrivalTime - Simulator::Now ().GetMicroSeconds();
-                            std::cout << "Time till next packet [uSec] is: " << m_timeTillNextPacket <<  std::endl;
+                            m_nextHighPriorityPacketArrivalTime = predictedPacketArrivalLog.GetPacketByIndex(1,1).first + Seconds(0.2).GetMicroSeconds(); // add 200 [mSec] to align with real packet arrival times
+                            m_timeTillNextPacket = m_nextHighPriorityPacketArrivalTime - Simulator::Now ().GetMicroSeconds();
+                            std::cout << "Time till next HP packet [uSec] is: " << m_timeTillNextPacket <<  std::endl;
+
+                            // to catch the time right before the next High Priority Packet: 
+                            // calculate the time till the next Low Priority packet arrives:
+                            m_nextLowPriorityPacketArrivalTime = predictedPacketArrivalLog.GetPacketByIndex(2,1).first + Seconds(0.2).GetMicroSeconds();
+                            
+                            if (m_nextHighPriorityPacketArrivalTime < m_nextLowPriorityPacketArrivalTime)
+                            {
+                                std::cout << "The next arriving packet is High Priority" << std::endl;
+                                
+                                // calculate the transient length:
+                                m_lastHighPriorityPacketArrivalTime  = predictedPacketArrivalLog.GetLastPacket(1).first + Seconds(0.2).GetMicroSeconds();
+                                m_transientLength = m_lastHighPriorityPacketArrivalTime - m_nextHighPriorityPacketArrivalTime;
+                                std::cout << "Current transient length [uSec] is: " << m_transientLength <<  std::endl;
+
+                                uint32_t deltaAlphas = GetDeltaAlphas(m_transientLength);
+                                std::cout << "Delta Alphas value is : " << deltaAlphas << std::endl;
+
+                                // adjust Alpha High/Low according to transient length
+                                m_alpha_h = m_alpha_h - deltaAlphas;
+                                m_alpha_l = m_alpha_l + deltaAlphas;
+                            }
+                            
                         }
                         else
                         {
-                            std::cout << "No more packets in the log file" << std::endl;
+                            std::cout << "No more HP packets in the log file" << std::endl;
                             m_timeTillNextPacket = 0;
                         }
                     }

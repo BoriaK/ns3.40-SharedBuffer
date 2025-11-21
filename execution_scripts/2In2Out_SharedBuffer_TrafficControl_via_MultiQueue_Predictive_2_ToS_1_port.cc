@@ -471,8 +471,8 @@ int main (int argc, char *argv[])
 
   double_t miceElephantProb = 0.2;
   // predictive model should behaive just like the regular model would 
-  double_t alpha_high = 15;
-  double_t alpha_low = 5;
+  double_t alpha_high = 14;
+  double_t alpha_low = 6;
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
@@ -965,8 +965,9 @@ int main (int argc, char *argv[])
 
   // time interval values for OnOff Aplications
   // double_t miceOnTime = 0.05; // [sec]
-  // double_t miceOnTime = 1;
-  double_t miceOnTime = 0;
+  double_t miceOnTime = 0.1; // [sec]
+  // double_t miceOnTime = 0.3;
+  // double_t miceOnTime = 0;
   // double_t elephantOnTime = 0.5; // [sec]
   // double_t elephantOnTime = trafficGenDuration; // [sec]
   double_t elephantOnTime = 0; // [sec]

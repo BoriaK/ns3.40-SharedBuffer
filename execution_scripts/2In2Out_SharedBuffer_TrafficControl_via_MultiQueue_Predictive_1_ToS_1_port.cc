@@ -468,14 +468,14 @@ int main (int argc, char *argv[])
 
   double_t miceElephantProb = 0.2;
   // predictive model should behaive just like the regular model would 
-  double_t alpha_high = 15;
-  double_t alpha_low = 5;
+  double_t alpha_high = 14;
+  double_t alpha_low = 6;
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
   std::string transportProt = "TCP"; // "UDP"/"TCP"
-  std::string tcpType = "TcpNewReno"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
+  std::string tcpType = "TcpNewReno"; // "TcpNewReno"/"TcpBbr"/"TcpNewRenoTest" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;
   
@@ -681,6 +681,95 @@ int main (int argc, char *argv[])
     }
     socketType = "ns3::TcpSocketFactory";
   }
+  else if (tcpType.compare("TcpNewRenoTest") == 0)
+  {
+    // ========================================================================
+      // TcpNewReno optimized for MAXIMUM THROUGHPUT
+      // Goal: Achieve highest possible TpT regardless of buffer behavior
+      // Strategy: Fast ramp-up, aggressive sending, efficient recovery
+      // ========================================================================
+      
+      Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
+      
+      // Use PRR (Proportional Rate Reduction) for better recovery than classic NewReno
+      Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                       TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery")));
+    
+      // === DISABLE ECN - use drops as congestion signal ===
+      Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+      
+      // === Very large buffers - never let application be blocked ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 27)); // 128 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 27)); // 128 MiB
+      
+      // ========================================================================
+      // THROUGHPUT OPTIMIZATION: Aggressive Initial Window
+      // ========================================================================
+      
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE)); // 1024 bytes (no overhead added)
+      
+      // Start with very large initial congestion window for fast ramp-up
+      // Goal: Fill pipe + buffer immediately to maximize utilization
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1000)); // Very aggressive
+      
+      // Set ssthresh very high to stay in exponential slow start longer
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000)); // Effectively infinite
+      
+      // ========================================================================
+      // THROUGHPUT OPTIMIZATION: Fast Loss Detection & Recovery
+      // ========================================================================
+      
+      // Very fast RTO for quick retransmission
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(20))); // Extremely fast
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MicroSeconds(100))); // Fine granularity
+      
+      // Aggressive RTT estimation (react quickly to changes)
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.5)); // Very responsive
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.75)); // Very responsive
+      Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+      
+      // ========================================================================
+      // THROUGHPUT OPTIMIZATION: Enable All Performance Features
+      // ========================================================================
+      
+      Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true)); // Better RTT measurement
+      Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true)); // Support large windows
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true)); // Selective ACK for efficient recovery
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Send on partial ACKs
+      
+      // ========================================================================
+      // THROUGHPUT OPTIMIZATION: Minimize ACK Delay
+      // ========================================================================
+      
+      // ACK every packet immediately (no delayed ACKs)
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MicroSeconds(1))); // Minimal delay
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1)); // ACK every packet
+      
+      // ========================================================================
+      // THROUGHPUT OPTIMIZATION: Aggressive Transmission
+      // ========================================================================
+      
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(12)); // More retries before giving up
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Disable Nagle (send immediately)
+      Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(MilliSeconds(500))); // Fast connection setup
+      
+      // ========================================================================
+      // THROUGHPUT OPTIMIZATION: Segment Limits
+      // ========================================================================
+      
+      // Allow sending multiple segments per ACK
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE));
+      
+      std::cout << std::endl << "TcpNewReno configured for MAXIMUM THROUGHPUT" << std::endl;
+      std::cout << "InitialCwnd: 1000 packets" << std::endl;
+      std::cout << "MinRto: 20ms" << std::endl;
+      std::cout << "DelAckCount: 1 (ACK every packet)" << std::endl;
+      std::cout << "SACK: Enabled" << std::endl;
+      std::cout << "PRR Recovery: Enabled" << std::endl;
+    
+    socketType = "ns3::TcpSocketFactory";
+  }
+  
   else
   {
     socketType = "ns3::UdpSocketFactory";
@@ -1256,46 +1345,17 @@ int main (int argc, char *argv[])
   // NEED TO ADJUST STATISTICS SUCH THAT IT COUNTS ONLY REAL DATA SENT, AND NOT PREDICTIVE DATA.
   // (i.e. packets sent by the actual model and not the predictive packets)
   // stats indexing needs to start from 1. 
-  // first half of the flows are the predictive flows
+  // all the flows are in chronological order
   // if TCP: flowStats[i].protocol == "TCP"
-  // first half of each group (predictive/real) is the actual DATA traffic. the second half is the back traffic of ACKs
-  if (transportProt.compare("TCP") == 0)
+  for (size_t i = 1; i <= flowStats.size(); i++)
   {
-    for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size() - flowStats.size()/4; i++) 
+    if (flowStats[i].timeFirstTxPacket.GetSeconds() == 1.0)
     {
-      if (classifier->FindFlow(i).protocol == 6) // TCP protocol number is 6
-      {
-        statTxPackets = statTxPackets + flowStats[i].txPackets;
-        statTxBytes = statTxBytes + flowStats[i].txBytes;
-        statRxPackets = statRxPackets + flowStats[i].rxPackets;
-        statRxBytes = statRxBytes + flowStats[i].rxBytes;
-      }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-      {
-        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-      }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-      {
-        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-      }
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
-    }
-  }
-  else // UDP
-  {
-    for (size_t i = flowStats.size()/2 + 1; i <= flowStats.size(); i++) 
-    {
-      if (classifier->FindFlow(i).protocol == 17) // UDP protocol number is 17
-      {
-        statTxPackets = statTxPackets + flowStats[i].txPackets;
-        statTxBytes = statTxBytes + flowStats[i].txBytes;
-        statRxPackets = statRxPackets + flowStats[i].rxPackets;
-        statRxBytes = statRxBytes + flowStats[i].rxBytes;
-      }
+      statTxPackets = statTxPackets + flowStats[i].txPackets;
+      statTxBytes = statTxBytes + flowStats[i].txBytes;
+      statRxPackets = statRxPackets + flowStats[i].rxPackets;
+      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+
       if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
       {
         packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];

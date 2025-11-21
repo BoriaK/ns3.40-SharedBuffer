@@ -618,6 +618,13 @@ class TrafficControlLayer : public Object
      * \returns return the new alpha_high and alpha_low value based on the optimization done prior.
      */
     std::pair<double_t, double_t> GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_elephant_prob_val);
+    
+    /**
+     * \brief returns the optimal deltaAlpha for the current incoming Transient.
+     * \param incoming_transient_lentgh the length in [uSec] of the current incoming transient.
+     * \returns return the new alpha_high and alpha_low value based on the optimization done prior.
+     */
+    uint32_t GetDeltaAlphas(uint32_t incoming_transient_lentgh);
   //////////////////////////////////////////////////////////////////////////////
     /**
      * \brief Perform the actions required when the queue disc is notified of
@@ -697,8 +704,12 @@ class TrafficControlLayer : public Object
     // Log Packets Parameters:
     int m_time_index = 0; //!< the index that represents the order of registery for packets that arrive at the exact same time
     int64_t m_lastArrivalTime = 0; //!< store the arrival time for the last (before current) packet
-    int64_t m_nextPacketArrivalTime; //!< the arrival time for the next packet of priority (p) 
+    int64_t m_nextHighPriorityPacketArrivalTime; //!< the arrival time for the next packet of High priority
+    int64_t m_nextLowPriorityPacketArrivalTime; //!< the arrival time for the next packet of Low priority
     int64_t m_timeTillNextPacket; //!< the time interval between current packet arrival time and the next High priority packet arrival time
+    int64_t m_lastHighPriorityPacketArrivalTime; //!< the arrival time for the last packet of High priority in current transient
+    int64_t m_transientLength; //!< the length of the current transient period
+    int32_t m_deltaAlphas = 0; //!< the change in alpha values for the transient
     
     // Flow Classification Parameters
     double_t m_Tau; //!< the length of the winddow in time to monitor incoming traffic, to estimate local d 

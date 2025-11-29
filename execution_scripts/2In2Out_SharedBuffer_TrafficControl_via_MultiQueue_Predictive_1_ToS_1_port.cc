@@ -468,8 +468,8 @@ int main (int argc, char *argv[])
 
   double_t miceElephantProb = 0.2;
   // predictive model should behaive just like the regular model would 
-  double_t alpha_high = 14;
-  double_t alpha_low = 6;
+  double_t alpha_high = 15;
+  double_t alpha_low = 5;
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
@@ -899,6 +899,9 @@ int main (int argc, char *argv[])
   internet.InstallAll ();
 
   NS_LOG_INFO ("Install QueueDisc");
+
+  // Call the static method BEFORE running the simulation
+  TrafficControlLayer::SetGlobalOutputDirectory(dirToSave);
 
   TrafficControlHelper tch;
   // priomap with low priority for class "0" and high priority for rest of the 15 classes (1-15). Technically not nesessary for RoundRobinPrioQueue
@@ -1347,28 +1350,58 @@ int main (int argc, char *argv[])
   // stats indexing needs to start from 1. 
   // all the flows are in chronological order
   // if TCP: flowStats[i].protocol == "TCP"
-  for (size_t i = 1; i <= flowStats.size(); i++)
+  if (transportProt.compare("UDP") == 0)
   {
-    if (flowStats[i].timeFirstTxPacket.GetSeconds() == 1.0)
+    for (size_t i = 1; i <= flowStats.size(); i++)
     {
-      statTxPackets = statTxPackets + flowStats[i].txPackets;
-      statTxBytes = statTxBytes + flowStats[i].txBytes;
-      statRxPackets = statRxPackets + flowStats[i].rxPackets;
-      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+      if (flowStats[i].timeFirstTxPacket.GetSeconds() > 1.0)
+      {
+        statTxPackets = statTxPackets + flowStats[i].txPackets;
+        statTxBytes = statTxBytes + flowStats[i].txBytes;
+        statRxPackets = statRxPackets + flowStats[i].rxPackets;
+        statRxBytes = statRxBytes + flowStats[i].rxBytes;
 
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-      {
-        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+        {
+          packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+          bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        }
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+        {
+          packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+          bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+        }
+        TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+        AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+        AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
       }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+    }
+  }
+  else
+  {
+    for (size_t i = 1; i <= flowStats.size(); i++)
+    {
+      if (flowStats[i].timeFirstTxPacket.GetSeconds() == 1.0)
       {
-        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+        statTxPackets = statTxPackets + flowStats[i].txPackets;
+        statTxBytes = statTxBytes + flowStats[i].txBytes;
+        statRxPackets = statRxPackets + flowStats[i].rxPackets;
+        statRxBytes = statRxBytes + flowStats[i].rxBytes;
+
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+        {
+          packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+          bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        }
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+        {
+          packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+          bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+        }
+        TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+        AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+        AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
       }
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
     }
   }
 

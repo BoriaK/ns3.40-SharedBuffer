@@ -181,7 +181,7 @@ public:
     }
 
     // Method to load packets from a file starting from a specific arrival time and index for duplicates
-    void LoadPacketsFromFile(const std::string& filename, int64_t startTime, size_t startIndex = 0) 
+    void LoadPacketsFromFile(const std::string& filename, int64_t startTime, size_t startIndex = 0, bool skipFirstPacket = false) 
     {
         std::ifstream inputFile(filename);
         if (!inputFile.is_open()) 
@@ -191,7 +191,8 @@ public:
         }
 
         std::string line;
-        std::unordered_map<int64_t, size_t> packetCount;  // To count occurrences of a specific timestamp
+        std::unordered_map<int64_t, size_t> packetCount;
+        bool shouldSkipFirst = skipFirstPacket;
 
         while (std::getline(inputFile, line)) 
         {
@@ -199,7 +200,7 @@ public:
             int64_t packetTime;
             int packetType;
 
-            // Read the time and packet type from the line
+            // Real the time and packet type from the line
             ss >> packetTime >> packetType;
 
             // Only load packets with a timestamp >= startTime
@@ -207,6 +208,13 @@ public:
             {
                 if (packetCount[packetTime] >= startIndex) 
                 {
+                    if (shouldSkipFirst) 
+                    {
+                        shouldSkipFirst = false;
+                        packetCount[packetTime]++;
+                        continue;
+                    }
+                    
                     Enqueue(packetType, packetTime);
                 }
                 packetCount[packetTime]++;
@@ -449,6 +457,8 @@ class TrafficControlLayer : public Object
     const TCStats& GetStats();
     /////////////////////////////////////////////////////////////////////  
 
+    static void SetGlobalOutputDirectory(const std::string& dir);
+
   protected:
     void DoDispose() override;
     void DoInitialize() override;
@@ -660,17 +670,21 @@ class TrafficControlLayer : public Object
     std::string m_usedAlgorythm; // the Traffic Controll algorythm to be used to manage traffic in shared buffer
     bool m_useSharedBuffer; // !< True if Shared-Buffer is used
     bool m_multiQueuePerPort; // !< True if multi-queue/port is used
-    float_t m_p_threshold_h; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
-    float_t m_p_threshold_l; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
-    TracedValue<float_t> m_p_trace_threshold_h_0; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
-    TracedValue<float_t> m_p_trace_threshold_h_1; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
-    TracedValue<float_t> m_p_trace_threshold_l_0; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
-    TracedValue<float_t> m_p_trace_threshold_l_1; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
-    TracedValue<float_t> m_b_threshold_h; //!< Maximum number of bytes enqueued for high priority stream ### Added BY ME ####
-    TracedValue<float_t> m_b_threshold_l; //!< Maximum number of bytes enqueued for low priority stream ### Added BY ME ####
+    uint32_t m_p_threshold_h; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
+    uint32_t m_p_threshold_l; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
+    TracedValue<uint32_t> m_p_trace_threshold_h_0; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
+    TracedValue<uint32_t> m_p_trace_threshold_h_1; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
+    TracedValue<uint32_t> m_p_trace_threshold_l_0; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
+    TracedValue<uint32_t> m_p_trace_threshold_l_1; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
+    TracedValue<uint32_t> m_b_threshold_h; //!< Maximum number of bytes enqueued for high priority stream ### Added BY ME ####
+    TracedValue<uint32_t> m_b_threshold_l; //!< Maximum number of bytes enqueued for low priority stream ### Added BY ME ####
+    uint32_t m_queueThresholdDT = 0; //!< the queueing limit for DT algorythm
+    uint32_t m_queueThresholdFB = 0; //!< the queueing limit for FB algoryth
     double_t m_alpha;  //!< The selected alpha parameter for the arriving packet
-    double_t m_alpha_h; //!< The pre-determined alpha parameter for high priority packets
-    double_t m_alpha_l;  //!< The pre-determined alpha parameter for low priority packets
+    double_t m_pre_alpha_h; //!< The pre-determined alpha parameter for high priority packets
+    double_t m_pre_alpha_l;  //!< The pre-determined alpha parameter for low priority packets
+    double_t m_alpha_h; //!< The alpha parameter for high priority packets
+    double_t m_alpha_l;  //!< The alpha parameter for low priority packets
     std::pair<double_t, double_t> alphas; //!< a new pair of Alpha High/Low assigned by the algorythm
     bool m_adjustableAlphas; // !< True if apply optimal Alpha High/Low values based on current "D"
     // FB queue disc parameters:
@@ -708,9 +722,14 @@ class TrafficControlLayer : public Object
     int64_t m_nextLowPriorityPacketArrivalTime; //!< the arrival time for the next packet of Low priority
     int64_t m_timeTillNextPacket; //!< the time interval between current packet arrival time and the next High priority packet arrival time
     int64_t m_lastHighPriorityPacketArrivalTime; //!< the arrival time for the last packet of High priority in current transient
-    int64_t m_transientLength; //!< the length of the current transient period
-    int32_t m_deltaAlphas = 0; //!< the change in alpha values for the transient
-    
+    int64_t m_transientLength = 0; //!< the length of the current transient period
+    int32_t m_deltaAlphas = 0; //!< the change in alpha values for the transient that's used inside the GetDeltaAlphas function
+    int32_t deltaAlphas = 0; //!< the change in alpha values for the transient that's used inside the queueing algorythm
+    uint32_t storeLowPriorityThreshold = 0; //!< to store the low priority threshold before entering transient
+    bool m_inTransient = false; //!< a flag to indicate whether we are currently in a transient period
+    bool m_freezeLowPriorityThreshold = false; //!< a flag to indicate whether to freeze the low priority threshold during a transient
+    bool m_flag = false; //!< a flag for debug
+
     // Flow Classification Parameters
     double_t m_Tau; //!< the length of the winddow in time to monitor incoming traffic, to estimate local d 
     double_t m_Num_M_High;  //!< the number of OnOff machines that generate High Priority traffic

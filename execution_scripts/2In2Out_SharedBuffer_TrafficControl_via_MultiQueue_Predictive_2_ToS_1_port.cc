@@ -157,7 +157,7 @@ ToString (uint32_t value)
 }
 
 std::string
-IntToString (u_int32_t value)
+IntToString (uint32_t value)
 {
   std::stringstream ss;
   ss << value;
@@ -212,7 +212,7 @@ TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t 
 
 // Trace the Threshold Value for High Priority packets in the Shared Queue
 void
-TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdHighTrace (size_t index, uint32_t oldValue, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tchpthr (datDir + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tchpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
@@ -223,7 +223,7 @@ TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newVal
 
 // Trace the Threshold Value for Low Priority packets in the Shared Queue
 void
-TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdLowTrace (size_t index, uint32_t oldValue, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tclpthr (datDir + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tclpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
@@ -471,8 +471,8 @@ int main (int argc, char *argv[])
 
   double_t miceElephantProb = 0.2;
   // predictive model should behaive just like the regular model would 
-  double_t alpha_high = 14;
-  double_t alpha_low = 6;
+  double_t alpha_high = 15;
+  double_t alpha_low = 5;
   
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
@@ -964,8 +964,8 @@ int main (int argc, char *argv[])
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
 
   // time interval values for OnOff Aplications
-  // double_t miceOnTime = 0.05; // [sec]
-  double_t miceOnTime = 0.1; // [sec]
+  double_t miceOnTime = 0.05; // [sec]
+  // double_t miceOnTime = 0.1; // [sec]
   // double_t miceOnTime = 0.3;
   // double_t miceOnTime = 0;
   // double_t elephantOnTime = 0.5; // [sec]
@@ -1415,31 +1415,64 @@ int main (int argc, char *argv[])
   // stats indexing needs to start from 1. 
   // all the flows are in chronological order
   // if TCP: flowStats[i].protocol == "TCP"
-  for (size_t i = 1; i <= flowStats.size(); i++)
+  if (transportProt.compare("UDP") == 0)
   {
-    if (flowStats[i].timeFirstTxPacket.GetSeconds() == 1.0 || flowStats[i].timeFirstTxPacket.GetSeconds() == 1.0 + appDelay)
+    for (size_t i = 1; i <= flowStats.size(); i++)
     {
-      statTxPackets = statTxPackets + flowStats[i].txPackets;
-      statTxBytes = statTxBytes + flowStats[i].txBytes;
-      statRxPackets = statRxPackets + flowStats[i].rxPackets;
-      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+      // if (i == 2 || i == 4)  // index 1 and 3 are predictive flows for UDP
+      if (i == 2)
+      {
+        statTxPackets = statTxPackets + flowStats[i].txPackets;
+        statTxBytes = statTxBytes + flowStats[i].txBytes;
+        statRxPackets = statRxPackets + flowStats[i].rxPackets;
+        statRxBytes = statRxBytes + flowStats[i].rxBytes;
 
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-      {
-        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+        {
+          packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+          bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        }
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+        {
+          packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+          bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+        }
+        TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+        AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+        AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
       }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+    }
+  }
+  else
+  {
+    for (size_t i = 1; i <= flowStats.size(); i++)
+    {
+      // if (i == 3 || i == 7)  // index 1 and 3 are predictive flows for UDP
+      if (i == 3)
       {
-        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+        statTxPackets = statTxPackets + flowStats[i].txPackets;
+        statTxBytes = statTxBytes + flowStats[i].txBytes;
+        statRxPackets = statRxPackets + flowStats[i].rxPackets;
+        statRxBytes = statRxBytes + flowStats[i].rxBytes;
+
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+        {
+          packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+          bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        }
+        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+        {
+          packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+          bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+        }
+        TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+        AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+        AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
       }
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
     }
   }
   
+
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
               << " / " << statTxBytes << std::endl;

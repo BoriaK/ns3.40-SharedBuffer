@@ -159,14 +159,6 @@ TrafficControlLayer::GetTypeId()
                             "Traffic Control Layer",
                             MakeTraceSourceAccessor(&TrafficControlLayer::m_p_trace_threshold_l_1),
                             "ns3::TracedValueCallback::Uint32")
-            .AddTraceSource("HighPriorityPacketsDropped",
-                            "Number of high priority packets dropped by the Traffic Control Layer",
-                            MakeTraceSourceAccessor(&TrafficControlLayer::m_nPackets_trace_High_Dropped),
-                            "ns3::TracedValueCallback::Uint32")
-            .AddTraceSource("LowPriorityPacketsDropped",
-                            "Number of low priority packets dropped by the Traffic Control Layer",
-                            MakeTraceSourceAccessor(&TrafficControlLayer::m_nPackets_trace_Low_Dropped),
-                            "ns3::TracedValueCallback::Uint32")
             //////////////////////////////////////////////////////////////////////////////////////////////
             .AddTraceSource("TcDrop",
                             "Trace source indicating a packet has been dropped by the Traffic "
@@ -1413,13 +1405,11 @@ TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
     {
         m_stats.nTotalDroppedPacketsHighPriority++;
         m_stats.nTotalDroppedBytesHighPriority += item->GetSize();
-        m_nPackets_trace_High_Dropped = m_stats.nTotalDroppedPacketsHighPriority;
     }
     else if (m_flow_priority == 2)
     {
         m_stats.nTotalDroppedPacketsLowPriority++;
         m_stats.nTotalDroppedBytesLowPriority += item->GetSize();
-        m_nPackets_trace_Low_Dropped = m_stats.nTotalDroppedPacketsLowPriority;
     }
 
     if (nodeName.compare("RouterPredict") == 0)
@@ -1444,150 +1434,6 @@ TrafficControlLayer::DropBeforeEnqueue(Ptr<const QueueDiscItem> item)
     NS_LOG_LOGIC("m_dropped (p)");
 
     m_dropped(item->GetPacket());
-}
-
-void
-TrafficControlLayer::DequeueCallback(Ptr<const QueueDiscItem> item)
-{
-    NS_LOG_FUNCTION(this << item);
-
-    std::string nodeName = Names::FindName(m_node);
-    
-    // Only update thresholds for the Router node
-    if (nodeName.compare("Router") != 0)
-    {
-        return;
-    }
-
-    // Get the flow priority from the packet
-    SharedPriorityTag flowPrioTag;
-    uint8_t flow_priority = 0;
-    if (item->GetPacket()->PeekPacketTag(flowPrioTag))
-    {
-        flow_priority = flowPrioTag.GetSimpleValue();
-    }
-    
-    // If no priority tag found, can't determine which threshold to update
-    if (flow_priority == 0)
-    {
-        return;
-    }
-
-    // Get the TxQueueIndex to determine which port this is from
-    uint8_t txQueueIndex = item->GetTxQueueIndex();
-    size_t txPortIndex = txQueueIndex;  // For simple cases, this maps directly
-    
-    // Try to find the device from the netDevices map by looking up which queue disc dequeued this
-    Ptr<NetDevice> device = nullptr;
-    for (const auto& ndi : m_netDevices)
-    {
-        if (ndi.second.m_rootQueueDisc)
-        {
-            // Check if this device has queue discs
-            for (size_t i = 0; i < ndi.second.m_queueDiscsToWake.size(); i++)
-            {
-                // For now, we'll use a simpler approach - iterate through devices
-                std::string devName = Names::FindName(ndi.first);
-                if (devName.find("switchDeviceOut") != std::string::npos)
-                {
-                    size_t devIndex = devName.back() - '0';
-                    if (devIndex == txQueueIndex)
-                    {
-                        device = ndi.first;
-                        txPortIndex = devIndex;
-                        break;
-                    }
-                }
-            }
-        }
-        if (device)
-        {
-            break;
-        }
-    }
-    
-    if (!device)
-    {
-        return; // Couldn't find device, can't update thresholds
-    }
-
-    // Recalculate thresholds after dequeue
-    if (m_usedAlgorythm.compare("DT") == 0 || m_usedAlgorythm.compare("PredictiveDT") == 0)
-    {
-        uint32_t threshold = 0;
-        if (flow_priority == 1)
-        {
-            threshold = GetQueueThreshold_DT(m_alpha_h, m_alpha_l, m_alpha_h).GetValue();
-        }
-        else if (flow_priority == 2)
-        {
-            threshold = GetQueueThreshold_DT(m_alpha_l, m_alpha_l, m_alpha_h).GetValue();
-        }
-
-        // Update the appropriate traced threshold
-        if (txPortIndex == 0)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_0 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_0 = threshold;
-            }
-        }
-        else if (txPortIndex == 1)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_1 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_1 = threshold;
-            }
-        }
-    }
-    else if (m_usedAlgorythm.compare("FB") == 0 || m_usedAlgorythm.compare("PredictiveFB") == 0)
-    {
-        // For FB algorithm, recalculate with current congestion state
-        float gamma_i = GetNormalizedDequeueBandWidth_v2(device, flow_priority, txPortIndex, 0);
-        int conjestedQueues = GetNumOfPriorityConjestedQueuesInSharedQueue(flow_priority);
-        
-        uint32_t threshold = 0;
-        if (flow_priority == 1)
-        {
-            threshold = GetQueueThreshold_FB(m_alpha_h, m_alpha_l, m_alpha_h, conjestedQueues, gamma_i).GetValue();
-        }
-        else if (flow_priority == 2)
-        {
-            threshold = GetQueueThreshold_FB(m_alpha_l, m_alpha_l, m_alpha_h, conjestedQueues, gamma_i).GetValue();
-        }
-
-        // Update the appropriate traced threshold
-        if (txPortIndex == 0)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_0 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_0 = threshold;
-            }
-        }
-        else if (txPortIndex == 1)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_1 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_1 = threshold;
-            }
-        }
-    }
 }
 
 void
@@ -1678,11 +1524,6 @@ TrafficControlLayer::ScanDevices()
                 q->SetSendCallback([dev](Ptr<QueueDiscItem> item) {
                     dev->Send(item->GetPacket(), item->GetAddress(), item->GetProtocol());
                 });
-                
-                // Connect dequeue callback to update thresholds
-                q->TraceConnectWithoutContext(
-                    "Dequeue",
-                    MakeCallback(&TrafficControlLayer::DequeueCallback, this));
             }
         }
     }

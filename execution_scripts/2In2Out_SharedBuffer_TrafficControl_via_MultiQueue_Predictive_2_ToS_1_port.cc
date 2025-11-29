@@ -210,6 +210,26 @@ TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t 
   // std::cout << "LowPriorityPacketsInSharedBuffer: " << newValue << std::endl;
 }
 
+void
+TrafficControlHighPriorityPacketsDroppedTrace (uint32_t oldValue, uint32_t newValue)
+{
+  std::ofstream tchppd (datDir + "/TrafficControlHighPriorityPacketsDroppedTrace.dat", std::ios::out | std::ios::app);
+  tchppd << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
+  tchppd.close ();
+  
+  std::cout << "HighPriorityPacketsDropped: " << newValue << std::endl;
+}
+
+void
+TrafficControlLowPriorityPacketsDroppedTrace (uint32_t oldValue, uint32_t newValue)
+{
+  std::ofstream tclppd (datDir + "/TrafficControlLowPriorityPacketsDroppedTrace.dat", std::ios::out | std::ios::app);
+  tclppd << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
+  tclppd.close ();
+  
+  std::cout << "LowPriorityPacketsDropped: " << newValue << std::endl;
+}
+
 // Trace the Threshold Value for High Priority packets in the Shared Queue
 void
 TrafficControlThresholdHighTrace (size_t index, uint32_t oldValue, uint32_t newValue)  // added by me, to monitor Threshold
@@ -244,26 +264,25 @@ MultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t
 }
 
 // for debug:
-// void
-// HighPriorityMultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
-// {
-//   std::ofstream hpqdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
-//   hpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
-//   hpqdpiq.close ();
+void
+HighPriorityMultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
+{
+  std::ofstream hpqdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_HighPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  hpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
+  hpqdpiq.close ();
   
-//   std::cout << "HighPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
-// }
-//////////////////////////////////////////////////////
+  std::cout << "HighPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
+}
 
-// void
-// LowPriorityMultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
-// {
-//   std::ofstream lpqdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
-//   lpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
-//   lpqdpiq.close ();
+void
+LowPriorityMultiQueueDiscPacketsInQueueTrace (size_t portIndex, size_t queueIndex, uint32_t oldValue, uint32_t newValue)
+{
+  std::ofstream lpqdpiq (datDir + "/port_" + ToString(portIndex) + "_queue_" + ToString(queueIndex) + "_LowPriorityPacketsInQueueTrace.dat", std::ios::out | std::ios::app);
+  lpqdpiq << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
+  lpqdpiq.close ();
   
-//   std::cout << "LowPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
-// }
+  std::cout << "LowPriorityQueueDiscPacketsInPort " << portIndex << " Queue " << queueIndex << ": " << newValue << std::endl;
+}
 /////////////////
 // for FIFO
 void
@@ -401,8 +420,9 @@ generate1DGnuPlotFromDatFile(std::string datFileName)
 }
 
 void
-generate2DGnuPlotFromDatFile(std::string datFileName, std::string priority)
+generatePacketsVsThresholdFromDatFile(std::string datFileName, std::string priority)
 {
+  // a method to plot num of <priority> packets in queue vs threshold
   std::string location = datFileName.substr(0, datFileName.length() - 38);
   std::string plotFileName = datFileName.substr(0, datFileName.length() - 23) + priority;
   std::string portInd = datFileName.substr(datFileName.length() - 33, 1);
@@ -419,7 +439,7 @@ generate2DGnuPlotFromDatFile(std::string datFileName, std::string priority)
   // add the desired trace parameters to plot
   Gnuplot2dDataset dataset1, dataset2;
 
-  dataset1.SetTitle("generated Packets");
+  dataset1.SetTitle(priority + " priority enqueued Packets");
   dataset1.SetStyle(Gnuplot2dDataset::LINES);
   
   // load a dat file as data set for plotting
@@ -435,7 +455,7 @@ generate2DGnuPlotFromDatFile(std::string datFileName, std::string priority)
   // Add the dataset to the plot.
   plot.AddDataset(dataset1);
   
-  dataset2.SetTitle(priority + " PriorityQueueThreshold");
+  dataset2.SetTitle(priority + " priority Queue Threshold");
   dataset2.SetStyle(Gnuplot2dDataset::LINES);
   // load a dat file as data set for plotting
   std::ifstream file2(location + "TrafficControl" + priority + "PriorityQueueThreshold_" + portInd + ".dat");
@@ -459,6 +479,63 @@ generate2DGnuPlotFromDatFile(std::string datFileName, std::string priority)
 }
 
 void
+generate2DGnuPlotFromDatFile(std::string datFileName1, std::string datFileName2)
+{
+  // a method to plot 2 plots xvs y from 2 different dat files on the same plot
+  std::string location = datFileName1.substr(0, datFileName1.length() - 48);
+  std::string plotFileName = "file1_vs_file2_vs_Time";
+  Gnuplot plot(location + plotFileName + ".png");
+  std::string plotTitle = "";
+  plot.SetTitle(plotTitle);
+  // Make the graphics file, which the plot file will create when it
+  // is used with Gnuplot, be a PNG file.
+  plot.SetTerminal("png");
+  // Set the labels for each axis. xlabel/ylabel
+  plot.SetLegend("Time[sec]", "Values");
+  
+  // add the desired trace parameters to plot
+  Gnuplot2dDataset dataset1, dataset2;
+
+  dataset1.SetTitle("data1");
+  dataset1.SetStyle(Gnuplot2dDataset::LINES);
+  
+  // load a dat file as data set for plotting
+  std::ifstream file1(datFileName1);
+  double x, y;
+  x = 0;
+  y = 0;
+
+  while (file1 >> x >> y) 
+  {
+    dataset1.Add(x, y);
+  }
+  // Add the dataset to the plot.
+  plot.AddDataset(dataset1);
+  
+  dataset2.SetTitle("data2");
+  dataset2.SetStyle(Gnuplot2dDataset::LINES);
+  // load a dat file as data set for plotting
+  std::ifstream file2(datFileName2);
+  x = 0;
+  y = 0;
+  while (file2 >> x >> y) 
+  {
+    dataset2.Add(x, y);
+  }
+  // Add the dataset to the plot.
+  plot.AddDataset(dataset2);
+
+  // Open the plot file.
+  std::ofstream plotFile(location + plotFileName + ".plt");
+  // Write the plot file.
+  plot.GenerateOutput(plotFile);
+  // Close the plot file.
+  plotFile.close();
+  // command line needs to be in ./ns-3-dev-git$ inorder for the script to produce gnuplot correctly///
+  system (("gnuplot " + location + plotFileName + ".plt").c_str ());
+}
+
+void
 SojournTimeTrace (Time sojournTime)
 {
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
@@ -477,7 +554,7 @@ int main (int argc, char *argv[])
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
-  std::string transportProt = "TCP"; // "UDP"/"TCP"
+  std::string transportProt = "UDP"; // "UDP"/"TCP"
   std::string tcpType = "TcpNewReno"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;
@@ -853,6 +930,8 @@ int main (int argc, char *argv[])
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_0", MakeBoundCallback (&TrafficControlThresholdLowTrace, 0));  
   tc->TraceConnectWithoutContext("EnqueueingThreshold_High_1", MakeBoundCallback (&TrafficControlThresholdHighTrace, 1));
   tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_1", MakeBoundCallback (&TrafficControlThresholdLowTrace, 1));
+  tc->TraceConnectWithoutContext("HighPriorityPacketsDropped", MakeCallback (&TrafficControlHighPriorityPacketsDroppedTrace));
+  tc->TraceConnectWithoutContext("LowPriorityPacketsDropped", MakeCallback (&TrafficControlLowPriorityPacketsDroppedTrace));
   
   // for predictive model
   Ptr<TrafficControlLayer> tcPredict;
@@ -964,8 +1043,8 @@ int main (int argc, char *argv[])
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
 
   // time interval values for OnOff Aplications
-  double_t miceOnTime = 0.05; // [sec]
-  // double_t miceOnTime = 0.1; // [sec]
+  // double_t miceOnTime = 0.05; // [sec]
+  double_t miceOnTime = 0.1; // [sec]
   // double_t miceOnTime = 0.3;
   // double_t miceOnTime = 0;
   // double_t elephantOnTime = 0.5; // [sec]
@@ -1415,60 +1494,29 @@ int main (int argc, char *argv[])
   // stats indexing needs to start from 1. 
   // all the flows are in chronological order
   // if TCP: flowStats[i].protocol == "TCP"
-  if (transportProt.compare("UDP") == 0)
-  {
-    for (size_t i = 1; i <= flowStats.size(); i++)
+  
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  { 
+    if ((transportProt.compare("UDP") == 0 && i==2) || (transportProt.compare("TCP") == 0 && i==3))
     {
-      // if (i == 2 || i == 4)  // index 1 and 3 are predictive flows for UDP
-      if (i == 2)
-      {
-        statTxPackets = statTxPackets + flowStats[i].txPackets;
-        statTxBytes = statTxBytes + flowStats[i].txBytes;
-        statRxPackets = statRxPackets + flowStats[i].rxPackets;
-        statRxBytes = statRxBytes + flowStats[i].rxBytes;
+      statTxPackets = statTxPackets + flowStats[i].txPackets;
+      statTxBytes = statTxBytes + flowStats[i].txBytes;
+      statRxPackets = statRxPackets + flowStats[i].rxPackets;
+      statRxBytes = statRxBytes + flowStats[i].rxBytes;
 
-        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-        {
-          packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-          bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        }
-        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-        {
-          packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-          bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-        }
-        TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-        AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-        AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
-      }
-    }
-  }
-  else
-  {
-    for (size_t i = 1; i <= flowStats.size(); i++)
-    {
-      // if (i == 3 || i == 7)  // index 1 and 3 are predictive flows for UDP
-      if (i == 3)
+      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
       {
-        statTxPackets = statTxPackets + flowStats[i].txPackets;
-        statTxBytes = statTxBytes + flowStats[i].txBytes;
-        statRxPackets = statRxPackets + flowStats[i].rxPackets;
-        statRxBytes = statRxBytes + flowStats[i].rxBytes;
-
-        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
-        {
-          packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-          bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        }
-        if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-        {
-          packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-          bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-        }
-        TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-        AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-        AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
+        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
       }
+      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+      {
+        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+      }
+      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
     }
   }
   
@@ -1553,8 +1601,11 @@ int main (int argc, char *argv[])
   // system (("mv -f " + dir + traffic_control_type + "/" + implementation + + "/*.txt " + dirToSave).c_str ());
 
   // Create the gnuplot.//////////////////////////////
-  generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
-  generate2DGnuPlotFromDatFile(dirToSave + "/port_0_queue_1_PacketsInQueueTrace.dat", "Low");
+  generatePacketsVsThresholdFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
+  generatePacketsVsThresholdFromDatFile(dirToSave + "/port_0_queue_1_PacketsInQueueTrace.dat", "Low");
+
+  // to debug drops:
+  generate2DGnuPlotFromDatFile(dirToSave + "/TrafficControlLowPriorityPacketsDroppedTrace.dat", dirToSave + "/TrafficControlLowPriorityQueueThreshold_0.dat");
 
   // Simulator::Cancel();
   Simulator::Destroy ();

@@ -532,7 +532,7 @@ int main (int argc, char *argv[])
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
-  std::string transportProt = "UDP"; // "UDP"/"TCP"
+  std::string transportProt = "TCP"; // "UDP"/"TCP"
   std::string tcpType = "TcpNewReno"; // "TcpNewReno"/"TcpBbr"/"TcpNewRenoTest" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;

@@ -2480,7 +2480,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // m_freezeLowPriorityThreshold = true;
                                 if (m_transientLength > 0)
                                 {
-                                    m_inTransient = false;
+                                    m_inTransient = true;  // flag to enable mitigation
                                 }
                                 else
                                 {
@@ -2541,11 +2541,11 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             else // if we're in the middle of the transient
                             {
                                 // instead of a constant value, use max (storeLowPriorityThreshold, GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue())
-                                m_queueThresholdDT = std::max(storeLowPriorityThreshold, GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue());
-                                // m_queueThresholdDT = storeLowPriorityThreshold;
+                                // m_queueThresholdDT = std::max(storeLowPriorityThreshold, GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue());
+                                m_queueThresholdDT = storeLowPriorityThreshold;
 
                                 // for "let all packets" debug
-                                m_flag = true;
+                                m_flag = false;
                             }
                             
                             if (m_flag || internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue() <

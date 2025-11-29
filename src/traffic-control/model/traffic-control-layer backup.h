@@ -645,6 +645,13 @@ class TrafficControlLayer : public Object
      * dropped before enqueue for the specified reason
      */
     void DropBeforeEnqueue(Ptr<const QueueDiscItem> item);
+
+    /**
+     * \brief Callback invoked when a packet is dequeued from a queue disc
+     *        Updates thresholds after dequeue
+     * \param item the dequeued item
+     */
+    void DequeueCallback(Ptr<const QueueDiscItem> item);
     
     //// The node this TrafficControlLayer object is aggregated to
     Ptr<Node> m_node;
@@ -665,6 +672,8 @@ class TrafficControlLayer : public Object
     uint32_t m_nBytes_Low_InSharedQueue; //!< Number of Low Priority packets in the queue ######## Added by me!######  
     TracedValue<uint32_t> m_nPackets_trace_High_InSharedQueue;
     TracedValue<uint32_t> m_nPackets_trace_Low_InSharedQueue;
+    TracedValue<uint32_t> m_nPackets_trace_High_Dropped; //!< Number of High Priority packets dropped by traffic control layer
+    TracedValue<uint32_t> m_nPackets_trace_Low_Dropped; //!< Number of Low Priority packets dropped by traffic control layer
     // general parameters:
     TcPriomap m_tosPrioMap; // the priority map used by the Round Robin Prio-QueueDisc
     std::string m_usedAlgorythm; // the Traffic Controll algorythm to be used to manage traffic in shared buffer

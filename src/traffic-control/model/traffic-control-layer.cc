@@ -143,22 +143,22 @@ TrafficControlLayer::GetTypeId()
                             "The Threshold for High Priority packets in the Shared Buffer in "
                             "Traffic Control Layer",
                             MakeTraceSourceAccessor(&TrafficControlLayer::m_p_trace_threshold_h_0),
-                            "ns3::TracedValueCallback::Uint32")
+                            "ns3::TracedCallback::Uint32")
             .AddTraceSource("EnqueueingThreshold_High_1",
                             "The Threshold for High Priority packets in the Shared Buffer in "
                             "Traffic Control Layer",
                             MakeTraceSourceAccessor(&TrafficControlLayer::m_p_trace_threshold_h_1),
-                            "ns3::TracedValueCallback::Uint32")
+                            "ns3::TracedCallback::Uint32")
             .AddTraceSource("EnqueueingThreshold_Low_0",
                             "The Threshold for Low Priority packets in the Shared Buffer in "
                             "Traffic Control Layer",
                             MakeTraceSourceAccessor(&TrafficControlLayer::m_p_trace_threshold_l_0),
-                            "ns3::TracedValueCallback::Uint32")
+                            "ns3::TracedCallback::Uint32")
             .AddTraceSource("EnqueueingThreshold_Low_1",
                             "The Threshold for Low Priority packets in the Shared Buffer in "
                             "Traffic Control Layer",
                             MakeTraceSourceAccessor(&TrafficControlLayer::m_p_trace_threshold_l_1),
-                            "ns3::TracedValueCallback::Uint32")
+                            "ns3::TracedCallback::Uint32")
             .AddTraceSource("HighPriorityPacketsDropped",
                             "Number of high priority packets dropped by the Traffic Control Layer",
                             MakeTraceSourceAccessor(&TrafficControlLayer::m_nPackets_trace_High_Dropped),
@@ -804,6 +804,49 @@ TrafficControlLayer::GetNormalizedDequeueBandWidth_v1(Ptr<NetDevice> device, uin
 }
 
 float_t
+TrafficControlLayer::GetNormalizedDequeueBandWidth_v1_transient(Ptr<NetDevice> device, uint16_t queueIndex)
+{
+    NS_LOG_FUNCTION(this);
+
+    // this version DOESN'T ASSIGN different dequeue rates for packets of different class from the same port.
+
+    // initilize non empty queues/port count at each itteration
+    m_nonEmpty = 0;
+
+    Ptr<NetDevice> ndev = device;
+    std::map<Ptr<NetDevice>, NetDeviceInfo>::iterator ndi = m_netDevices.find(ndev);
+    if (ndi == m_netDevices.end() ||
+        !ndi->second.m_rootQueueDisc) // if no root-queue-disc is installed on the net-device
+    {
+        m_nonEmpty = 1; // gamma_i(t) is always 1 when there's a single queue/port scenario
+    }
+    else // if we use a queue-disc on NetDevice as port
+    {
+        if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() == 0) // if we use single queue/port
+        {
+            m_nonEmpty = 1;
+        }
+        else // if we use multiple queues/port
+        {
+            for (size_t j = 0; j < ndi->second.m_rootQueueDisc->GetNQueueDiscClasses(); j++)
+            {
+                Ptr<QueueDisc> qDisc = ndi->second.m_rootQueueDisc->GetQueueDiscClass(j)->GetQueueDisc();
+                // if queue_i(t) is either non empty or it's the same queue_i(t) that's about to
+                // recieve the next packet
+                if (qDisc->GetNPackets() || j == queueIndex)
+                {
+                    m_nonEmpty++;
+                }
+            }
+        }
+    }
+    // calculate the normalized dequeue rate of a queue on a port (net-device) as 1/non-empty queues
+    // on this port
+    m_gamma = 1.0 / m_nonEmpty + 1;
+    return m_gamma;
+}
+
+float_t
 TrafficControlLayer::GetNormalizedDequeueBandWidth_v2(Ptr<NetDevice> device, uint8_t flow_priority, uint16_t portIndex, uint16_t queueIndex)
 {
     NS_LOG_FUNCTION(this);
@@ -877,33 +920,109 @@ TrafficControlLayer::GetQueueThreshold_DT(double_t alpha, double_t alpha_l, doub
 {
     NS_LOG_FUNCTION(this);
 
+    // DEBUG_FIX_CLAMPING: Prevent uint32_t underflow in buffer calculation
     if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::PACKETS)
     {
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
         if (alpha == alpha_h)
         {
-            m_p_threshold_h = alpha_h * (GetMaxSharedBufferSize().GetValue() -
-                                         GetCurrentSharedBufferSize().GetValue());
+            m_p_threshold_h = alpha_h * remainingSpace;
             return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_h);
         }
         else if (alpha == alpha_l)
         {
-            m_p_threshold_l = alpha_l * (GetMaxSharedBufferSize().GetValue() -
-                                         GetCurrentSharedBufferSize().GetValue());
+            m_p_threshold_l = alpha_l * remainingSpace;
             return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_l);
         }
     }
     if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::BYTES)
     {
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
         if (alpha == alpha_h)
         {
-            m_b_threshold_h = alpha_h * (GetMaxSharedBufferSize().GetValue() -
-                                         GetCurrentSharedBufferSize().GetValue());
+            m_b_threshold_h = alpha_h * remainingSpace;
             return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_h);
         }
         else if (alpha == alpha_l)
         {
-            m_p_threshold_l = alpha_l * (GetMaxSharedBufferSize().GetValue() -
-                                         GetCurrentSharedBufferSize().GetValue());
+            m_p_threshold_l = alpha_l * remainingSpace;
+            return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_l);
+        }
+    }
+    NS_ABORT_MSG("Unknown Threshod unit");
+}
+
+QueueSize
+TrafficControlLayer::GetQueueThreshold_DT(double_t alpha, double_t alpha_l, double_t alpha_h, bool inTransient, Ptr<NetDevice> device, uint16_t subQueueIndex) // added by me!!!!!!!! for DT implementation with transient handling
+{
+    NS_LOG_FUNCTION(this);
+
+    if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::PACKETS)
+    {
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
+        if (alpha == alpha_h)
+        {
+            m_p_threshold_h = alpha_h * remainingSpace;
+            return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_h);
+        }
+        else if (alpha == alpha_l)
+        {
+            if (!m_freezeLowPriorityThreshold)
+            {
+                m_p_threshold_l = alpha_l * remainingSpace;
+                if (m_inTransient) // if we're about to enter transient
+                {
+                    float m_gamma_i = GetNormalizedDequeueBandWidth_v1_transient(device, subQueueIndex);
+                            // for debug:
+                            std::cout << "the normalized dequeue rate on port: " << device
+                                    << " is: " << m_gamma_i << std::endl; 
+                    storedLowPriorityThreshold = m_gamma_i * m_p_threshold_l;
+                    m_freezeLowPriorityThreshold = true; // freeze the low priority threshold during transient
+                } 
+            }
+            else if (!m_inTransient && GetNumOfHighPriorityPacketsInSharedQueue().GetValue() == 0) // if the transient has passed
+            {
+                m_p_threshold_l = alpha_l * remainingSpace;
+                m_freezeLowPriorityThreshold = false; // unfreeze the low priority threshold calculation
+
+                // release "let all packets" flag
+                m_flag = false;
+            }
+            else // if we're in the middle of the transient
+            {
+                // instead of a constant value, use max (storeLowPriorityThreshold, GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue())
+                // m_p_threshold_l = std::max(storeLowPriorityThreshold, GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue());
+                m_p_threshold_l = storedLowPriorityThreshold;
+
+                // for "let all packets" debug
+                m_flag = false;
+            }
+            return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_l);
+        }
+    }
+    if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::BYTES)
+    {
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
+        if (alpha == alpha_h)
+        {
+            m_b_threshold_h = alpha_h * remainingSpace;
+            return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_h);
+        }
+        else if (alpha == alpha_l)
+        {
+            m_p_threshold_l = alpha_l * remainingSpace;
             return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_l);
         }
     }
@@ -923,20 +1042,20 @@ TrafficControlLayer::GetQueueThreshold_FB(double_t alpha, double_t alpha_l, doub
     if (conjestedQueues ==
         0) // if queue is compleatly empty -> Threshold should be as high as possible (Infinity)
     {
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
         if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::PACKETS)
         {
             if (alpha == alpha_h)
             {
-                m_p_threshold_h =
-                    alpha_h * m_gamma *
-                    (GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue());
+                m_p_threshold_h = alpha_h * m_gamma * remainingSpace;
                 return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_h);
             }
             else if (alpha == alpha_l)
             {
-                m_p_threshold_l =
-                    alpha_l * m_gamma *
-                    (GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue());
+                m_p_threshold_l = alpha_l * m_gamma * remainingSpace;
                 return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_l);
             }
         }
@@ -944,16 +1063,12 @@ TrafficControlLayer::GetQueueThreshold_FB(double_t alpha, double_t alpha_l, doub
         {
             if (alpha == alpha_h)
             {
-                m_b_threshold_h =
-                    alpha_h * m_gamma *
-                    (GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue());
+                m_b_threshold_h = alpha_h * m_gamma * remainingSpace;
                 return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_h);
             }
             else if (alpha == alpha_l)
             {
-                m_p_threshold_l =
-                    alpha_l * m_gamma *
-                    (GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue());
+                m_p_threshold_l = alpha_l * m_gamma * remainingSpace;
                 return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_l);
             }
         }
@@ -962,6 +1077,10 @@ TrafficControlLayer::GetQueueThreshold_FB(double_t alpha, double_t alpha_l, doub
     else // some queues are already congested
     {
         m_numConjestedQueues = conjestedQueues;
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
         if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::PACKETS)
         {
             // queue_priority = [2, 1]
@@ -969,16 +1088,14 @@ TrafficControlLayer::GetQueueThreshold_FB(double_t alpha, double_t alpha_l, doub
             {
                 m_numConjestedQueuesHigh = conjestedQueues;
                 m_p_threshold_h =
-                    alpha_h * (1 / m_numConjestedQueuesHigh) * m_gamma *
-                    (GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue());
+                    alpha_h * (1 / m_numConjestedQueuesHigh) * m_gamma * remainingSpace;
                 return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_h);
             }
             else if (alpha == alpha_l)
             {
                 m_numConjestedQueuesLow = conjestedQueues;
                 m_p_threshold_l =
-                    alpha_l * (1 / m_numConjestedQueuesLow) * m_gamma *
-                    (GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue());
+                    alpha_l * (1 / m_numConjestedQueuesLow) * m_gamma * remainingSpace;
                 return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_l);
             }
         }
@@ -987,17 +1104,13 @@ TrafficControlLayer::GetQueueThreshold_FB(double_t alpha, double_t alpha_l, doub
             if (alpha == alpha_h)
             {
                 m_numConjestedQueuesHigh = conjestedQueues;
-                m_b_threshold_h = std::ceil(alpha_h * (1 / m_numConjestedQueuesHigh) * m_gamma *
-                                            (GetMaxSharedBufferSize().GetValue() -
-                                             GetCurrentSharedBufferSize().GetValue()));
+                m_b_threshold_h = std::ceil(alpha_h * (1 / m_numConjestedQueuesHigh) * m_gamma * remainingSpace);
                 return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_h);
             }
             else if (alpha == alpha_l)
             {
                 m_numConjestedQueuesLow = conjestedQueues;
-                m_p_threshold_l = std::ceil(alpha_l * (1 / m_numConjestedQueuesLow) * m_gamma *
-                                            (GetMaxSharedBufferSize().GetValue() -
-                                             GetCurrentSharedBufferSize().GetValue()));
+                m_p_threshold_l = std::ceil(alpha_l * (1 / m_numConjestedQueuesLow) * m_gamma * remainingSpace);
                 return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_l);
             }
         }
@@ -1451,143 +1564,10 @@ TrafficControlLayer::DequeueCallback(Ptr<const QueueDiscItem> item)
 {
     NS_LOG_FUNCTION(this << item);
 
-    std::string nodeName = Names::FindName(m_node);
-    
-    // Only update thresholds for the Router node
-    if (nodeName.compare("Router") != 0)
-    {
-        return;
-    }
-
-    // Get the flow priority from the packet
-    SharedPriorityTag flowPrioTag;
-    uint8_t flow_priority = 0;
-    if (item->GetPacket()->PeekPacketTag(flowPrioTag))
-    {
-        flow_priority = flowPrioTag.GetSimpleValue();
-    }
-    
-    // If no priority tag found, can't determine which threshold to update
-    if (flow_priority == 0)
-    {
-        return;
-    }
-
-    // Get the TxQueueIndex to determine which port this is from
-    uint8_t txQueueIndex = item->GetTxQueueIndex();
-    size_t txPortIndex = txQueueIndex;  // For simple cases, this maps directly
-    
-    // Try to find the device from the netDevices map by looking up which queue disc dequeued this
-    Ptr<NetDevice> device = nullptr;
-    for (const auto& ndi : m_netDevices)
-    {
-        if (ndi.second.m_rootQueueDisc)
-        {
-            // Check if this device has queue discs
-            for (size_t i = 0; i < ndi.second.m_queueDiscsToWake.size(); i++)
-            {
-                // For now, we'll use a simpler approach - iterate through devices
-                std::string devName = Names::FindName(ndi.first);
-                if (devName.find("switchDeviceOut") != std::string::npos)
-                {
-                    size_t devIndex = devName.back() - '0';
-                    if (devIndex == txQueueIndex)
-                    {
-                        device = ndi.first;
-                        txPortIndex = devIndex;
-                        break;
-                    }
-                }
-            }
-        }
-        if (device)
-        {
-            break;
-        }
-    }
-    
-    if (!device)
-    {
-        return; // Couldn't find device, can't update thresholds
-    }
-
-    // Recalculate thresholds after dequeue
-    if (m_usedAlgorythm.compare("DT") == 0 || m_usedAlgorythm.compare("PredictiveDT") == 0)
-    {
-        uint32_t threshold = 0;
-        if (flow_priority == 1)
-        {
-            threshold = GetQueueThreshold_DT(m_alpha_h, m_alpha_l, m_alpha_h).GetValue();
-        }
-        else if (flow_priority == 2)
-        {
-            threshold = GetQueueThreshold_DT(m_alpha_l, m_alpha_l, m_alpha_h).GetValue();
-        }
-
-        // Update the appropriate traced threshold
-        if (txPortIndex == 0)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_0 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_0 = threshold;
-            }
-        }
-        else if (txPortIndex == 1)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_1 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_1 = threshold;
-            }
-        }
-    }
-    else if (m_usedAlgorythm.compare("FB") == 0 || m_usedAlgorythm.compare("PredictiveFB") == 0)
-    {
-        // For FB algorithm, recalculate with current congestion state
-        float gamma_i = GetNormalizedDequeueBandWidth_v2(device, flow_priority, txPortIndex, 0);
-        int conjestedQueues = GetNumOfPriorityConjestedQueuesInSharedQueue(flow_priority);
-        
-        uint32_t threshold = 0;
-        if (flow_priority == 1)
-        {
-            threshold = GetQueueThreshold_FB(m_alpha_h, m_alpha_l, m_alpha_h, conjestedQueues, gamma_i).GetValue();
-        }
-        else if (flow_priority == 2)
-        {
-            threshold = GetQueueThreshold_FB(m_alpha_l, m_alpha_l, m_alpha_h, conjestedQueues, gamma_i).GetValue();
-        }
-
-        // Update the appropriate traced threshold
-        if (txPortIndex == 0)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_0 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_0 = threshold;
-            }
-        }
-        else if (txPortIndex == 1)
-        {
-            if (flow_priority == 1)
-            {
-                m_p_trace_threshold_h_1 = threshold;
-            }
-            else if (flow_priority == 2)
-            {
-                m_p_trace_threshold_l_1 = threshold;
-            }
-        }
-    }
+    // Threshold updates during dequeue have been removed
+    // Thresholds are now only calculated during enqueue operations
+    // This avoids race conditions where GetCurrentSharedBufferSize() 
+    // returns inconsistent values during distributed queue updates
 }
 
 void
@@ -1858,6 +1838,15 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
 
     NS_ASSERT(!devQueueIface || txq < devQueueIface->GetNTxQueues());
 
+    // Calculate port index early for use in SetTxQueueIndex throughout Send()
+    // This extracts the port number from device names like "switchDeviceOut0" or "switchDeviceOut1"
+    std::string netDeviceName = Names::FindName(device);
+    size_t txPortIndex = 0;
+    if (netDeviceName.find("switchDeviceOut") != std::string::npos)
+    {
+        txPortIndex = netDeviceName.back() - '0';
+    }
+
     // load the Alpha High/Low values from predefined. this is needed because predictive model updates alphas and it needed to 
     // restore them for next packet processing
     m_alpha_h = m_pre_alpha_h;
@@ -1905,19 +1894,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     Ptr<PointToPointNetDevice> p2pndev = DynamicCast<PointToPointNetDevice>(device);
                     Ptr<Queue<Packet>> queue = p2pndev->GetQueue();
 
-                    // determine the port index of current net-device:
-                    std::string netDeviceName = Names::FindName(device); // Get the name of the net-device
-                    size_t txPortIndex = 0;
-                    if (netDeviceName.find("switchDeviceOut")!=std::string::npos)
-                    {
-                        // size_t netDeviceIndex = GetNetDeviceIndex(device);
-                        // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
-                        // txPortIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then,
-                        // the port index is the netDeviceIndex modulu 2.
-                        
-                        txPortIndex = netDeviceName.back() - '0';
-                        // std::cout << "Index of '" << device << "': " << txPortIndex << std::endl;
-                    }
+                    // txPortIndex already calculated at the beginning of Send() method
+                    // No need to recalculate here
 
                     // set a besic Packet clasification based on arbitrary Tag from recieved packet:
                     // flow_priority = 1 is high priority, flow_priority = 2 is low priority
@@ -1942,15 +1920,13 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // to trace Threshold per port
                                 if (txPortIndex == 0)
                                 {
-                                    m_p_trace_threshold_h_0 =
-                                        GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
-                                            .GetValue(); // for tracing
+                                    m_p_trace_threshold_h_0(GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
+                                            .GetValue()); // for tracing
                                 }
                                 else if (txPortIndex == 1)
                                 {
-                                    m_p_trace_threshold_h_1 =
-                                        GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
-                                            .GetValue(); // for tracing
+                                    m_p_trace_threshold_h_1(GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
+                                            .GetValue()); // for tracing
                                 }
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
@@ -1999,23 +1975,21 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // to trace Threshold per port
                                 if (txPortIndex == 0)
                                 {
-                                    m_p_trace_threshold_h_0 =
-                                        GetQueueThreshold_FB(m_alpha,
+                                    m_p_trace_threshold_h_0(GetQueueThreshold_FB(m_alpha,
                                                                 m_alpha_l,
                                                                 m_alpha_h,
                                                                 conjestedQueues,
                                                                 gamma_i)
-                                            .GetValue(); // for tracing
+                                            .GetValue()); // for tracing
                                 }
                                 else if (txPortIndex == 1)
                                 {
-                                    m_p_trace_threshold_h_1 =
-                                        GetQueueThreshold_FB(m_alpha,
+                                    m_p_trace_threshold_h_1(GetQueueThreshold_FB(m_alpha,
                                                                 m_alpha_l,
                                                                 m_alpha_h,
                                                                 conjestedQueues,
                                                                 gamma_i)
-                                            .GetValue(); // for tracing
+                                            .GetValue()); // for tracing
                                 }
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
@@ -2059,15 +2033,13 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // to trace Threshold per port
                                 if (txPortIndex == 0)
                                 {
-                                    m_p_trace_threshold_l_0 =
-                                        GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
-                                            .GetValue(); // for tracing
+                                    m_p_trace_threshold_l_0(GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
+                                            .GetValue()); // for tracing
                                 }
                                 else if (txPortIndex == 1)
                                 {
-                                    m_p_trace_threshold_l_1 =
-                                        GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
-                                            .GetValue(); // for tracing
+                                    m_p_trace_threshold_l_1(GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h)
+                                            .GetValue()); // for tracing
                                 }
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
@@ -2108,23 +2080,21 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // to trace Threshold per port
                                 if (txPortIndex == 0)
                                 {
-                                    m_p_trace_threshold_l_0 =
-                                        GetQueueThreshold_FB(m_alpha,
+                                    m_p_trace_threshold_l_0(GetQueueThreshold_FB(m_alpha,
                                                                 m_alpha_l,
                                                                 m_alpha_h,
                                                                 conjestedQueues,
                                                                 gamma_i)
-                                            .GetValue(); // for tracing
+                                            .GetValue()); // for tracing
                                 }
                                 else if (txPortIndex == 1)
                                 {
-                                    m_p_trace_threshold_l_1 =
-                                        GetQueueThreshold_FB(m_alpha,
+                                    m_p_trace_threshold_l_1(GetQueueThreshold_FB(m_alpha,
                                                                 m_alpha_l,
                                                                 m_alpha_h,
                                                                 conjestedQueues,
                                                                 gamma_i)
-                                            .GetValue(); // for tracing
+                                            .GetValue()); // for tracing
                                 }
                                 device->Send(item->GetPacket(),
                                              item->GetAddress(),
@@ -2315,7 +2285,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 {
                     // Enqueue the packet in the queue disc associated with the netdevice queue
                     // selected for the packet and try to dequeue packets from such queue disc
-                    item->SetTxQueueIndex(txq);
+                    // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
+                    item->SetTxQueueIndex(txPortIndex);
 
                     Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
                     NS_ASSERT(qDisc);
@@ -2328,32 +2299,23 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 }
                 else  // Real UDP and Predictive/Real TCP Data packets
                 {
-                    // determine the port index of current net-device:
-                    std::string netDeviceName = Names::FindName(device); // Get the name of the net-device
-                    size_t txPortIndex = 0; // initilize to 0
-                    if (netDeviceName.find("switchDeviceOut")!=std::string::npos)  // if the current net-device is a "switchDeviceOut"
-                    {
-                        // size_t netDeviceIndex = GetNetDeviceIndex(device);
-                        // std::cout << "Index of '" << device << "': " << netDeviceIndex << std::endl;
-                        // txPortIndex = netDeviceIndex % 2; // if the current net-device is a "switchDeviceOut" then the port index is the netDeviceIndex modulu 2
-                        
-                        txPortIndex = netDeviceName.back() - '0';
-                        // std::cout << "Index of '" << device << "': " << txPortIndex << std::endl;
-                    }
+                    // txPortIndex already calculated at the beginning of Send() method
+                    // No need to recalculate here
                     
                     // Enqueue the packet in the queue disc associated with the netdevice queue
                     // selected for the packet and try to dequeue packets from such queue disc
-                    item->SetTxQueueIndex(txq);
+                    // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
+                    item->SetTxQueueIndex(txPortIndex);
                     Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
                     NS_ASSERT(qDisc);
                     Ptr<QueueDisc> internal_qDisc; // for the multiqueue case
                     SocketIpTosTag ipTosTag;
                     uint16_t realOnOffApplicationTos = 0;
                     int destinationPort = tcpHeader.GetDestinationPort();
-                    uint16_t subQueueIndex = m_tosPrioMap[0];
+                    uint16_t m_subQueueIndex = m_tosPrioMap[0];
                     if (ndi->second.m_rootQueueDisc->GetNQueueDiscClasses() > 1) // if we use multiple queues/port.
                     {
-                        // uint16_t subQueueIndex = m_tosPrioMap[0];
+                        // uint16_t m_subQueueIndex = m_tosPrioMap[0];
                         // SocketIpTosTag ipTosTag;
                         if (item->GetPacket()->PeekPacketTag(ipTosTag))
                         {
@@ -2386,7 +2348,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             ipTosTag.SetTos(realOnOffApplicationTos);
                             item->GetPacket()->AddPacketTag(ipTosTag);
                             // std::cout << "packet: " << item->GetPacket() << " force IP ToS : " << int(ipTosTag.GetTos()) << std::endl;
-                            subQueueIndex = m_tosPrioMap[(ipTosTag.GetTos() / 2) & 0x0f];
+                            m_subQueueIndex = m_tosPrioMap[(ipTosTag.GetTos() / 2) & 0x0f];
                         }
                         else if (destinationPort == 50003)
                         {
@@ -2395,20 +2357,20 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             ipTosTag.SetTos(realOnOffApplicationTos);
                             item->GetPacket()->AddPacketTag(ipTosTag);
                             // std::cout << "packet: " << item->GetPacket() << " force IP ToS : " << int(ipTosTag.GetTos()) << std::endl;
-                            subQueueIndex = m_tosPrioMap[(ipTosTag.GetTos() / 2) & 0x0f];
+                            m_subQueueIndex = m_tosPrioMap[(ipTosTag.GetTos() / 2) & 0x0f];
                         }
                         else
                         {
                             std::cout << "packet: " << item->GetPacket() << " ToS : " << 0 << std::endl;
                         }
                         ///////////////////////////////////////
-                        internal_qDisc = qDisc->GetQueueDiscClass(subQueueIndex)->GetQueueDisc();
+                        internal_qDisc = qDisc->GetQueueDiscClass(m_subQueueIndex)->GetQueueDisc();
                         NS_ASSERT(internal_qDisc);
                         m_multiQueuePerPort = true;
                     }
                     else
                     {
-                        subQueueIndex = 0; // efectively it doesn't matter
+                        m_subQueueIndex = 0; // efectively it doesn't matter
                         // for debug:
                         if (item->GetPacket()->PeekPacketTag(ipTosTag))
                         {
@@ -2480,7 +2442,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // m_freezeLowPriorityThreshold = true;
                                 if (m_transientLength > 0)
                                 {
-                                    m_inTransient = true;  // flag to enable mitigation
+                                    m_inTransient = true;  // true/ false - flag to enable mitigation
                                 }
                                 else
                                 {
@@ -2520,33 +2482,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         }
                         else
                         {
-                            m_alpha = m_alpha_l; 
-                            if (!m_freezeLowPriorityThreshold)
-                            {
-                                m_queueThresholdDT = GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue();
-                                if (m_inTransient) // if we're about to enter transient
-                                {
-                                    storeLowPriorityThreshold = m_queueThresholdDT;
-                                    m_freezeLowPriorityThreshold = true; // freeze the low priority threshold during transient
-                                } 
-                            }
-                            else if (!m_inTransient && GetNumOfHighPriorityPacketsInSharedQueue().GetValue() == 0) // if the transient has passed
-                            {
-                                m_queueThresholdDT = GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue();
-                                m_freezeLowPriorityThreshold = false; // unfreeze the low priority threshold calculation
-
-                                // release "let all packets" flag
-                                m_flag = false;
-                            }
-                            else // if we're in the middle of the transient
-                            {
-                                // instead of a constant value, use max (storeLowPriorityThreshold, GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue())
-                                // m_queueThresholdDT = std::max(storeLowPriorityThreshold, GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h).GetValue());
-                                m_queueThresholdDT = storeLowPriorityThreshold;
-
-                                // for "let all packets" debug
-                                m_flag = false;
-                            }
+                            m_alpha = m_alpha_l;
+                            m_queueThresholdDT = GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h, m_inTransient, device, m_subQueueIndex).GetValue();
                             
                             if (m_flag || internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue() <
                             m_queueThresholdDT)
@@ -2568,22 +2505,22 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             {
                                 if (m_flow_priority == 1)
                                 {
-                                    m_p_trace_threshold_h_0 = m_queueThresholdDT; // for tracing
+                                    m_p_trace_threshold_h_0(m_queueThresholdDT); // for tracing
                                 }
                                 else
                                 {
-                                    m_p_trace_threshold_l_0 = m_queueThresholdDT; // for tracing
+                                    m_p_trace_threshold_l_0(m_queueThresholdDT); // for tracing
                                 }
                             }
                             else if (txPortIndex == 1)
                             {
                                 if (m_flow_priority == 1)
                                 {
-                                    m_p_trace_threshold_h_1 = m_queueThresholdDT; // for tracing
+                                    m_p_trace_threshold_h_1(m_queueThresholdDT); // for tracing
                                 }
                                 else
                                 {
-                                    m_p_trace_threshold_l_1 = m_queueThresholdDT; // for tracing
+                                    m_p_trace_threshold_l_1(m_queueThresholdDT); // for tracing
                                 }
                             }
                         }
@@ -2592,7 +2529,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     {
                         // step 1: calculate the Normalized dequeue BW of the designated queue:
                         // float gamma_i = GetNormalizedDequeueBandWidth_v1(device, subQueueIndex);
-                        float gamma_i = GetNormalizedDequeueBandWidth_v2(device, m_flow_priority, txPortIndex, subQueueIndex);
+                        float gamma_i = GetNormalizedDequeueBandWidth_v2(device, m_flow_priority, txPortIndex, m_subQueueIndex);
                         // for debug:
                         std::cout << "the normalized dequeue rate on port: " << device
                                 << " is: " << gamma_i << std::endl;
@@ -2630,22 +2567,22 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                             {
                                 if (m_flow_priority == 1)
                                 {
-                                    m_p_trace_threshold_h_0 = m_queueThresholdFB; 
+                                    m_p_trace_threshold_h_0(m_queueThresholdFB); 
                                 }
                                 else
                                 {
-                                    m_p_trace_threshold_l_0 = m_queueThresholdFB; 
+                                    m_p_trace_threshold_l_0(m_queueThresholdFB); 
                                 }
                             }
                             else if (txPortIndex == 1)
                             {
                                 if (m_flow_priority == 1)
                                 {
-                                    m_p_trace_threshold_h_1 = m_queueThresholdFB; 
+                                    m_p_trace_threshold_h_1(m_queueThresholdFB); 
                                 }
                                 else
                                 {
-                                    m_p_trace_threshold_l_1 = m_queueThresholdFB; 
+                                    m_p_trace_threshold_l_1(m_queueThresholdFB); 
                                 }
                             }
                         }
@@ -2661,7 +2598,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
             {
                 // Enqueue the packet in the queue disc associated with the netdevice queue
                 // selected for the packet and try to dequeue packets from such queue disc
-                item->SetTxQueueIndex(txq);
+                // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
+                item->SetTxQueueIndex(txPortIndex);
 
                 Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
                 NS_ASSERT(qDisc);
@@ -2673,7 +2611,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
         {
             // Enqueue the packet in the queue disc associated with the netdevice queue
             // selected for the packet and try to dequeue packets from such queue disc
-            item->SetTxQueueIndex(txq);
+            // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
+            item->SetTxQueueIndex(txPortIndex);
 
             Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
             NS_ASSERT(qDisc);

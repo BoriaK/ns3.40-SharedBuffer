@@ -232,7 +232,7 @@ TrafficControlLowPriorityPacketsDroppedTrace (uint32_t oldValue, uint32_t newVal
 
 // Trace the Threshold Value for High Priority packets in the Shared Queue
 void
-TrafficControlThresholdHighTrace (size_t index, uint32_t oldValue, uint32_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdHighTrace (size_t index, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tchpthr (datDir + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tchpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
@@ -243,7 +243,7 @@ TrafficControlThresholdHighTrace (size_t index, uint32_t oldValue, uint32_t newV
 
 // Trace the Threshold Value for Low Priority packets in the Shared Queue
 void
-TrafficControlThresholdLowTrace (size_t index, uint32_t oldValue, uint32_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdLowTrace (size_t index, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tclpthr (datDir + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tclpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
@@ -1043,19 +1043,16 @@ int main (int argc, char *argv[])
   ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
 
   // time interval values for OnOff Aplications
-  // double_t miceOnTime = 0.05; // [sec]
-  double_t miceOnTime = 0.1; // [sec]
-  // double_t miceOnTime = 0.3;
-  // double_t miceOnTime = 0;
-  // double_t elephantOnTime = 0.5; // [sec]
-  // double_t elephantOnTime = trafficGenDuration; // [sec]
+  // double_t miceOnTime = 0.0; // [sec]
+  // double_t miceOnTime = 0.01; // [sec]
+  double_t miceOnTime = 0.05; // [sec]
   double_t elephantOnTime = 0; // [sec]
-  // // double_t miceOffTime = 0.01; // [sec]
+  // double_t miceOffTime = 0.01; // [sec]
   // double_t miceOffTime = 0; // [sec]
   double_t miceOffTime = trafficGenDuration; // [sec], for a single mice flow
-  // double_t elephantOffTime = 0.1; // [sec]
-  // double_t elephantOffTime = 0.0; // [sec]
-  double_t elephantOffTime = END_TIME; // [sec]
+  double_t elephantOffTime = 0.1; // [sec]
+  // // double_t elephantOffTime = 0.0; // [sec]
+  // double_t elephantOffTime = END_TIME; // [sec]
   // for RNG:
   double_t miceOnTimeMax = 2 * miceOnTime; // [sec]
   double_t elephantOnTimeMax = 2 * elephantOnTime; // [sec]

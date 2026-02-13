@@ -535,6 +535,19 @@ class TrafficControlLayer : public Object
      */
     QueueSize GetQueueThreshold_DT (double_t alpha, double_t alpha_h, double_t alpha_l);
 
+        /**
+     * \brief Get the queueing limit of the current queue for each priority alpha, for DT Algorithm.
+     * \param alpha the alpha parameter relevant to the current arriving packet
+     * \param alpha_h the pre-determined hyperparameter alpha High
+     * \param alpha_l the pre-determined hyperparameter alpha Low
+     * \param gamma_i the normalized dequeue rate on port i
+     * \param inTransient flag to indicate whether we are in transient state
+     * \param device the network device (port) associated with the queue
+     * \param subQueueIndex the index of the sub-queue within the device
+     * \returns the maximum number of packets allowed in the queue.
+     */
+    QueueSize GetQueueThreshold_DT (double_t alpha, double_t alpha_h, double_t alpha_l, bool inTransient, Ptr<NetDevice> device, uint16_t subQueueIndex); // added by me!!!!!!!! for DT implementation with transient handling
+
     /**
      * \brief Get the queueing limit of the current queue for each priority alpha, for FB Algorithm.
      * \param alpha the alpha parameter relevant to the current arriving packet
@@ -586,6 +599,14 @@ class TrafficControlLayer : public Object
      * \returns the normalized dequeue rate of queue_i(t).
      */
     float_t GetNormalizedDequeueBandWidth_v1(Ptr<NetDevice> device, uint16_t queueIndex);
+
+        /**
+     * \brief calculate the normalized dequeue rate of queue_i(t). gamma_i(t) 
+     *        at the current model, each queue on the port has an equal share of the dequeue BW.
+     *        so the actual gamma_i(t) is calculated as: 1/current number of non empty queues on the port.
+     * \returns the normalized dequeue rate of queue_i(t).
+     */
+    float_t GetNormalizedDequeueBandWidth_v1_transient(Ptr<NetDevice> device, uint16_t queueIndex);
 
     /**
      * \brief calculate the normalized dequeue rate of queue_i_c(t). gamma_i_c(t) 
@@ -681,10 +702,10 @@ class TrafficControlLayer : public Object
     bool m_multiQueuePerPort; // !< True if multi-queue/port is used
     uint32_t m_p_threshold_h; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
     uint32_t m_p_threshold_l; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
-    TracedValue<uint32_t> m_p_trace_threshold_h_0; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
-    TracedValue<uint32_t> m_p_trace_threshold_h_1; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
-    TracedValue<uint32_t> m_p_trace_threshold_l_0; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
-    TracedValue<uint32_t> m_p_trace_threshold_l_1; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> m_p_trace_threshold_h_0; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> m_p_trace_threshold_h_1; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> m_p_trace_threshold_l_0; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> m_p_trace_threshold_l_1; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
     TracedValue<uint32_t> m_b_threshold_h; //!< Maximum number of bytes enqueued for high priority stream ### Added BY ME ####
     TracedValue<uint32_t> m_b_threshold_l; //!< Maximum number of bytes enqueued for low priority stream ### Added BY ME ####
     uint32_t m_queueThresholdDT = 0; //!< the queueing limit for DT algorythm
@@ -734,7 +755,7 @@ class TrafficControlLayer : public Object
     int64_t m_transientLength = 0; //!< the length of the current transient period
     int32_t m_deltaAlphas = 0; //!< the change in alpha values for the transient that's used inside the GetDeltaAlphas function
     int32_t deltaAlphas = 0; //!< the change in alpha values for the transient that's used inside the queueing algorythm
-    uint32_t storeLowPriorityThreshold = 0; //!< to store the low priority threshold before entering transient
+    uint32_t storedLowPriorityThreshold = 0; //!< to store the low priority threshold before entering transient
     bool m_inTransient = false; //!< a flag to indicate whether we are currently in a transient period
     bool m_freezeLowPriorityThreshold = false; //!< a flag to indicate whether to freeze the low priority threshold during a transient
     bool m_flag = false; //!< a flag for debug

@@ -535,6 +535,16 @@ class TrafficControlLayer : public Object
      */
     QueueSize GetQueueThreshold_DT (double_t alpha, double_t alpha_h, double_t alpha_l);
 
+    /**
+     * \brief Get the queueing limit of the current queue for each priority alpha, for DT Algorithm.
+     * \param alpha the alpha parameter relevant to the current arriving packet
+     * \param alpha_h the pre-determined hyperparameter alpha High
+     * \param alpha_l the pre-determined hyperparameter alpha Low
+     * \param inTransient flag to indicate whether we are in transient state
+     * \returns the maximum number of packets allowed in the queue.
+     */
+    QueueSize GetQueueThreshold_DT (double_t alpha, double_t alpha_h, double_t alpha_l, bool inTransient);
+
         /**
      * \brief Get the queueing limit of the current queue for each priority alpha, for DT Algorithm.
      * \param alpha the alpha parameter relevant to the current arriving packet
@@ -702,10 +712,10 @@ class TrafficControlLayer : public Object
     bool m_multiQueuePerPort; // !< True if multi-queue/port is used
     uint32_t m_p_threshold_h; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
     uint32_t m_p_threshold_l; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
-    TracedCallback<uint32_t> m_p_trace_threshold_h_0; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
-    TracedCallback<uint32_t> m_p_trace_threshold_h_1; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
-    TracedCallback<uint32_t> m_p_trace_threshold_l_0; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
-    TracedCallback<uint32_t> m_p_trace_threshold_l_1; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> traceThresholdHigh0; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> traceThresholdHigh1; //!< Maximum number of packets enqueued for high priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> traceThresholdLow0; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
+    TracedCallback<uint32_t> traceThresholdLow1; //!< Maximum number of packets enqueued for low priority stream ### Added BY ME ####
     TracedValue<uint32_t> m_b_threshold_h; //!< Maximum number of bytes enqueued for high priority stream ### Added BY ME ####
     TracedValue<uint32_t> m_b_threshold_l; //!< Maximum number of bytes enqueued for low priority stream ### Added BY ME ####
     uint32_t m_queueThresholdDT = 0; //!< the queueing limit for DT algorythm

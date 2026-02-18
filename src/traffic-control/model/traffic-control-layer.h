@@ -537,16 +537,34 @@ class TrafficControlLayer : public Object
 
     /**
      * \brief Get the queueing limit of the current queue for each priority alpha, for DT Algorithm.
+     *        this version calculates low priority threshold based on the number of low priority packets in queue (instead of total number of packets),
+     *        and controlls for decreased dequeue rate by subjecting the number of HIGH PRIORITY packets in the buffer (assuming the number of "extra"
+     *        low priority packets in the queue is equal to the conjestion of the high priority packets)
      * \param alpha the alpha parameter relevant to the current arriving packet
      * \param alpha_h the pre-determined hyperparameter alpha High
      * \param alpha_l the pre-determined hyperparameter alpha Low
      * \param inTransient flag to indicate whether we are in transient state
      * \returns the maximum number of packets allowed in the queue.
      */
-    QueueSize GetQueueThreshold_DT (double_t alpha, double_t alpha_h, double_t alpha_l, bool inTransient);
+    QueueSize GetQueueThreshold_DT_Predict_v1 (double_t alpha, double_t alpha_h, double_t alpha_l, bool inTransient);
 
         /**
      * \brief Get the queueing limit of the current queue for each priority alpha, for DT Algorithm.
+     *        this version calculates low priority threshold based on the number of low priority packets in queue (instead of total number of packets),
+     *        and controlls for decreased dequeue rate by subjecting the number of HIGH PRIORITY packets in the buffer (assuming the number of "extra"
+     *        low priority packets in the queue is equal to the conjestion of the high priority packets)
+     * \param alpha the alpha parameter relevant to the current arriving packet
+     * \param alpha_h the pre-determined hyperparameter alpha High
+     * \param alpha_l the pre-determined hyperparameter alpha Low
+     * \param inTransient flag to indicate whether we are in transient state
+     * \returns the maximum number of packets allowed in the queue.
+     */
+    QueueSize GetQueueThreshold_DT_Predict_v2 (double_t alpha, double_t alpha_h, double_t alpha_l, bool inTransient);
+
+        /**
+     * \brief Get the queueing limit of the current queue for each priority alpha, for DT Algorithm.
+     *        this version increases the low priority threshold proportinally to the number of conjested queues on the port,
+     *        during the transient state.
      * \param alpha the alpha parameter relevant to the current arriving packet
      * \param alpha_h the pre-determined hyperparameter alpha High
      * \param alpha_l the pre-determined hyperparameter alpha Low
@@ -556,7 +574,7 @@ class TrafficControlLayer : public Object
      * \param subQueueIndex the index of the sub-queue within the device
      * \returns the maximum number of packets allowed in the queue.
      */
-    QueueSize GetQueueThreshold_DT (double_t alpha, double_t alpha_h, double_t alpha_l, bool inTransient, Ptr<NetDevice> device, uint16_t subQueueIndex); // added by me!!!!!!!! for DT implementation with transient handling
+    QueueSize GetQueueThreshold_DT_Predict_v3 (double_t alpha, double_t alpha_h, double_t alpha_l, bool inTransient, Ptr<NetDevice> device, uint16_t subQueueIndex); // added by me!!!!!!!! for DT implementation with transient handling
 
     /**
      * \brief Get the queueing limit of the current queue for each priority alpha, for FB Algorithm.

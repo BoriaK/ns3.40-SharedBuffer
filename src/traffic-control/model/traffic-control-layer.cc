@@ -959,7 +959,7 @@ TrafficControlLayer::GetQueueThreshold_DT(double_t alpha, double_t alpha_l, doub
 }
 
 QueueSize
-TrafficControlLayer::GetQueueThreshold_DT(double_t alpha, double_t alpha_l, double_t alpha_h, bool inTransient) // added by me!!!!!!!! for DT implementation
+TrafficControlLayer::GetQueueThreshold_DT_Predict_v1(double_t alpha, double_t alpha_l, double_t alpha_h, bool inTransient) // added by me!!!!!!!! for DT implementation
 {
     NS_LOG_FUNCTION(this);
 
@@ -1011,7 +1011,63 @@ TrafficControlLayer::GetQueueThreshold_DT(double_t alpha, double_t alpha_l, doub
 }
 
 QueueSize
-TrafficControlLayer::GetQueueThreshold_DT(double_t alpha, double_t alpha_l, double_t alpha_h, bool inTransient, Ptr<NetDevice> device, uint16_t subQueueIndex) // added by me!!!!!!!! for DT implementation with transient handling
+TrafficControlLayer::GetQueueThreshold_DT_Predict_v2(double_t alpha, double_t alpha_l, double_t alpha_h, bool inTransient) // added by me!!!!!!!! for DT implementation
+{
+    NS_LOG_FUNCTION(this);
+
+    if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::PACKETS)
+    {
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
+        if (alpha == alpha_h)
+        {
+            m_p_threshold_h = alpha_h * remainingSpace;
+            return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_h);
+        }
+        else if (alpha == alpha_l)
+        {
+            if (m_inTransient) // if we're in transient
+            {
+                // calculate buffer space based on Low Priority packets only
+                curBuf = GetNumOfLowPriorityPacketsInSharedQueue().GetValue() - GetNumOfHighPriorityPacketsInSharedQueue().GetValue();
+                remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+                m_p_threshold_l = alpha_l * remainingSpace; 
+                storedLowPriorityThreshold = m_p_threshold_l; // store the low priority threshold calculated
+            } 
+            else // if we're not in transient
+            // if we never were in transient, than it will behave as the original DT threshold calculation, if we were in transient, but now we're not, we want to make sure that the low priority threshold
+            // will not drop down due to the "extra" number of low priority packets stored in the queue. 
+            {
+                m_p_threshold_l = alpha_l * remainingSpace;
+                m_p_threshold_l = std::max(storedLowPriorityThreshold, (int)alpha_l * remainingSpace);
+            }
+            return QueueSize(QueueSizeUnit::PACKETS, m_p_threshold_l);
+        }
+    }
+    if (GetMaxSharedBufferSize().GetUnit() == QueueSizeUnit::BYTES)
+    {
+        uint32_t maxBuf = GetMaxSharedBufferSize().GetValue();
+        uint32_t curBuf = GetCurrentSharedBufferSize().GetValue();
+        uint32_t remainingSpace = (maxBuf >= curBuf) ? (maxBuf - curBuf) : 0;
+        
+        if (alpha == alpha_h)
+        {
+            m_b_threshold_h = alpha_h * remainingSpace;
+            return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_h);
+        }
+        else if (alpha == alpha_l)
+        {
+            m_p_threshold_l = alpha_l * remainingSpace;
+            return QueueSize(QueueSizeUnit::PACKETS, m_b_threshold_l);
+        }
+    }
+    NS_ABORT_MSG("Unknown Threshod unit");
+}
+
+QueueSize
+TrafficControlLayer::GetQueueThreshold_DT_Predict_v3(double_t alpha, double_t alpha_l, double_t alpha_h, bool inTransient, Ptr<NetDevice> device, uint16_t subQueueIndex) // added by me!!!!!!!! for DT implementation with transient handling
 {
     NS_LOG_FUNCTION(this);
 
@@ -2536,7 +2592,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         else
                         {
                             m_alpha = m_alpha_l;
-                            m_queueThresholdDT = GetQueueThreshold_DT(m_alpha, m_alpha_l, m_alpha_h, m_inTransient).GetValue();
+                            m_queueThresholdDT = GetQueueThreshold_DT_Predict_v2(m_alpha, m_alpha_l, m_alpha_h, m_inTransient).GetValue();
+                            // m_queueThresholdDT = GetQueueThreshold_DT_Predict_v3(m_alpha, m_alpha_l, m_alpha_h, m_inTransient, device, m_subQueueIndex).GetValue();
                             
                             if (m_flag || internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue() <
                             m_queueThresholdDT)

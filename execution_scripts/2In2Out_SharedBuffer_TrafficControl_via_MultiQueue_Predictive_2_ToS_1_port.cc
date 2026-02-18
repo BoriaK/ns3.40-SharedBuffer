@@ -554,7 +554,7 @@ int main (int argc, char *argv[])
   double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
   double_t win_length = 0.4; // estimation window length in time [sec]
   std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
-  std::string transportProt = "UDP"; // "UDP"/"TCP"
+  std::string transportProt = "TCP"; // "UDP"/"TCP"
   std::string tcpType = "TcpNewReno"; // "TcpNewReno"/"TcpBbr" - relevant for TCP only
   std::string socketType;
   std::string queue_capacity;
@@ -1046,7 +1046,7 @@ int main (int argc, char *argv[])
   // double_t miceOnTime = 0.0; // [sec]
   // double_t miceOnTime = 0.01; // [sec]
   // double_t miceOnTime = 0.02; // [sec]
-  double_t miceOnTime = 0.05; // [sec]
+  double_t miceOnTime = 0.1; // [sec]
   double_t elephantOnTime = 0; // [sec]
   // double_t miceOffTime = 0.01; // [sec]
   // double_t miceOffTime = 0; // [sec]

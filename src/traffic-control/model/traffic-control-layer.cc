@@ -2551,7 +2551,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // m_freezeLowPriorityThreshold = true;
                                 if (m_transientLength > 0)
                                 {
-                                    m_inTransient = true;  // true/false - flag to enable mitigation
+                                    m_inTransient = false;  // true/false - flag to enable mitigation
                                 }
                                 else
                                 {

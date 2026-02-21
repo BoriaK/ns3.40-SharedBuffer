@@ -97,6 +97,7 @@ set(source_files
     model/tcp-l4-protocol.cc
     model/tcp-ledbat.cc
     model/tcp-linux-reno.cc
+    model/tcp-tahoe.cc
     model/tcp-lp.cc
     model/tcp-no-congestion-control.cc # Added for NoCongestionControl
     model/tcp-option-rfc793.cc
@@ -224,6 +225,7 @@ set(header_files
     model/tcp-l4-protocol.h
     model/tcp-ledbat.h
     model/tcp-linux-reno.h
+    model/tcp-tahoe.h
     model/tcp-lp.h
     model/tcp-option-rfc793.h
     model/tcp-option-sack-permitted.h

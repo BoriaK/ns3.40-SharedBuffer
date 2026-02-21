@@ -784,6 +784,7 @@ class TrafficControlLayer : public Object
     int32_t m_deltaAlphas = 0; //!< the change in alpha values for the transient that's used inside the GetDeltaAlphas function
     int32_t deltaAlphas = 0; //!< the change in alpha values for the transient that's used inside the queueing algorythm
     uint32_t storedLowPriorityThreshold = 0; //!< to store the low priority threshold before entering transient
+    bool m_handleTransient; //!< a flag to indicate whether to apply transient handling for the current flow
     bool m_inTransient = false; //!< a flag to indicate whether we are currently in a transient period
     bool m_freezeLowPriorityThreshold = false; //!< a flag to indicate whether to freeze the low priority threshold during a transient
     bool m_flag = false; //!< a flag for debug

@@ -13,8 +13,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- */
-/*
  * Basic Topology: 
  * 1 client server: t0, connected to Rx port: p0, on a switch: S,
  * and Tx port: p0, connected to 1 receiver: r0.
@@ -26,8 +24,7 @@
  * 
  * Additional "model" at t-T/2 to predict traffic:
  *     t0--p0-[S]-P0--r0
- * 
-*/
+ */
 
 #include <iostream>
 #include <fstream>
@@ -62,22 +59,24 @@
 #define PORTS_PER_SWITCH 1
 #define RECIEVER_COUNT 1
 
-#define SWITCH_RECIEVER_CAPACITY 500*1e3        // Leaf-Spine Capacity 500Kbps/queue/port
-#define SERVER_SWITCH_CAPACITY 5*1e6          // Total Serever-Leaf Capacity 5Mbps/queue/port
-#define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
+#define SERVER_SWITCH_CAPACITY 5*1e6            // Total Switch Rx (enqueue) Capacity 5Mbps/queue/port
+#define SWITCH_RECIEVER_CAPACITY 500*1e3        // Switch Tx (dequeue) Capacity 500Kbps/queue/port
+#define LINK_LATENCY MicroSeconds(20)           // each link latency 20 MicroSeconds 
 #define BUFFER_SIZE 250                         // Shared Buffer Size for a single queue per port. 250 Packets
 
-// The simulation starting and ending time
+// The simulation starting and ending time [sec]
 #define START_TIME 0.0
 #define DURATION_TIME 2
 #define END_TIME 60
 
 // The flow port range, each flow will be assigned a random port number within this range
+#define SERV_PORT_P0 50000
 #define SERV_PORT_P1 50001
 
 #define PACKET_SIZE 1024 // 1024 [bytes]
 
 using namespace ns3;
+
 
 // Function to get workspace root directory
 std::string GetWorkspaceRoot() {
@@ -119,8 +118,8 @@ std::string GetWorkspaceRoot() {
 }
 
 std::string root = GetWorkspaceRoot();
-// std::string datDir = root + "/Trace_Plots/1In1Out/Predictive/";
-std::string datDir = root + "/Predictive/";
+// std::string datDir = root + "Predictive/";
+std::string datDir = root + "Predictive/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/1_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "PredictiveDT"/"PredictiveFB"
@@ -205,6 +204,22 @@ TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t 
   tclppisq.close ();
   
   // std::cout << "LowPriorityPacketsInSharedBuffer: " << newValue << std::endl;
+}
+
+void
+TrafficControlHighPriorityPacketsDroppedTrace (uint32_t oldValue, uint32_t newValue)
+{
+  std::ofstream tchppd (datDir + "/TrafficControlHighPriorityPacketsDroppedTrace.dat", std::ios::out | std::ios::app);
+  tchppd << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
+  tchppd.close ();
+}
+
+void
+TrafficControlLowPriorityPacketsDroppedTrace (uint32_t oldValue, uint32_t newValue)
+{
+  std::ofstream tclppd (datDir + "/TrafficControlLowPriorityPacketsDroppedTrace.dat", std::ios::out | std::ios::app);
+  tclppd << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
+  tclppd.close ();
 }
 
 // Trace the Threshold Value for High Priority packets in the Shared Queue
@@ -519,21 +534,12 @@ SojournTimeTrace (Time sojournTime)
   std::cout << "Sojourn time " << sojournTime.ToDouble (Time::MS) << "ms" << std::endl;
 }
 
-
-int main (int argc, char *argv[])
+void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type, std::string traffic_control_type, double_t mice_elephant_prob, size_t alpha_high, size_t alpha_low, bool accumulate_stats, double_t future_possition, double_t win_length)
 {
   LogComponentEnable ("1In1Out", LOG_LEVEL_INFO);
 
-  double_t miceElephantProb = 0.2;
   // predictive model should behaive just like the regular model would 
-  double_t alpha_high = 15;
-  double_t alpha_low = 5;
-  
-  double_t future_possition = 0.5; // the possition of the estimation window in regards of past time samples/future samples.
-  double_t win_length = 0.4; // estimation window length in time [sec]
-  std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
-  std::string transportProt = "TCP"; // "UDP"/"TCP"
-  std::string tcpType = "TcpTahoe"; // "TcpNewReno"/"TcpBbr"/"TcpTahoe"/"TcpNewRenoTest" - relevant for TCP only
+  std::string applicationType = "prioSteadyOn";
   std::string socketType;
   std::string queue_capacity;
   
@@ -545,9 +551,9 @@ int main (int argc, char *argv[])
   }
 
   // Create a new directory to store the output of the program
-  // datDir = "./Trace_Plots/1In1Out/Predictive/";
+  // datDir = root + "Predictive/";  (root = Trace_Plots/1In1Out/)
   std::string  dir = datDir + "Position_" + DoubleToString(future_possition) + "/Length_" + DoubleToString(win_length) + "/";
-  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType + "/" + onOffTrafficMode;
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType;
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -570,11 +576,6 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Config parameters");
 
-  CommandLine cmd;
-  cmd.AddValue ("transportProt", "Transport protocol to use: Udp, Tcp, DcTcp", transportProt);
-  cmd.AddValue ("flowletTimeout", "flowlet timeout", flowletTimeout);
-  cmd.Parse (argc, argv);
-
   if (traffic_control_type.compare("SharedBuffer_DT") == 0)
   {
     usedAlgorythm = "PredictiveDT";
@@ -595,9 +596,9 @@ int main (int argc, char *argv[])
   }
 
   // client type dependant parameters:
-  if (transportProt.compare ("TCP") == 0)
+  if (transport_prot.compare ("TCP") == 0)
   { 
-    if (tcpType.compare("TcpBbr") == 0)
+    if (tcp_type.compare("TcpBbr") == 0)
     {
       // TcpBbr configured to aggressively reach traffic-control drops
       Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpBbr"));
@@ -646,7 +647,7 @@ int main (int argc, char *argv[])
       Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(3)));
       Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
     }
-    else if (tcpType.compare("TcpNewReno") == 0)
+    else if (tcp_type.compare("TcpNewReno") == 0)
     {
       // ========================================================================
       // TcpNewReno optimized for fast convergence with 3 segments:
@@ -737,7 +738,7 @@ int main (int argc, char *argv[])
       // Queue fills only due to application generating faster than bottleneck drains
       */
     }
-    else if (tcpType.compare("TcpTahoe") == 0)
+    else if (tcp_type.compare("TcpTahoe") == 0)
     {
       // ========================================================================
       // TcpTahoe configured to allow shared buffer to reach steady state.
@@ -804,7 +805,7 @@ int main (int argc, char *argv[])
     }
     socketType = "ns3::TcpSocketFactory";
   }
-  else if (tcpType.compare("TcpNewRenoTest") == 0)
+  else if (tcp_type.compare("TcpNewRenoTest") == 0)
   {
     // ========================================================================
       // TcpNewReno optimized for MAXIMUM THROUGHPUT
@@ -900,19 +901,11 @@ int main (int argc, char *argv[])
 
   // Application and Client type dependent parameters
   // select the desired components to output data
-  if (applicationType.compare("standardClient") == 0 && transportProt.compare ("TCP") == 0)
-  {
-      LogComponentEnable ("TcpClient", LOG_LEVEL_INFO);
-  }
-  else if (applicationType.compare("standardClient") == 0 && transportProt.compare ("UDP") == 0)
-  {
-      LogComponentEnable ("UdpClient", LOG_LEVEL_INFO);
-  }
-  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0 || applicationType.compare("prioSteadyOn") == 0) && transportProt.compare ("Tcp") == 0)
+  if ((applicationType.compare("prioSteadyOn") == 0) && transport_prot.compare ("Tcp") == 0)
   {
       LogComponentEnable("TcpSocketImpl", LOG_LEVEL_INFO);
   }
-  else if ((applicationType.compare("prioOnOff") == 0 || applicationType.compare("prioBulkSend") == 0 || applicationType.compare("prioSteadyOn") == 0) && transportProt.compare ("Udp") == 0)
+  else if ((applicationType.compare("prioSteadyOn") == 0) && transport_prot.compare ("Udp") == 0)
   {
       LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO);
   }
@@ -1069,7 +1062,7 @@ int main (int argc, char *argv[])
   tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
   tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
   tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
-  if (transportProt.compare ("UDP") == 0)
+  if (transport_prot.compare ("UDP") == 0)
   {
     tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
   }
@@ -1189,7 +1182,7 @@ int main (int argc, char *argv[])
     // create sockets
     ns3::Ptr<ns3::Socket> sockptr, sockptrPredict;
 
-    if (transportProt.compare("TCP") == 0) 
+    if (transport_prot.compare("TCP") == 0) 
     {
       // setup source socket
       sockptr =
@@ -1205,7 +1198,7 @@ int main (int argc, char *argv[])
       ns3::Ptr<ns3::TcpSocket> tcpsockptrPredict =
           ns3::DynamicCast<ns3::TcpSocket> (sockptrPredict);
     } 
-    else if (transportProt.compare("UDP") == 0) 
+    else if (transport_prot.compare("UDP") == 0) 
     {
       // setup source socket
       sockptr =
@@ -1229,7 +1222,7 @@ int main (int argc, char *argv[])
     else 
     {
       std::cerr << "unknown transport type: " <<
-          transportProt << std::endl;
+          transport_prot << std::endl;
       exit(1);
     }
     
@@ -1243,115 +1236,7 @@ int main (int argc, char *argv[])
     
     
     // create and install Client apps:    
-    
-    if (applicationType.compare("prioOnOff") == 0) 
-    {
-      // Create the OnOff applications to send TCP/UDP to the server
-
-      PrioOnOffHelper clientHelperP1 (socketType, socketAddressP1);
-      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
-      if (onOffTrafficMode.compare("Constant") == 0)
-      {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
-      }
-      else if (onOffTrafficMode.compare("Uniform") == 0)
-      {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
-      }
-      else if (onOffTrafficMode.compare("Normal") == 0)
-      {
-        clientHelperP1.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
-        clientHelperP1.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
-      }
-      else 
-      {
-          std::cerr << "unknown OnOffMode type: " << onOffTrafficMode << std::endl;
-          exit(1);
-      }
-      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-      
-      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
-      // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-      clientHelperP1.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG for each OnOff application instance
-      
-      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-      // clientHelperP1.AssignStreams(servers, 1);
-
-      // for predicting traffic in queue
-
-      PrioOnOffHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
-      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
-      if (onOffTrafficMode.compare("Constant") == 0)
-      {
-        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOnTime) + "]"));
-        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=" + DoubleToString(elephantOffTime) + "]"));
-      }
-      else if (onOffTrafficMode.compare("Uniform") == 0)
-      {
-        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOnTimeMax) + "]"));
-        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::UniformRandomVariable[Min=0.|Max=" + DoubleToString(elephantOffTimeMax) + "]"));
-      }
-      else if (onOffTrafficMode.compare("Normal") == 0)
-      {
-        clientHelperP1Predict.SetAttribute ("OnTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOnTime) + "|Variance=" + DoubleToString(elephantOnTime) + "|Bound=" + DoubleToString(elephantOnTime) + "]"));
-        clientHelperP1Predict.SetAttribute ("OffTime", StringValue ("ns3::NormalRandomVariable[Mean=" + DoubleToString(elephantOffTime) + "|Variance=" + DoubleToString(elephantOffTime) + "|Bound=" + DoubleToString(elephantOffTime) + "]"));
-      }
-      else 
-      {
-          std::cerr << "unknown OnOffMode type: " << onOffTrafficMode << std::endl;
-          exit(1);
-      }
-      clientHelperP1Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
-      // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
-      
-      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
-      // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-      clientHelperP1Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG for each OnOff application instance
-
-      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
-      // clientHelperP1Predict.AssignStreams(serversPredict, 1);
-    }
-    else if (applicationType.compare("prioBulkSend") == 0) 
-    {
-      // Create the PrioBulkSend applications to send TCP to the server
-      
-      PrioBulkSendHelper clientHelperP1 (socketType, socketAddressP1);
-      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
-      clientHelperP1.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
-      // MaxBytes: Increased to allow sustained transmission for full duration (like prioOnOff). 0 is infinite
-      clientHelperP1.SetAttribute ("MaxBytes", UintegerValue (0));
-      // clientHelperP1.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
-      
-      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
-      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-      
-      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
-
-      // for predicting traffic in queue
-
-      PrioBulkSendHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
-      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
-      clientHelperP1Predict.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
-      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); 
-      // clientHelperP1Predict.SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
-      
-      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
-      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
-
-      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
-    }
-    else if (applicationType.compare("prioSteadyOn") == 0) 
+    if (applicationType.compare("prioSteadyOn") == 0) 
     {
       // Create the PrioSteadyOn applications to send TCP to the server
       // PrioSteadyOn generates continuous CBR traffic (like prioOnOff but without ON/OFF periods)
@@ -1363,7 +1248,7 @@ int main (int argc, char *argv[])
       clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
       
       clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
-      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
       clientHelperP1.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
       
       sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
@@ -1378,7 +1263,7 @@ int main (int argc, char *argv[])
       clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
       
       clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
-      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
       clientHelperP1Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
 
       sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
@@ -1438,10 +1323,9 @@ int main (int argc, char *argv[])
   std::cout << std::endl << "Topology: 1In1Out" << std::endl;
   std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
   std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
-  std::cout << std::endl << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
+  std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   std::cout << std::endl << "Application: " + applicationType << std::endl;
-  std::cout << std::endl << "traffic Mode " + onOffTrafficMode + "Random" << std::endl;
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
   std::map<FlowId, FlowMonitor::FlowStats> flowStats = monitor->GetFlowStats ();
@@ -1475,7 +1359,7 @@ int main (int argc, char *argv[])
   // if TCP: flowStats[i].protocol == "TCP"
   for (size_t i = 1; i <= flowStats.size(); i++)
   {
-    if ((transportProt.compare("UDP") == 0 && i==2) || (transportProt.compare("TCP") == 0 && i==3))
+    if ((transport_prot.compare("UDP") == 0 && i==2) || (transport_prot.compare("TCP") == 0 && i==3))
     {
       statTxPackets = statTxPackets + flowStats[i].txPackets;
       statTxBytes = statTxBytes + flowStats[i].txBytes;
@@ -1546,10 +1430,9 @@ int main (int argc, char *argv[])
   testFlowStatistics << "Topology: 1In1Out" << std::endl;
   testFlowStatistics << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
   testFlowStatistics << "Implementation Method: " + implementation << std::endl;
-  testFlowStatistics << "Used D value: " + DoubleToString(miceElephantProb) << std::endl;
+  testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
   testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl;
-  testFlowStatistics << "traffic Mode " + onOffTrafficMode + "Random" << std::endl; 
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
   testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;
   testFlowStatistics << "  Rx Packets/Bytes:   " << statRxPackets << " / " << statRxBytes << std::endl;
@@ -1573,23 +1456,987 @@ int main (int argc, char *argv[])
   testFlowStatistics.close ();
 
   // move all the produced files to dirToSave
-  system (("mv -f " + datDir + "/*.dat " + dirToSave).c_str ());
-  // system (("mv -f " + dir + traffic_control_type + "/" + implementation + + "/*.txt " + dirToSave).c_str ());
+  // dir = datDir + "Position_X/Length_Y/"
+  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType
+  std::string newDir = dirToSave + "/" + DoubleToString(mice_elephant_prob) + "/Predictive/";
+  system (("mkdir -p " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
+  system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+  system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
 
   // Create the gnuplot.//////////////////////////////
-  generate1DGnuPlotFromDatFile(dirToSave + "/generatedOnOffTrafficTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_0_app_1_OnOffStateTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/non-predictive_port_1_app_1_OnOffStateTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_0_app_1_OnOffStateTrace.dat");
-  // generate1DGnuPlotFromDatFile(dirToSave + "/predictive_port_1_app_3_OnOffStateTrace.dat");
+  generate1DGnuPlotFromDatFile(newDir + "/generatedOnOffTrafficTrace.dat");
+  generatePacketsVsThresholdFromDatFile(newDir + "/port_0_queue_1_PacketsInQueueTrace.dat", "Low");
 
-  // generatePacketsVsThresholdFromDatFile(dirToSave + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
-  generatePacketsVsThresholdFromDatFile(dirToSave + "/port_0_queue_1_PacketsInQueueTrace.dat", "Low");
+  // if chose to accumulate statistics:
+  if (accumulate_stats)
+  {
+    if (!(std::filesystem::exists( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/"
+                                  + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
+    {
+      // If the file doesn't exist, create it and write initial statistics
+      system (("mkdir -p " +  dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/"
+
+                                            + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      testAccumulativeStats
+      << tcStats.nTotalDroppedPackets << " " 
+      << tcStats.nTotalDroppedPacketsHighPriority << " " 
+      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      testAccumulativeStats.close ();
+    }
+    else
+    {
+      // Open the file in append mode
+      std::fstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/"
+                                          + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      testAccumulativeStats
+      << tcStats.nTotalDroppedPackets << " " 
+      << tcStats.nTotalDroppedPacketsHighPriority << " " 
+      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      testAccumulativeStats.close ();
+    }
+  }
+  // clear all statistics for this simulation iteration
+  flowStats.clear();
+  tcStats.~TCStats();
 
   // Simulator::Cancel();
   Simulator::Destroy ();
   NS_LOG_INFO ("Stop simulation");
-  
-  return 0;
 }
 
+void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type, std::string traffic_control_type, double_t mice_elephant_prob, size_t alpha_high, size_t alpha_low, double_t future_possition, double_t win_length, double_t transient_length, bool handle_transient, bool accumulate_stats)
+{
+  LogComponentEnable ("1In1Out", LOG_LEVEL_INFO);
+
+  // predictive model should behaive just like the regular model would 
+  std::string implementation = "via_MultiQueues/2_ToS"; // override global (which is 1_ToS)
+  std::string applicationType = "prioSteadyOn"; // "prioOnOff"/"prioBulkSend"/"prioSteadyOn"
+  std::string socketType;
+  std::string queue_capacity;
+  
+  // this file is for debug, to trace the sequence of all estimated d values during the run
+  // it needs to be erased before the simulation starts
+  if (std::filesystem::exists("Estimated_D_Values.dat"))
+  {
+    std::remove("Estimated_D_Values.dat");
+  }
+
+  // Create a new directory to store the output of the program
+  // datDir = root + "Predictive/";  (root = Trace_Plots/1In1Out/)
+  std::string  dir = datDir + "Position_" + DoubleToString(future_possition) + "/Length_" + DoubleToString(win_length) + "/";
+  std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType;
+  if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
+  {
+    system (("mkdir -p " + dirToSave).c_str ());
+  }
+
+  // // set global runDir so trace callbacks write into this per-run directory
+  // runDir = dirToSave;
+
+  uint32_t flowletTimeout = 50;
+  bool eraseOldData = true; // true/false
+
+  if (eraseOldData == true)
+  {
+    system (("rm " + dirToSave + "/*.dat").c_str ()); // to erase the old .dat files and collect new data
+    system (("rm " + dirToSave + "/*.txt").c_str ()); // to erase the previous test run summary, and collect new data
+    system (("rm " + dirToSave + "/*.plt").c_str ()); // to erase the previous test plot related files
+    system (("rm " + dirToSave + "/*.png").c_str ()); // to erase the previous test plot related files
+    std::cout << std::endl << "***Erased Previous Data***\n" << std::endl;
+  }
+
+  NS_LOG_INFO ("Config parameters");
+
+  if (traffic_control_type.compare("SharedBuffer_DT") == 0)
+  {
+    usedAlgorythm = "PredictiveDT";
+  }
+  else if (traffic_control_type.compare("SharedBuffer_FB") == 0)
+  {
+    usedAlgorythm = "PredictiveFB";
+  }
+
+  // Application type dependent parameters
+  if (applicationType.compare("standardClient") == 0 || applicationType.compare("prioClient") == 0)
+  {
+    queue_capacity = "20p"; // B, the total space on the buffer.
+  }
+  else
+  {
+    queue_capacity = ToString(PORTS_PER_SWITCH * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+  }
+
+  // client type dependant parameters:
+  if (transport_prot.compare ("TCP") == 0)
+  { 
+    if (tcp_type.compare("TcpBbr") == 0)
+    {
+      // TcpBbr configured to aggressively reach traffic-control drops
+      Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpBbr"));
+      
+      // === DISABLE ECN - use drops as the congestion signal ===
+      Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+
+      // === Large socket buffers ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+
+      // PrioBulkSend: Eliminate sawtooth behavior - maintain queue occupancy like prioOnOff
+      // Strategy: Match prioOnOff configuration exactly
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1024 bytes
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(250)); // Match prioOnOff
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(1000000));
+
+      // === BBR configuration to maintain steady queue occupancy ===
+      // Use same parameters as prioOnOff for consistent behavior
+      Config::SetDefault("ns3::TcpBbr::HighGain", DoubleValue(4.0)); // Match prioOnOff
+      // Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(10)); // Longer window = more stable BW estimate
+      Config::SetDefault("ns3::TcpBbr::BwWindowLength", UintegerValue(100)); // Very long window
+      Config::SetDefault("ns3::TcpBbr::RttWindowLength", TimeValue(Seconds(10))); // Long RTT window = stable
+      // Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(MilliSeconds(200))); // Standard PROBE_RTT
+      Config::SetDefault("ns3::TcpBbr::ProbeRttDuration", TimeValue(Seconds(10)));
+
+      // === Standard loss response ===
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(200)));
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+
+      // === RTT estimation ===
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.125));
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.25));
+      Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+
+      // === Enable standard TCP features ===
+      Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true));
+
+      // === Delayed ACKs and connection settings ===
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(40)));
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
+      Config::SetDefault("ns3::TcpSocket::ConnTimeout", TimeValue(Seconds(3)));
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true));
+    }
+    else if (tcp_type.compare("TcpNewReno") == 0)
+    {
+      // ========================================================================
+      // TcpNewReno optimized for fast convergence with 3 segments:
+      // 1. Linear fill to threshold (controlled slow start)
+      // 2. Stable plateau at threshold (minimal AIMD oscillations)
+      // 3. Clean drain at bottleneck rate
+      // ========================================================================
+      
+      Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpNewReno"));
+      Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                       TypeIdValue(TypeId::LookupByName("ns3::TcpPrrRecovery"))); // Better recovery than Classic
+    
+      // === DISABLE ECN - use drops as congestion signal ===
+      Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+      
+      // === Large buffers to prevent application-level blocking ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+      
+      // ========================================================================
+      // SEGMENT 1: LINEAR FILL TO THRESHOLD
+      // Strategy: Start with high cwnd, trigger loss at target, stabilize after MD
+      // ========================================================================
+      
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1084 bytes
+      
+      // Key insight: After first loss, cwnd will be halved (AIMD)
+      // We need: (InitialCwnd / 2) > (Bottleneck_Rate × RTT)
+      // 
+      // Bottleneck = 500 Kbps ≈ 57.7 packets/sec
+      // Full queue RTT ≈ 3.4s (209 packets @ 500 Kbps)
+      // BDP at full queue = 57.7 pkt/s × 3.4s ≈ 196 packets
+      // 
+      // After first drop at queue=209:
+      //   cwnd_new = InitialCwnd / 2
+      //   For stable plateau: cwnd_new ≥ BDP ≈ 196
+      //   Therefore: InitialCwnd ≥ 392
+      //
+      // Set InitialCwnd = 420 (safety margin)
+      // After MD: cwnd = 210, which exceeds BDP (196), maintaining queue
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(420)); // High initial cwnd
+      
+      // Set ssthresh to target queue depth - skip slow start, start in CA
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(210)); // Target queue
+      
+      // ========================================================================
+      // SEGMENT 2: STABLE PLATEAU AT THRESHOLD
+      // Strategy: Minimize AIMD oscillations by fast loss detection + gentle response
+      // ========================================================================
+      
+      // Fast loss detection to quickly react when hitting threshold
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(50))); // Faster than 200ms
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+      
+      // Fast RTT estimation to quickly adapt to queue buildup
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.25)); // More responsive (was 0.125)
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.5));   // More responsive (was 0.25)
+      Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+      
+      // Enable all advanced features for fast loss detection
+      Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(true));       // Critical for fast recovery
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Send new data on dupacks
+      
+      // Aggressive ACKs for faster feedback
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(10))); // Faster ACKs (was 40ms)
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1)); // ACK every packet (was 2)
+      
+      // ========================================================================
+      // SEGMENT 3: CLEAN DRAIN
+      // Strategy: Normal TCP behavior - application stops, queue drains at bottleneck rate
+      // ========================================================================
+      
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Nagle off for immediate send
+      
+      // ========================================================================
+      // Alternative configuration (comment out above, uncomment below to try):
+      // This uses even more aggressive settings for perfectly linear fill
+      // ========================================================================
+      /*
+      // Perfect linear fill: Start with exactly target cwnd, disable slow start entirely
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(209)); // Exact target
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(209)); // No slow start!
+      // This starts directly in congestion avoidance with cwnd=ssthresh=209
+      // Result: No exponential growth, but also no fill phase - already at target
+      // Queue fills only due to application generating faster than bottleneck drains
+      */
+    }
+    else if (tcp_type.compare("TcpTahoe") == 0)
+    {
+      // ========================================================================
+      // TcpTahoe configured to allow shared buffer to reach steady state.
+      // TcpTahoe: on any loss (3 dupACKs or timeout) sets cwnd=1 and restarts
+      // slow start up to ssthresh. There is no fast recovery (unlike NewReno).
+      //
+      // Steady-state reasoning:
+      //   Bottleneck = 500 Kbps, segment = PACKET_SIZE+60 bytes ≈ 57.7 pkt/s
+      //   Full-queue RTT ≈ 250 / 57.7 ≈ 4.3 s
+      //   BDP ≈ 57.7 × 4.3 ≈ 248 packets (queue is always full at capacity)
+      //
+      //   After loss at cwnd ≈ 250+:
+      //     ssthresh = cwnd/2 ≈ 125
+      //     Tahoe: cwnd → 1, slow-start back to 125 (≈7 RTTs at near-empty queue)
+      //     Near-empty RTT ≈ small propagation (~0.04 ms for 20 µs × 2 links)
+      //     Recovery time ≈ 7 × 0.04 ms → negligible → queue barely drains
+      //
+      //   Result: queue stays near full; steady state is achieved.
+      // ========================================================================
+
+      Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue("ns3::TcpTahoe"));
+      Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                         TypeIdValue(TypeId::LookupByName("ns3::TcpTahoeRecovery"))); // cwnd→1 on loss (true Tahoe)
+
+      // === DISABLE ECN - use drops as congestion signal ===
+      Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+
+      // === Large buffers to prevent application-level blocking ===
+      Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+      Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+
+      // ========================================================================
+      // RAPID BUFFER FILL
+      // High InitialCwnd ensures the buffer fills quickly on the first slow start.
+      // InitialSlowStartThreshold = buffer size so slow start can reach capacity.
+      // ========================================================================
+      Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1084 bytes
+      Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(500));             // Fast initial fill
+      Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(250)); // Match buffer depth
+
+      // ========================================================================
+      // FAST LOSS DETECTION for quick reaction to queue saturation
+      // ========================================================================
+      Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(50)));  // Faster than default
+      Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+
+      // Responsive RTT estimation
+      Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.25));
+      Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.5));
+      Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+
+      // Tahoe: disable SACK and LimitedTransmit (pre-SACK algorithm)
+      Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
+      Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(false));           // No SACK for Tahoe
+      Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(false)); // No LimitedTransmit
+
+      // ACK every packet for fast feedback
+      Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(10)));
+      Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1));
+
+      Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
+      Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Nagle off
+    }
+    socketType = "ns3::TcpSocketFactory";
+  }
+  else
+  {
+    socketType = "ns3::UdpSocketFactory";
+  }
+
+  // Application and Client type dependent parameters
+  // select the desired components to output data
+
+  if (applicationType.compare("standardClient") == 0 || applicationType.compare("prioClient") == 0)
+  {
+    queue_capacity = "20p"; // B, the total space on the buffer.
+  }
+  else
+  {
+    queue_capacity = ToString(PORTS_PER_SWITCH * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+  }
+
+  LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
+  
+  NS_LOG_INFO ("Create nodes");
+  NodeContainer recievers;
+  recievers.Create (RECIEVER_COUNT);
+  NodeContainer router;
+  router.Create (SWITCH_COUNT);
+  // for loop use. make sure name "Router" is not stored in Names map///
+  Names::Clear();
+  Names::Add("Router", router.Get(0));  // Add a Name to the router node
+  NodeContainer servers;
+  servers.Create (SERVER_COUNT);
+
+  // for predictive model
+  NodeContainer recieversPredict;
+  recieversPredict.Create (RECIEVER_COUNT);
+  NodeContainer routerPredict;
+  routerPredict.Create (SWITCH_COUNT);
+  Names::Add("RouterPredict", routerPredict.Get(0));  // Add a Name to the router node
+  NodeContainer serversPredict;
+  serversPredict.Create (SERVER_COUNT);
+
+
+  PointToPointHelper n2s, s2r, n2sPredict, s2rPredict;
+  NS_LOG_INFO ("Configuring channels for all the Nodes");
+  
+  // Setting servers
+  uint64_t serverSwitchCapacity = PORTS_PER_SWITCH * SERVER_SWITCH_CAPACITY;
+  n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
+  n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+  // setting routers
+  uint64_t switchRecieverCapacity = PORTS_PER_SWITCH * SWITCH_RECIEVER_CAPACITY;
+  s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
+  s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+
+  //create additional system identical to the original Buffer to simulate traffic for predictive analitics
+  NS_LOG_INFO ("Configuring Predictive Nodes");
+  // Setting servers
+  n2sPredict.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
+  n2sPredict.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  n2sPredict.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+  // setting routers
+  s2rPredict.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
+  s2rPredict.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
+  s2rPredict.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
+
+  NS_LOG_INFO ("Create NetDevices");
+  NetDeviceContainer serverDevices;
+  NetDeviceContainer switchDevicesIn;
+  NetDeviceContainer switchDevicesOut;
+  NetDeviceContainer recieverDevices;
+  // for predictive model:
+  NetDeviceContainer serverDevicesPredict;
+  NetDeviceContainer switchDevicesInPredict;
+  NetDeviceContainer switchDevicesOutPredict;
+  NetDeviceContainer recieverDevicesPredict;
+
+  NS_LOG_INFO ("Install NetDevices on all Nodes");
+  NS_LOG_INFO ("Configuring Servers");
+  for (size_t i = 0; i < SERVER_COUNT; i++)
+  {
+    NS_LOG_INFO ("Server " << i << " is connected to switch");
+
+    NetDeviceContainer tempNetDevice = n2s.Install (servers.Get (i), router.Get(0));
+    serverDevices.Add(tempNetDevice.Get(0));
+    switchDevicesIn.Add(tempNetDevice.Get(1));
+
+    // for predictive model:
+    NetDeviceContainer tempNetDevicePredict = n2sPredict.Install (serversPredict.Get (i), routerPredict.Get(0));
+    serverDevicesPredict.Add(tempNetDevicePredict.Get(0));
+    switchDevicesInPredict.Add(tempNetDevicePredict.Get(1));
+  }
+  
+  NS_LOG_INFO ("Configuring switches");
+
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)
+  {
+    NetDeviceContainer tempNetDevice = s2r.Install (router.Get(0), recievers.Get (i));
+    switchDevicesOut.Add(tempNetDevice.Get(0));
+    recieverDevices.Add(tempNetDevice.Get(1));
+
+    // for predictive model:
+    NetDeviceContainer tempNetDevicePredict = s2rPredict.Install (routerPredict.Get(0), recieversPredict.Get (i));
+    switchDevicesOutPredict.Add(tempNetDevicePredict.Get(0));
+    recieverDevicesPredict.Add(tempNetDevicePredict.Get(1));
+
+    NS_LOG_INFO ("Switch is connected to Reciever " << i << "at capacity: " << switchRecieverCapacity);     
+  }
+
+  // add a "name" to the "switchDeviceOut" and "switchDeviceOutPredict" NetDevices
+  for (size_t i = 0; i < switchDevicesOut.GetN(); i++) 
+  {     
+    // Add a Name to the switch net-devices
+    Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  
+    Names::Add("switchDeviceOutPredict" + IntToString(i), switchDevicesOutPredict.Get(i));
+  }
+
+  // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
+  NS_LOG_INFO ("Install Internet stacks");
+  InternetStackHelper internet;
+  internet.InstallAll ();
+
+  NS_LOG_INFO ("Install QueueDisc");
+
+  // Call the static method BEFORE running the simulation
+  TrafficControlLayer::SetGlobalOutputDirectory(dirToSave);
+
+  TrafficControlHelper tch;
+  // priomap with low priority for class "0" and high priority for rest of the 15 classes (1-15). Technically not nesessary for RoundRobinPrioQueue
+  std::array<uint16_t, 16> prioArray = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  
+  // Priomap prioMap = Priomap{prioArray};
+  TosMap tosMap = TosMap{prioArray};
+  uint16_t handle = tch.SetRootQueueDisc("ns3::RoundRobinTosQueueDisc", "TosMap", TosMapValue(tosMap));
+
+  TrafficControlHelper::ClassIdList cid = tch.AddQueueDiscClasses(handle, 2, "ns3::QueueDiscClass");
+  tch.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[0] is band "0" - the Highest Priority band
+  tch.AddChildQueueDisc(handle, cid[1], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[1] is Low Priority
+
+  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  
+  // for predictive model Install Traffic Control Helper on the Predictive model
+  QueueDiscContainer qdiscsPredict = tch.Install(switchDevicesOutPredict);
+
+  ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
+  TcPriomap tcPrioMap = TcPriomap{prioArray};
+  Ptr<TrafficControlLayer> tc;
+  tc = router.Get(0)->GetObject<TrafficControlLayer>();
+  tc->SetAttribute("SharedBuffer", BooleanValue(true));
+  tc->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+  tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+  tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
+  tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
+  tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
+  tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(win_length));
+  tc->SetAttribute("ApplyTransientMitigation", BooleanValue(handle_transient));
+
+  // monitor the packets in the Shared Buffer in Traffic Control Layer:
+  tc->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPacketsInSharedQueueTrace));
+  tc->TraceConnectWithoutContext("HighPriorityPacketsInQueue", MakeCallback (&TrafficControlHighPriorityPacketsInSharedQueueTrace));
+  tc->TraceConnectWithoutContext("LowPriorityPacketsInQueue", MakeCallback (&TrafficControlLowPriorityPacketsInSharedQueueTrace));
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_High_0", MakeBoundCallback (&TrafficControlThresholdHighTrace, 0));
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_0", MakeBoundCallback (&TrafficControlThresholdLowTrace, 0));  
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_High_1", MakeBoundCallback (&TrafficControlThresholdHighTrace, 1));
+  tc->TraceConnectWithoutContext("EnqueueingThreshold_Low_1", MakeBoundCallback (&TrafficControlThresholdLowTrace, 1));
+  tc->TraceConnectWithoutContext("HighPriorityPacketsDropped", MakeCallback (&TrafficControlHighPriorityPacketsDroppedTrace));
+  tc->TraceConnectWithoutContext("LowPriorityPacketsDropped", MakeCallback (&TrafficControlLowPriorityPacketsDroppedTrace));
+  
+  // for predictive model
+  Ptr<TrafficControlLayer> tcPredict;
+  tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
+  tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
+  // tcPredict->SetAttribute("ApplyTransientMitigation", BooleanValue(handle_transient));
+  tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
+  if (transport_prot.compare ("UDP") == 0)
+  {
+    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
+  }
+  else
+  {
+    // the Predictive model will function just like a real non-predictive Shared Buffer would
+    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+    tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+    tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
+    // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
+    tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
+  }
+
+  ///////////Monitor data from q-disc//////////////////////////////////////////
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
+  {
+    for (size_t j = 0; j < qdiscs.Get (i)->GetNQueueDiscClasses(); j++)  // over all the queues per port
+    {
+      Ptr<QueueDisc> queue = qdiscs.Get (i)->GetQueueDiscClass(j)->GetQueueDisc();
+      queue->TraceConnectWithoutContext ("PacketsInQueue", MakeBoundCallback (&MultiQueueDiscPacketsInQueueTrace, i, j));
+      // queue->TraceConnectWithoutContext ("HighPriorityPacketsInQueue", MakeBoundCallback (&HighPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+      // queue->TraceConnectWithoutContext ("LowPriorityPacketsInQueue", MakeBoundCallback (&LowPriorityMultiQueueDiscPacketsInQueueTrace, i, j)); 
+    }
+  }
+
+  NS_LOG_INFO ("Setup IPv4 Addresses");
+
+  ns3::Ipv4AddressHelper server2switchIPs =
+      ns3::Ipv4AddressHelper("10.1.0.0", "255.255.255.0");
+  ns3::Ipv4AddressHelper switch2recieverIPs =
+      ns3::Ipv4AddressHelper("10.2.0.0", "255.255.255.0");
+
+
+  Ipv4InterfaceContainer serverIFs;
+  Ipv4InterfaceContainer switchInIFs;
+  Ipv4InterfaceContainer switchOutIFs;
+  Ipv4InterfaceContainer recieverIFs;
+  // for predictive model
+  Ipv4InterfaceContainer serverIFsPredict;
+  Ipv4InterfaceContainer switchInIFsPredict;
+  Ipv4InterfaceContainer switchOutIFsPredict;
+  Ipv4InterfaceContainer recieverIFsPredict;
+
+
+
+  NS_LOG_INFO ("Install IPv4 addresses on all NetDevices");
+  
+  NS_LOG_INFO ("Configuring servers");
+
+  for (size_t i = 0; i < SERVER_COUNT; i++)
+  {
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(serverDevices.Get(i));
+    tempNetDevice.Add(switchDevicesIn.Get(i));
+    Ipv4InterfaceContainer ifcServers = server2switchIPs.Assign(tempNetDevice);
+    serverIFs.Add(ifcServers.Get(0));
+    switchInIFs.Add(ifcServers.Get(1));
+    server2switchIPs.NewNetwork ();
+
+    //for prdictive model
+    NetDeviceContainer tempNetDevicePredict;
+    tempNetDevicePredict.Add(serverDevicesPredict.Get(i));
+    tempNetDevicePredict.Add(switchDevicesInPredict.Get(i));
+    Ipv4InterfaceContainer ifcServersPredict = server2switchIPs.Assign(tempNetDevicePredict);
+    serverIFsPredict.Add(ifcServersPredict.Get(0));
+    switchInIFsPredict.Add(ifcServersPredict.Get(1));
+    server2switchIPs.NewNetwork ();
+  }
+
+  NS_LOG_INFO ("Configuring switch");
+
+  for (size_t i = 0; i < RECIEVER_COUNT; i++)
+  {
+    NetDeviceContainer tempNetDevice;
+    tempNetDevice.Add(switchDevicesOut.Get(i));
+    tempNetDevice.Add(recieverDevices.Get(i));
+    Ipv4InterfaceContainer ifcSwitch = switch2recieverIPs.Assign(tempNetDevice);
+    switchOutIFs.Add(ifcSwitch.Get(0));
+    recieverIFs.Add(ifcSwitch.Get(1));
+    switch2recieverIPs.NewNetwork ();
+
+    //for prdictive model        
+    NetDeviceContainer tempNetDevicePredict;
+    tempNetDevicePredict.Add(switchDevicesOutPredict.Get(i));
+    tempNetDevicePredict.Add(recieverDevicesPredict.Get(i));
+    Ipv4InterfaceContainer ifcSwitchPredict = switch2recieverIPs.Assign(tempNetDevicePredict);
+    switchOutIFsPredict.Add(ifcSwitchPredict.Get(0));
+    recieverIFsPredict.Add(ifcSwitchPredict.Get(1));
+    switch2recieverIPs.NewNetwork ();    
+  }
+
+
+  // and setup ip routing tables to get total ip-level connectivity.
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  NS_LOG_INFO ("Create Sockets, Applications and Sinks");
+
+  uint32_t ipTos_HP = 0x10;  //High priority: Maximize Throughput
+  uint32_t ipTos_LP = 0x00; //Low priority: Best Effort
+  // uint32_t ipTos_LP = 0x06; //Low priority: Best Effort
+  
+  ApplicationContainer sinkApps, sourceApps, sourceAppsPredict, sinkAppsPredict;
+
+  // double_t miceOnTime = 0.15; // [sec]
+  double_t elephantOnTime = 0; // [sec]
+  double_t elephantOffTime = 0.1; // [sec]
+  // // double_t elephantOffTime = 0.0; // [sec]
+  // double_t elephantOffTime = END_TIME; // [sec]
+  
+  std::remove("TCP_Socket_Priority_per_Port.dat"); // remove it here, to create a new one with every run
+
+  for (size_t i = 0; i < SERVER_COUNT; i++)
+  {
+    size_t serverIndex = i;
+    size_t recieverIndex = i;
+    // create sockets
+    ns3::Ptr<ns3::Socket> sockptr, sockptrPredict;
+
+    if (transport_prot.compare("TCP") == 0) 
+    {
+      // setup source socket
+      sockptr =
+          ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                  ns3::TcpSocketFactory::GetTypeId());
+      ns3::Ptr<ns3::TcpSocket> tcpsockptr =
+          ns3::DynamicCast<ns3::TcpSocket> (sockptr);
+
+      // setup source socket for predictive model
+      sockptrPredict =
+          ns3::Socket::CreateSocket(serversPredict.Get(serverIndex),
+                  ns3::TcpSocketFactory::GetTypeId());
+      ns3::Ptr<ns3::TcpSocket> tcpsockptrPredict =
+          ns3::DynamicCast<ns3::TcpSocket> (sockptrPredict);
+    } 
+    else if (transport_prot.compare("UDP") == 0) 
+    {
+      // setup source socket
+      sockptr =
+          ns3::Socket::CreateSocket(servers.Get(serverIndex),
+                  ns3::UdpSocketFactory::GetTypeId());
+      ////////Added by me///////////////        
+      ns3::Ptr<ns3::UdpSocket> udpsockptr =
+          ns3::DynamicCast<ns3::UdpSocket> (sockptr);
+          //////////////////////////////////
+      
+      // setup source socket for predictive model
+      sockptrPredict =
+          ns3::Socket::CreateSocket(serversPredict.Get(serverIndex),
+                  ns3::UdpSocketFactory::GetTypeId());
+      ////////Added by me///////////////        
+      ns3::Ptr<ns3::UdpSocket> udpsockptrPredict =
+          ns3::DynamicCast<ns3::UdpSocket> (sockptrPredict);
+      //////////////////////////////////
+
+    } 
+    else 
+    {
+      std::cerr << "unknown transport type: " <<
+          transport_prot << std::endl;
+      exit(1);
+    }
+    
+    InetSocketAddress socketAddressP0 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0.SetTos(ipTos_HP);  // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1 = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1.SetTos(ipTos_LP);  // ToS 0x0 -> Low priority
+
+    // for preddictive model
+    InetSocketAddress socketAddressP0Predict = InetSocketAddress (recieverIFsPredict.GetAddress(recieverIndex), SERV_PORT_P0);
+    socketAddressP0Predict.SetTos(ipTos_HP);  // ToS 0x10 -> High priority
+    InetSocketAddress socketAddressP1Predict = InetSocketAddress (recieverIFsPredict.GetAddress(recieverIndex), SERV_PORT_P1);
+    socketAddressP1Predict.SetTos(ipTos_LP);  // ToS 0x0 -> Low priority
+    
+    
+    
+    // create and install Client apps:    
+    if (applicationType.compare("prioSteadyOn") == 0) 
+    {
+      // Create the PrioSteadyOn applications to send TCP to the server
+      // PrioSteadyOn generates continuous CBR traffic (like prioOnOff but without ON/OFF periods)
+      
+      PrioSteadyOnHelper clientHelperP0 (socketType, socketAddressP0);
+      clientHelperP0.SetAttribute ("Remote", AddressValue (socketAddressP0));
+      clientHelperP0.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0.SetAttribute("FlowPriority", UintegerValue (0x1));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP0.SetAttribute ("ApplicationToS", UintegerValue (ipTos_HP)); // set the IP ToS value for the application
+      clientHelperP0.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
+      clientHelperP0.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+      
+      sourceApps.Add(clientHelperP0.Install (servers.Get(serverIndex)));
+
+      PrioSteadyOnHelper clientHelperP1 (socketType, socketAddressP1);
+      clientHelperP1.SetAttribute ("Remote", AddressValue (socketAddressP1));
+      clientHelperP1.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
+      clientHelperP1.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+      
+      sourceApps.Add(clientHelperP1.Install (servers.Get(serverIndex)));
+
+      // for predicting traffic in queue
+
+      PrioSteadyOnHelper clientHelperP0Predict (socketType, socketAddressP0Predict);
+      clientHelperP0Predict.SetAttribute ("Remote", AddressValue (socketAddressP0Predict));
+      clientHelperP0Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP0Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP0Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 = infinite
+      clientHelperP0Predict.SetAttribute("FlowPriority", UintegerValue (0x1));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP0Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_HP)); // set the IP ToS value for the application
+      clientHelperP0Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
+      clientHelperP0Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+
+      sourceAppsPredict.Add(clientHelperP0Predict.Install (serversPredict.Get(serverIndex)));
+
+      PrioSteadyOnHelper clientHelperP1Predict (socketType, socketAddressP1Predict);
+      clientHelperP1Predict.SetAttribute ("Remote", AddressValue (socketAddressP1Predict));
+      clientHelperP1Predict.SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
+      clientHelperP1Predict.SetAttribute ("DataRate", StringValue ("2Mb/s"));
+      clientHelperP1Predict.SetAttribute ("MaxBytes", UintegerValue (0)); // 0 = infinite
+      clientHelperP1Predict.SetAttribute("FlowPriority", UintegerValue (0x2));  // manually set generated packets priority: 0x1 high, 0x2 low
+      
+      clientHelperP1Predict.SetAttribute ("ApplicationToS", UintegerValue (ipTos_LP)); // set the IP ToS value for the application
+      clientHelperP1Predict.SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
+      clientHelperP1Predict.SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + 1))); // assign a stream for RNG
+
+      sourceAppsPredict.Add(clientHelperP1Predict.Install (serversPredict.Get(serverIndex)));
+    }
+    else 
+    {
+      std::cerr << "unknown app type: " << applicationType << std::endl;
+      exit(1);
+    }
+    // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+    // {[nodeID] [port] [priority]}
+    std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app);
+    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P0 << " " << 1 << std::endl; 
+    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P0 << " " << 1 << std::endl;
+    tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl; 
+    tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << SERV_PORT_P1 << " " << 2 << std::endl;
+    tcpPriorityPerPortOutputFile.close();
+
+    // setup sinks
+    Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    PacketSinkHelper sinkP0 (socketType, sinkLocalAddressP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkP1 (socketType, sinkLocalAddressP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkApps.Add(sinkP0.Install (recievers.Get(recieverIndex)));
+    sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex)));
+    // for Predictive model - needed for TCP
+    Address sinkLocalAddressPredictP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressPredictP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    PacketSinkHelper sinkPredictP0 (socketType, sinkLocalAddressPredictP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP1 (socketType, sinkLocalAddressPredictP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkAppsPredict.Add(sinkPredictP0.Install (recieversPredict.Get(recieverIndex)));
+    sinkAppsPredict.Add(sinkPredictP1.Install (recieversPredict.Get(recieverIndex)));
+  }
+
+  // double_t trafficGenDuration = 2; // for a single OnOff segment
+  // sourceApps.Start (Seconds (1.0));
+  // sepparate sourceApps to HP and LP to be able to start HP after a delay
+  double_t appDelay = 1.5; // time to reach steady state for low priority packets, 1.5[sec]
+  sourceApps.Get(0)->SetStartTime(Seconds(1.0 + appDelay));  // add the time it takes to reach steady state for low priority packets
+  sourceApps.Get(1)->SetStartTime(Seconds(1.0));
+  // sourceApps.Stop (Seconds(1.0 + trafficGenDuration));
+  sourceApps.Get(0)->SetStopTime(Seconds(1.0 + appDelay + transient_length));
+  sourceApps.Get(1)->SetStopTime(Seconds(1.0 + trafficGenDuration));
+
+  // start predictive model at t0 - Tau
+  // sourceAppsPredict.Start (Seconds (1.0 + appDelay - win_length*future_possition));
+  sourceAppsPredict.Get(0)->SetStartTime(Seconds(1.0 + appDelay - win_length*future_possition));  
+  sourceAppsPredict.Get(1)->SetStartTime(Seconds(1.0 - win_length*future_possition));
+  // sourceAppsPredict.Stop (Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
+  sourceAppsPredict.Get(0)->SetStopTime(Seconds(1.0 + appDelay + transient_length - win_length*(1 - future_possition)));
+  sourceAppsPredict.Get(1)->SetStopTime(Seconds(1.0 + trafficGenDuration - win_length*(1 - future_possition)));
+
+  sinkApps.Start (Seconds (START_TIME));
+  sinkApps.Stop (Seconds (END_TIME + 0.1));
+
+  sinkAppsPredict.Start (Seconds (START_TIME));
+  sinkAppsPredict.Stop (Seconds (END_TIME + 0.1));
+
+  //monitor OnOff Traffic generated from the OnOff Applications:
+  Simulator::Schedule (Seconds (1.0), &returnOnOffTraffic, sourceApps, 3.1, Simulator::Now().GetSeconds());
+  
+  NS_LOG_INFO ("Enabling flow monitor");
+  FlowMonitorHelper flowmon;
+  Ptr<FlowMonitor> monitor = flowmon.InstallAll();
+  // ns3::NodeContainer activeTrafficNodes;
+  // activeTrafficNodes.Add(servers, router, recievers);
+  // Ptr<FlowMonitor> monitor = flowmon.Install(activeTrafficNodes);
+
+  NS_LOG_INFO ("Start simulation");
+  Simulator::Stop (Seconds (END_TIME + 10));
+  Simulator::Run ();
+
+  // print the tested scenario at the top of the terminal: Topology, Queueing Algorithm and Application.
+  std::cout << std::endl << "Topology: 1In1Out" << std::endl;
+  std::cout << std::endl << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
+  std::cout << std::endl << "Implementation Method: " + implementation << std::endl;
+  std::cout << std::endl << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
+  std::cout << std::endl << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
+  std::cout << std::endl << "Application: " + applicationType << std::endl;
+
+  Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
+  std::map<FlowId, FlowMonitor::FlowStats> flowStats = monitor->GetFlowStats ();
+  std::cout << std::endl << "*** Flow monitor statistics ***" << std::endl;
+  // a loop to sum the Tx/Rx Packets/Bytes from all nodes
+  uint32_t statTxPackets = 0; 
+  uint64_t statTxBytes = 0;
+  uint32_t statRxPackets = 0; 
+  uint64_t statRxBytes = 0;
+
+  uint32_t packetsDroppedByQueueDisc = 0;
+  uint64_t bytesDroppedByQueueDisc = 0;
+
+  uint32_t packetsDroppedByNetDevice = 0;
+  uint64_t bytesDroppedByNetDevice = 0;
+
+  double TpT = 0;
+
+  double AVGDelaySum = 0;
+  double AVGDelay = 0;
+
+  double AVGJitterSum = 0;
+  double AVGJitter = 0;
+
+  uint64_t totalBytesRx = 0;
+  double goodTpT = 0;
+  // NEED TO ADJUST STATISTICS SUCH THAT IT COUNTS ONLY REAL DATA SENT, AND NOT PREDICTIVE DATA.
+  // (i.e. packets sent by the actual model and not the predictive packets)
+  // stats indexing needs to start from 1. 
+  // all the flows are in chronological order
+  // if TCP: flowStats[i].protocol == "TCP"
+  
+  for (size_t i = 1; i <= flowStats.size(); i++)
+  { 
+    if ((transport_prot.compare("UDP") == 0 && i==2) || (transport_prot.compare("TCP") == 0 && i==3))
+    {
+      statTxPackets = statTxPackets + flowStats[i].txPackets;
+      statTxBytes = statTxBytes + flowStats[i].txBytes;
+      statRxPackets = statRxPackets + flowStats[i].rxPackets;
+      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+
+      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+      {
+        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+      }
+      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+      {
+        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+      }
+      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
+      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
+      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
+    }
+  }
+  
+
+
+  std::cout << "  Tx Packets/Bytes:   " << statTxPackets
+              << " / " << statTxBytes << std::endl;
+  std::cout << "  Rx Packets/Bytes:   " << statRxPackets
+              << " / " << statRxBytes << std::endl;
+
+  std::cout << "  Packets/Bytes Dropped by Queue Disc:   " << packetsDroppedByQueueDisc
+              << " / " << bytesDroppedByQueueDisc << std::endl;
+  
+  std::cout << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
+              << " / " << bytesDroppedByNetDevice << std::endl;
+  
+  std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
+                                  
+  AVGDelay = AVGDelaySum / (flowStats.size()/2);
+  std::cout << "  Mean delay:   " << AVGDelay << std::endl;
+  
+  AVGJitter = AVGJitterSum / (flowStats.size()/2);
+  std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
+  
+  std::cout << std::endl << "*** Application statistics ***" << std::endl;
+
+  // sinkApps refer to traffic sinks for real data only (not predictive data)
+  for (size_t i = 0; i < sinkApps.GetN(); i++)
+  {
+    totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
+  }
+
+  goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
+  std::cout << "  Rx Bytes: " << totalBytesRx << std::endl;
+  std::cout << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;
+
+  TrafficControlLayer::TCStats tcStats = tc->GetStats();
+  std::cout << std::endl << "*** TC Layer statistics ***" << std::endl;
+  std::cout << tcStats << std::endl;
+  
+  std::cout << std::endl << "*** QueueDisc statistics ***" << std::endl;
+  for (size_t i = 0; i < qdiscs.GetN(); i++)
+  {
+    std::cout << "Queue Disceplene " << i << ":" << std::endl;
+    std::cout << qdiscs.Get(i)->GetStats () << std::endl;
+  }
+
+  
+  // Added to create a .txt file with the summary of the tested scenario statistics
+  std::ofstream testFlowStatistics (dirToSave + "/Statistics.txt", std::ios::out | std::ios::app);
+  testFlowStatistics << "Topology: 1In1Out" << std::endl;
+  testFlowStatistics << "Queueing Algorithm: " + traffic_control_type + "Predictive" << std::endl;
+  testFlowStatistics << "Implementation Method: " + implementation << std::endl;
+  testFlowStatistics << "Used D value: " + DoubleToString(mice_elephant_prob) << std::endl;
+  testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
+  testFlowStatistics << "Application: " + applicationType << std::endl;
+  testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;
+  testFlowStatistics << "  Tx Packets/Bytes:   " << statTxPackets << " / " << statTxBytes << std::endl;
+  testFlowStatistics << "  Rx Packets/Bytes:   " << statRxPackets << " / " << statRxBytes << std::endl;
+  testFlowStatistics << "  Packets/Bytes Dropped by Queue Disc:   " << packetsDroppedByQueueDisc
+                      << " / " << bytesDroppedByQueueDisc << std::endl;
+  testFlowStatistics << "  Packets/Bytes Dropped by NetDevice:   " << packetsDroppedByNetDevice
+                      << " / " << bytesDroppedByNetDevice << std::endl;
+  testFlowStatistics << "  Throughput: " << TpT << " Mbps" << std::endl; 
+  testFlowStatistics << std::endl << "*** Application statistics ***" << std::endl;
+  testFlowStatistics << "  Rx Bytes: " << totalBytesRx << std::endl;
+  testFlowStatistics << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;                  
+  testFlowStatistics << std::endl << "*** TC Layer statistics ***" << std::endl;
+  testFlowStatistics << tcStats << std::endl;
+  testFlowStatistics << std::endl << "*** QueueDisc Layer statistics ***" << std::endl;
+  for (size_t i = 0; i < qdiscs.GetN(); i++)
+  {
+    testFlowStatistics << "Queue Disceplene " << i << ":" << std::endl;
+    testFlowStatistics << qdiscs.Get(i)->GetStats () << std::endl;
+  }
+  
+  testFlowStatistics.close ();
+
+  // move all produced files into the per-d/Predictive subdirectory
+  // dir = datDir + "Position_X/Length_Y/"
+  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType
+  std::string newDir = dirToSave + "/" + DoubleToString(mice_elephant_prob) + "/Predictive/";
+  system (("mkdir -p " + newDir).c_str ());
+  system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
+  system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
+  system (("mv -f " + dirToSave + "/*.txt " + newDir).c_str ());
+
+  // Create the gnuplot.//////////////////////////////
+  generatePacketsVsThresholdFromDatFile(newDir + "/port_0_queue_0_PacketsInQueueTrace.dat", "High");
+  generatePacketsVsThresholdFromDatFile(newDir + "/port_0_queue_1_PacketsInQueueTrace.dat", "Low");
+  generate2DGnuPlotFromDatFile(newDir + "/TrafficControlLowPriorityPacketsDroppedTrace.dat", newDir + "/TrafficControlLowPriorityQueueThreshold_0.dat");
+
+  // if chose to accumulate statistics:
+  if (accumulate_stats)
+  {
+    if (!(std::filesystem::exists( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/"
+                                  + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
+    {
+      system (("mkdir -p " + dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/"
+                                            + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      testAccumulativeStats
+      << tcStats.nTotalDroppedPackets << " " 
+      << tcStats.nTotalDroppedPacketsHighPriority << " " 
+      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      testAccumulativeStats.close ();
+    }
+    else
+    {
+      std::fstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + DoubleToString(mice_elephant_prob) + "/"
+                                          + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
+      testAccumulativeStats
+      << tcStats.nTotalDroppedPackets << " " 
+      << tcStats.nTotalDroppedPacketsHighPriority << " " 
+      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      testAccumulativeStats.close ();
+    }
+  }
+  // clear all statistics for this simulation iteration
+  flowStats.clear();
+  tcStats.~TCStats();
+
+  // Simulator::Cancel();
+  Simulator::Destroy ();
+  NS_LOG_INFO ("Stop simulation");
+}

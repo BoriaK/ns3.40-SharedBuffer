@@ -1,5 +1,5 @@
 set terminal png
-set output "/home/boris/workspace/ns-allinone-3.40/ns-3.40/Trace_Plots/1In1Out//Predictive/Position_0.5/Length_0.4/SharedBuffer_DT/via_MultiQueues/1_ToS/prioSteadyOn/Constant/generatedOnOffTrafficTrace.png"
+set output "/home/boris/workspace/ns-allinone-3.40/ns-3.40/Trace_Plots/1In1Out/Predictive/Position_0.5/Length_0.4/SharedBuffer_DT/via_MultiQueues/1_ToS/prioSteadyOn/0.2/Predictive//generatedOnOffTrafficTrace.png"
 set title "generated On Off Traffic[packets] vs Time[sec]"
 set xlabel "Time[sec]"
 set ylabel "Traffic"

@@ -109,7 +109,7 @@ TrafficControlLayer::GetTypeId()
             .AddAttribute(
                 "TrafficControlAlgorythm",
                 "The Traffic Controll Algorythm to use inorder to manage traffic in Shared Buffer",
-                StringValue("FB"),
+                StringValue("DT"),
                 MakeStringAccessor(&TrafficControlLayer::m_usedAlgorythm),
                 MakeStringChecker())
             .AddAttribute(
@@ -119,6 +119,12 @@ TrafficControlLayer::GetTypeId()
                 TcPriomapValue(TcPriomap{{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}),
                 MakeTcPriomapAccessor(&TrafficControlLayer::m_tosPrioMap),
                 MakeTcPriomapChecker())
+            .AddAttribute(
+                "ApplyTransientMitigation",
+                "Flag to apply transient mitigation in the Traffic Control Layer",
+                BooleanValue(true),
+                MakeBooleanAccessor(&TrafficControlLayer::m_handleTransient),
+                MakeBooleanChecker())
             .AddTraceSource(
                 "PacketsInQueue",
                 "Number of packets currently stored in the Shared Buffer in Traffic Control Layer",
@@ -2551,7 +2557,7 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                                 // m_freezeLowPriorityThreshold = true;
                                 if (m_transientLength > 0)
                                 {
-                                    m_inTransient = false;  // true/false - flag to enable mitigation
+                                    m_inTransient = m_handleTransient;  // true/false - flag to enable mitigation
                                 }
                                 else
                                 {

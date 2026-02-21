@@ -4,7 +4,6 @@ Implementation Method: via_MultiQueues/1_ToS
 Used D value: 0.2
 Traffic Duration: 2 [Sec]
 Application: prioSteadyOn
-traffic Mode ConstantRandom
 
 *** Flow monitor statistics ***
   Tx Packets/Bytes:   652 / 697460

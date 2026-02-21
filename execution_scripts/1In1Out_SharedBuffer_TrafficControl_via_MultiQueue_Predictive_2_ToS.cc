@@ -66,7 +66,7 @@
 
 #define SWITCH_RECIEVER_CAPACITY 500*1e3        // Leaf-Spine Capacity 500Kbps/queue/port
 #define SERVER_SWITCH_CAPACITY 5*1e6          // Total Serever-Leaf Capacity 5Mbps/queue/port
-#define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
+#define LINK_LATENCY MicroSeconds(20)           // each link latency 20 MicroSeconds 
 #define BUFFER_SIZE 250                         // Shared Buffer Size for a single queue per port. 250 Packets
 
 // The simulation starting and ending time
@@ -122,8 +122,8 @@ std::string GetWorkspaceRoot() {
 }
 
 std::string root = GetWorkspaceRoot();
-// std::string datDir = root + "/Trace_Plots/1In1Out/Predictive/";
-std::string datDir = root + "/Predictive/";
+// std::string datDir = root + "Predictive/";
+std::string datDir = root + "Predictive/";
 std::string traffic_control_type = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
 std::string implementation = "via_MultiQueues/2_ToS";  // "via_NetDevices"/"via_FIFO_QueueDiscs"/"via_MultiQueues"
 std::string usedAlgorythm;  // "PredictiveDT"/"PredictiveFB"
@@ -567,7 +567,7 @@ int main (int argc, char *argv[])
   }
 
   // Create a new directory to store the output of the program
-  // datDir = "./Trace_Plots/1In1Out/Predictive/";
+  // datDir = root + "Predictive/";  (root = Trace_Plots/1In1Out/)
   std::string  dir = datDir + "Position_" + DoubleToString(future_possition) + "/Length_" + DoubleToString(win_length) + "/";
   std::string dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType + "/" + onOffTrafficMode;
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))

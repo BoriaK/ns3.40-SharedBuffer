@@ -2400,8 +2400,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                 {
                     // Enqueue the packet in the queue disc associated with the netdevice queue
                     // selected for the packet and try to dequeue packets from such queue disc
-                    // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
-                    item->SetTxQueueIndex(txPortIndex);
+                    // txq is the hardware TX queue index; txPortIndex is only for per-port tracing
+                    item->SetTxQueueIndex(txq);
 
                     Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
                     NS_ASSERT(qDisc);
@@ -2419,8 +2419,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                     
                     // Enqueue the packet in the queue disc associated with the netdevice queue
                     // selected for the packet and try to dequeue packets from such queue disc
-                    // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
-                    item->SetTxQueueIndex(txPortIndex);
+                    // txq is the hardware TX queue index; txPortIndex is only for per-port tracing
+                    item->SetTxQueueIndex(txq);
                     Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
                     NS_ASSERT(qDisc);
                     Ptr<QueueDisc> internal_qDisc; // for the multiqueue case
@@ -2743,8 +2743,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
             {
                 // Enqueue the packet in the queue disc associated with the netdevice queue
                 // selected for the packet and try to dequeue packets from such queue disc
-                // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
-                item->SetTxQueueIndex(txPortIndex);
+                // txq is the hardware TX queue index; txPortIndex is only for per-port tracing
+                item->SetTxQueueIndex(txq);
 
                 Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
                 NS_ASSERT(qDisc);
@@ -2756,8 +2756,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
         {
             // Enqueue the packet in the queue disc associated with the netdevice queue
             // selected for the packet and try to dequeue packets from such queue disc
-            // FIXED: Use txPortIndex (port number) instead of txq (internal queue index)
-            item->SetTxQueueIndex(txPortIndex);
+            // txq is the hardware TX queue index; txPortIndex is only for per-port tracing
+            item->SetTxQueueIndex(txq);
 
             Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];
             NS_ASSERT(qDisc);

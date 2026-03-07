@@ -24,6 +24,8 @@
 #include <array>
 #include <filesystem>
 #include <map>
+#include <unistd.h>
+#include <cstdlib>
 
 #include "ns3/core-module.h"
 #include "ns3/applications-module.h"
@@ -59,8 +61,6 @@
 #define SERV_PORT_P3 50003
 #define SERV_PORT_P4 50004
 
-// Adopted from the simulation from snowzjx
-// Acknowledged to https://github.com/snowzjx/ns3-load-balance.git
 #define PACKET_SIZE 1024 // 1024 [bytes]
 
 using namespace ns3;
@@ -68,7 +68,40 @@ using namespace ns3;
 uint32_t prev = 0;
 Time prevTime = Seconds (0);
 
-std::string datDir = "./Trace_Plots/test_Alphas/";
+std::string GetWorkspaceRoot2In2Out()
+{
+    char* cwd = getcwd(nullptr, 0);
+    if (cwd == nullptr)
+    {
+        return "./Trace_Plots/test_Alphas/";
+    }
+    std::string wsRoot(cwd);
+    free(cwd);
+
+    while (wsRoot.length() > 1 && wsRoot != "/")
+    {
+        std::ifstream ns3_file(wsRoot + "/ns3");
+        std::ifstream cmake_file(wsRoot + "/CMakeLists.txt");
+        std::ifstream version_file(wsRoot + "/VERSION");
+        if ((ns3_file.good() || cmake_file.good()) && version_file.good())
+        {
+            return wsRoot + "/Trace_Plots/test_Alphas/";
+        }
+        size_t lastSlash = wsRoot.find_last_of('/');
+        if (lastSlash == std::string::npos || lastSlash == 0)
+        {
+            break;
+        }
+        wsRoot = wsRoot.substr(0, lastSlash);
+    }
+    // fallback: use the original cwd with the expected subdirectory
+    char* cwd2 = getcwd(nullptr, 0);
+    std::string fallback = cwd2 ? std::string(cwd2) + "/Trace_Plots/test_Alphas/" : "./Trace_Plots/test_Alphas/";
+    free(cwd2);
+    return fallback;
+}
+
+std::string datDir = GetWorkspaceRoot2In2Out();
 
 // for OnOff Aplications
 uint32_t dataRate = 2; // [Mbps] data generation rate for a single OnOff application
@@ -159,7 +192,7 @@ TrafficControlLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, uint32_t 
 
 // Trace the Threshold Value for High Priority packets in the Shared Queue
 void
-TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdHighTrace (size_t index, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tchpthr (datDir + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tchpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
@@ -170,7 +203,7 @@ TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newVal
 
 // Trace the Threshold Value for Low Priority packets in the Shared Queue
 void
-TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdLowTrace (size_t index, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tclpthr (datDir + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tclpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
@@ -3710,14 +3743,14 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 }
 
 void
-viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
+viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
   std::string implementation = "via_MultiQueues/5_ToS";
   std::string usedAlgorythm;
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
-  std::string transportProt = "UDP"; // "UDP"/"TCP"
+  std::string transportProt = transport_prot; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
   bool eraseOldData = true; // true/false
@@ -3745,6 +3778,70 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   {
+    // ========================================================================
+    // TcpTahoe configured to allow shared buffer to reach steady state.
+    // TcpTahoe: on any loss (3 dupACKs or timeout) sets cwnd=1 and restarts
+    // slow start up to ssthresh. There is no fast recovery (unlike NewReno).
+    //
+    // Steady-state reasoning:
+    //   Bottleneck = 500 Kbps, segment = PACKET_SIZE+60 bytes ≈ 57.7 pkt/s
+    //   Full-queue RTT ≈ 250 / 57.7 ≈ 4.3 s
+    //   BDP ≈ 57.7 × 4.3 ≈ 248 packets (queue is always full at capacity)
+    //
+    //   After loss at cwnd ≈ 250+:
+    //     ssthresh = cwnd/2 ≈ 125
+    //     Tahoe: cwnd → 1, slow-start back to 125 (≈7 RTTs at near-empty queue)
+    //     Near-empty RTT ≈ small propagation (~0.04 ms for 20 µs × 2 links)
+    //     Recovery time ≈ 7 × 0.04 ms → negligible → queue barely drains
+    //
+    //   Result: queue stays near full; steady state is achieved.
+    // ========================================================================
+
+    Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue("ns3::TcpTahoe"));
+    Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                        TypeIdValue(TypeId::LookupByName("ns3::TcpTahoeRecovery"))); // cwnd→1 on loss (true Tahoe)
+
+    // === DISABLE ECN - use drops as congestion signal ===
+    Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+
+    // === Large buffers to prevent application-level blocking ===
+    Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+    Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+
+    // ========================================================================
+    // RAPID BUFFER FILL
+    // High InitialCwnd ensures the buffer fills quickly on the first slow start.
+    // InitialSlowStartThreshold = buffer size so slow start can reach capacity.
+    // ========================================================================
+    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1084 bytes
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(500));             // Fast initial fill
+    Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(250)); // Match buffer depth
+
+    // ========================================================================
+    // FAST LOSS DETECTION for quick reaction to queue saturation
+    // ========================================================================
+    Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(50)));  // Faster than default
+    Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+
+    // Responsive RTT estimation
+    Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.25));
+    Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.5));
+    Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+
+    // Tahoe: disable SACK; keep LimitedTransmit enabled so CA_DISORDER (entered on
+    // the first DupACK) can be handled without hitting the ns-3 assert in
+    // SendPendingData that guards "!sack && !limitedTx => never CA_DISORDER".
+    Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
+    Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
+    Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(false));           // No SACK for Tahoe
+    Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Must be true when SACK=false
+
+    // ACK every packet for fast feedback
+    Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(10)));
+    Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1));
+
+    Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
+    Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Nagle off
     socketType = "ns3::TcpSocketFactory";
   }
   else
@@ -4205,8 +4302,8 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
 
   // Create a new directory to store the output of the program
-  // std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
-  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -4366,7 +4463,7 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   testFlowStatistics.close ();
 
   // move all the produced .dat files to a directory based on the Alpha values
-  // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/";
   std::string newDir = dirToSave + DoubleToString(mice_elephant_prob) + "/" + DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) + "/";
   // std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
@@ -4376,12 +4473,12 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
   // if chose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
-      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -4393,7 +4490,7 @@ viaMQueues5ToS_v2 (std::string traffic_control_type, std::string onoff_traffic_m
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << DoubleToString(alpha_high) + "_" + DoubleToString(alpha_low) << " "
@@ -4932,7 +5029,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
 
   // Create a new directory to store the output of the program
   // datDir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = datDir + traffic_control_type + "/" + onoff_traffic_mode + "/" + implementation + "/";
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -5123,12 +5220,12 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
 // if choose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/").c_str ());
-      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -5152,7 +5249,7 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -5186,14 +5283,14 @@ viaMQueues5ToSVaryingD (std::string traffic_control_type,std::string onoff_traff
 
 template <size_t N>
 void
-viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_traffic_mode, const std::double_t(&mice_elephant_prob_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulate_stats)
+viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_control_type, std::string onoff_traffic_mode, const std::double_t(&mice_elephant_prob_array)[N], double_t alpha_high, double_t alpha_low, bool adjustableAlphas, bool accumulate_stats)
 {
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
   std::string implementation = "via_MultiQueues/5_ToS";
   std::string usedAlgorythm;
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
-  std::string transportProt = "UDP"; // "UDP"/"TCP"
+  std::string transportProt = transport_prot; // "UDP"/"TCP"
   std::string socketType;
   std::string queue_capacity;
   bool eraseOldData = true; // true/false
@@ -5220,6 +5317,70 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
   // client type dependant parameters:
   if (transportProt.compare ("TCP") == 0)
   {
+    // ========================================================================
+    // TcpTahoe configured to allow shared buffer to reach steady state.
+    // TcpTahoe: on any loss (3 dupACKs or timeout) sets cwnd=1 and restarts
+    // slow start up to ssthresh. There is no fast recovery (unlike NewReno).
+    //
+    // Steady-state reasoning:
+    //   Bottleneck = 500 Kbps, segment = PACKET_SIZE+60 bytes ≈ 57.7 pkt/s
+    //   Full-queue RTT ≈ 250 / 57.7 ≈ 4.3 s
+    //   BDP ≈ 57.7 × 4.3 ≈ 248 packets (queue is always full at capacity)
+    //
+    //   After loss at cwnd ≈ 250+:
+    //     ssthresh = cwnd/2 ≈ 125
+    //     Tahoe: cwnd → 1, slow-start back to 125 (≈7 RTTs at near-empty queue)
+    //     Near-empty RTT ≈ small propagation (~0.04 ms for 20 µs × 2 links)
+    //     Recovery time ≈ 7 × 0.04 ms → negligible → queue barely drains
+    //
+    //   Result: queue stays near full; steady state is achieved.
+    // ========================================================================
+
+    Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue("ns3::TcpTahoe"));
+    Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
+                        TypeIdValue(TypeId::LookupByName("ns3::TcpTahoeRecovery"))); // cwnd→1 on loss (true Tahoe)
+
+    // === DISABLE ECN - use drops as congestion signal ===
+    Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
+
+    // === Large buffers to prevent application-level blocking ===
+    Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 26)); // 64 MiB
+    Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 26)); // 64 MiB
+
+    // ========================================================================
+    // RAPID BUFFER FILL
+    // High InitialCwnd ensures the buffer fills quickly on the first slow start.
+    // InitialSlowStartThreshold = buffer size so slow start can reach capacity.
+    // ========================================================================
+    Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(PACKET_SIZE + 60)); // 1084 bytes
+    Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(500));             // Fast initial fill
+    Config::SetDefault("ns3::TcpSocket::InitialSlowStartThreshold", UintegerValue(250)); // Match buffer depth
+
+    // ========================================================================
+    // FAST LOSS DETECTION for quick reaction to queue saturation
+    // ========================================================================
+    Config::SetDefault("ns3::TcpSocketBase::MinRto", TimeValue(MilliSeconds(50)));  // Faster than default
+    Config::SetDefault("ns3::TcpSocketBase::ClockGranularity", TimeValue(MilliSeconds(1)));
+
+    // Responsive RTT estimation
+    Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.25));
+    Config::SetDefault("ns3::RttMeanDeviation::Beta", DoubleValue(0.5));
+    Config::SetDefault("ns3::RttEstimator::InitialEstimation", TimeValue(MicroSeconds(80)));
+
+    // Tahoe: disable SACK; keep LimitedTransmit enabled so CA_DISORDER (entered on
+    // the first DupACK) can be handled without hitting the ns-3 assert in
+    // SendPendingData that guards "!sack && !limitedTx => never CA_DISORDER".
+    Config::SetDefault("ns3::TcpSocketBase::Timestamp", BooleanValue(true));
+    Config::SetDefault("ns3::TcpSocketBase::WindowScaling", BooleanValue(true));
+    Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(false));           // No SACK for Tahoe
+    Config::SetDefault("ns3::TcpSocketBase::LimitedTransmit", BooleanValue(true)); // Must be true when SACK=false
+
+    // ACK every packet for fast feedback
+    Config::SetDefault("ns3::TcpSocket::DelAckTimeout", TimeValue(MilliSeconds(10)));
+    Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1));
+
+    Config::SetDefault("ns3::TcpSocket::DataRetries", UintegerValue(6));
+    Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(true)); // Nagle off
     socketType = "ns3::TcpSocketFactory";
   }
   else
@@ -5692,7 +5853,7 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
 
   // Create a new directory to store the output of the program
   // datDir = "./Trace_Plots/test_Alphas/"
-  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  std::string dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -5873,7 +6034,7 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
   {
     // move all the produced files to a directory
     // datDir = "./Trace_Plots/test_Alphas/"
-    // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+    // dirToSave = datDir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/";
 
     std::string newDir = dirToSave + "VaryingDValues/adjustableAlphas/";
     system (("mkdir -p " + newDir).c_str ());
@@ -5892,12 +6053,12 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
   // if choose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+    if (!(std::filesystem::exists(datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
-      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      system (("mkdir -p " + datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/VaryingDValues/").c_str ());
+      std::ofstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -5921,7 +6082,7 @@ viaMQueues5ToS_v2_VaryingD (std::string traffic_control_type,std::string onoff_t
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/VaryingDValues/" 
+      std::fstream testAccumulativeStats (datDir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/VaryingDValues/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       if (adjustableAlphas)
       {
@@ -6633,7 +6794,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   // Create a new directory to store the output of the program
   // datDir = "./Trace_Plots/test_Alphas/"
   // dir = datDir + "future_possition/win_length/"
-  std::string dirToSave =  dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  std::string dirToSave =  dir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/";
   if (!((std::filesystem::exists(dirToSave)) && (std::filesystem::is_directory(dirToSave))))
   {
     system (("mkdir -p " + dirToSave).c_str ());
@@ -6809,7 +6970,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   // move all the produced .dat files to a directory based on the Alpha values
   // datDir = "./Trace_Plots/test_Alphas/"
   // dir = datDir + "future_possition/win_length/"
-  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/";
+  // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/";
   std::string newDir = dirToSave + DoubleToString(mice_elephant_prob) + "/Predictive/";
   // std::string newDir = dirToSave;
   system (("mkdir -p " + newDir).c_str ());
@@ -6819,12 +6980,12 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
   // if chose to acumulate statistics:
   if (accumulate_stats)
   {
-    if (!(std::filesystem::exists( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+    if (!(std::filesystem::exists( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                   + usedAlgorythm + "_TestAccumulativeStatistics.dat")))
     {
       // If the file doesn't exist, create it and write initial statistics
-      system (("mkdir -p " +  dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/"  + DoubleToString(mice_elephant_prob) + "/").c_str ());
-      std::ofstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      system (("mkdir -p " +  dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/"  + DoubleToString(mice_elephant_prob) + "/").c_str ());
+      std::ofstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                             + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
@@ -6835,7 +6996,7 @@ viaMQueuesPredictive5ToS_v2 (std::string traffic_control_type, std::string onoff
     else
     {
       // Open the file in append mode
-      std::fstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
+      std::fstream testAccumulativeStats ( dir + "/TestStats/" + traffic_control_type + "/" + implementation + "/" + transportProt + "/" + onoff_traffic_mode + "/" + DoubleToString(mice_elephant_prob) + "/" 
                                           + usedAlgorythm + "_TestAccumulativeStatistics.dat", std::ios::app);
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 

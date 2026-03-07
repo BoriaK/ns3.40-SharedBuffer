@@ -183,7 +183,7 @@ TrafficControlPredictLowPriorityPacketsInSharedQueueTrace (uint32_t oldValue, ui
 
 // Trace the Threshold Value for High Priority packets in the Shared Queue
 void
-TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdHighTrace (size_t index, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tchpthr (dir + traffic_control_type + "/" + implementation + "/TrafficControlHighPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tchpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;
@@ -194,7 +194,7 @@ TrafficControlThresholdHighTrace (size_t index, float_t oldValue, float_t newVal
 
 // Trace the Threshold Value for Low Priority packets in the Shared Queue
 void
-TrafficControlThresholdLowTrace (size_t index, float_t oldValue, float_t newValue)  // added by me, to monitor Threshold
+TrafficControlThresholdLowTrace (size_t index, uint32_t newValue)  // added by me, to monitor Threshold
 {
   std::ofstream tclpthr (dir + traffic_control_type + "/" + implementation + "/TrafficControlLowPriorityQueueThreshold_" + ToString(index) + ".dat", std::ios::out | std::ios::app);
   tclpthr << Simulator::Now ().GetSeconds () << " " << newValue << std::endl;

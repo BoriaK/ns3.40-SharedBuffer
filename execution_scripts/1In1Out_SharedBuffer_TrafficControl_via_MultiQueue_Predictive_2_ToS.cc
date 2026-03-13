@@ -561,9 +561,9 @@ int main (int argc, char *argv[])
   
   // this file is for debug, to trace the sequence of all estimated d values during the run
   // it needs to be erased before the simulation starts
-  if (std::filesystem::exists("Estimated_D_Values.dat"))
+  if (std::filesystem::exists(datDir + "/Estimated_D_Values.dat"))
   {
-    std::remove("Estimated_D_Values.dat");
+    std::remove((datDir + "/Estimated_D_Values.dat").c_str());
   }
 
   // Create a new directory to store the output of the program
@@ -1515,6 +1515,7 @@ int main (int argc, char *argv[])
   // activeTrafficNodes.Add(servers, router, recievers);
   // Ptr<FlowMonitor> monitor = flowmon.Install(activeTrafficNodes);
 
+  TrafficControlLayer::SetGlobalOutputDirectory(dirToSave);
   NS_LOG_INFO ("Start simulation");
   Simulator::Stop (Seconds (END_TIME + 10));
   Simulator::Run ();

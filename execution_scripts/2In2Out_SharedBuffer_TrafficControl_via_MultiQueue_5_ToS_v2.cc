@@ -71,7 +71,7 @@
 #define SWITCH_RECIEVER_CAPACITY  500*1e3       // Leaf-Spine Capacity 500[Kbps]/queue/port
 #define SERVER_SWITCH_CAPACITY 5*1e6            // Serever-Leaf Capacity 5[Mbps]/queue/port
 #define LINK_LATENCY MicroSeconds(20)           // each link latency 20 MicroSeconds 
-#define BUFFER_SIZE 500                         // Shared Buffer Size for a single queue/port. 500[Packets]
+#define BUFFER_SIZE 250                         // Shared Buffer Size for a single queue/port. 250[Packets]
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -747,7 +747,7 @@ int main (int argc, char *argv[])
   }
   else
   {
-    queue_capacity = ToString(5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(5 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:

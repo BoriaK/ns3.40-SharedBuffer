@@ -1384,7 +1384,7 @@ TrafficControlLayer::EstimateNewLocalD()
     // we calculate the new d value (mouse/elephant probability) as: 
 
     DataSet dataset;
-    dataset.LoadData("Predictive_Packet_Arrival_Times.dat");
+    dataset.LoadData(g_outputDirectory + "/Predictive_Packet_Arrival_Times.dat");
 
     DataPoint lastRow = dataset.GetLastRow();
     DataPoint currentRow = {0, 0, 0, 0, 0}; // initilize currentRow to zeros before filling it with the actual data
@@ -1424,7 +1424,7 @@ TrafficControlLayer::EstimateNewLocalD()
     std::cout << "the new predictive d value is: " << m_estimated_mice_elephant_prob << std::endl;
     
     // for debug, save a list of all the estimated d values and the remaining buffer space to a file
-    std::ofstream estimatedDValuesOutputFile("Estimated_D_Values.dat", std::ios::app); 
+    std::ofstream estimatedDValuesOutputFile(g_outputDirectory + "/Estimated_D_Values.dat", std::ios::app); 
                 estimatedDValuesOutputFile << m_estimated_mice_elephant_prob << 
                 // " " << GetMaxSharedBufferSize().GetValue() - GetCurrentSharedBufferSize().GetValue() <<  
                 // " " << GetQueueThreshold_DT(m_alpha_h, m_alpha_l, m_alpha_h).GetValue() <<
@@ -1451,50 +1451,50 @@ TrafficControlLayer::GetNewAlphaHighAndLow(Ptr<NetDevice> device, uint32_t mice_
         if (m_usedAlgorythm.compare("PredictiveDT") == 0 || m_usedAlgorythm.compare("DT") == 0)
         {
             switch (mice_elephant_prob_val)
-            { // optimal alpha High/Low
-            case 1:
-                alpha_h = 11;
-                alpha_l = 9;
-                break;
-            case 2:
-                alpha_h = 11;
-                alpha_l = 9;
-                break;
-            case 3:
-                alpha_h = 13;
-                alpha_l = 7;
-                break;
-            case 4:
-                alpha_h = 17;
-                alpha_l = 3;
-                break;
-            case 5:
-                alpha_h = 18;
-                alpha_l = 2;
-                break;
-            case 6:
-                alpha_h = 19;
-                alpha_l = 1;
-                break;
-            case 7:
-                alpha_h = 20;
-                alpha_l = 0.5;
-                break;
-            case 8:
-                alpha_h = 20;
-                alpha_l = 0.5;
-                break;
-            case 9:
-                alpha_h = 20;
-                alpha_l = 0.5;
-                break;
-            case 10:  // saturated
-                alpha_h = 20;
-                alpha_l = 0.5;
-                break;
-            default:
-                break;
-            }
+                { // optimal alpha High/Low
+                case 1:
+                    alpha_h = 11;
+                    alpha_l = 9;
+                    break;
+                case 2:
+                    alpha_h = 11;
+                    alpha_l = 9;
+                    break;
+                case 3:
+                    alpha_h = 13;
+                    alpha_l = 7;
+                    break;
+                case 4:
+                    alpha_h = 17;
+                    alpha_l = 3;
+                    break;
+                case 5:
+                    alpha_h = 18;
+                    alpha_l = 2;
+                    break;
+                case 6:
+                    alpha_h = 19;
+                    alpha_l = 1;
+                    break;
+                case 7:
+                    alpha_h = 19;
+                    alpha_l = 1;
+                    break;
+                case 8:
+                    alpha_h = 19;
+                    alpha_l = 1;
+                    break;
+                case 9:
+                    alpha_h = 20;
+                    alpha_l = 0.5;
+                    break;
+                case 10:  // saturated
+                    alpha_h = 20;
+                    alpha_l = 0.5;
+                    break;
+                default:
+                    break;
+                }
         }
         else if (m_usedAlgorythm.compare("PredictiveFB") == 0 || m_usedAlgorythm.compare("FB") == 0)
         {
@@ -2265,8 +2265,10 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
         {
             // TCP Debug:
             TcpHeader tcpHeader;
+            bool isTcp = false;
             if (item->GetPacket()->PeekHeader(tcpHeader)) // Extract the TCP header
             {
+                isTcp = true;
                 // uint32_t seqNumber = tcpHeader.GetSequenceNumber().GetValue();
                 // std::cout << "TCP Sequence Number: " << seqNumber << std::endl;
                 std::cout << "Source Port: " << tcpHeader.GetSourcePort() << 

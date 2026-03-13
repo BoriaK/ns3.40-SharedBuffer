@@ -673,6 +673,7 @@ class TrafficControlLayer : public Object
     /**
      * \brief returns the optimal Alpha High and Low values based on the D of the traffic.
      * \param mice_elephant_prob_val the mice/elephant probability (D) assigned at the OnOff Application
+     * \param isTcp indicates whether the traffic is TCP or not, to determine the right set of alpha values to return.
      * \param device the NetDevice that's currently being used as Tx Port.
      * \returns return the new alpha_high and alpha_low value based on the optimization done prior.
      */

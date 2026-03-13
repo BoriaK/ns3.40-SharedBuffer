@@ -64,11 +64,12 @@
 #define SWITCH_RECIEVER_CAPACITY  500000        // Leaf-Spine Capacity 500Kbps/queue/port
 #define SERVER_SWITCH_CAPACITY 5000000          // Total Serever-Leaf Capacity 5Mbps/queue/port
 #define LINK_LATENCY MicroSeconds(20)           // each link latency 10 MicroSeconds 
-#define BUFFER_SIZE 500                         // Shared Buffer Size for a single queue per port. 500 Packets
+#define BUFFER_SIZE 250                         // Shared Buffer Size for a single queue per port. 250 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
-#define END_TIME 30
+#define DURATION_TIME 2
+#define END_TIME 60
 
 // The flow port range, each flow will be assigned a random port number within this range
 #define SERV_PORT_P0 50000
@@ -280,7 +281,7 @@ int main (int argc, char *argv[])
   }
   else
   {
-    queue_capacity = ToString(5 * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(5 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:

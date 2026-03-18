@@ -779,6 +779,8 @@ int main (int argc, char *argv[])
   tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
   tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(win_length));
+  tc->SetAttribute("AdjustableAlphas", BooleanValue(true));   // use the prediction to astimate D(t) and adjust the alphas accordingly
+  tc->SetAttribute("ApplyTransientMitigation", BooleanValue(false));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
   tc->TraceConnectWithoutContext("PacketsInQueue", MakeCallback (&TrafficControlPacketsInSharedQueueTrace));
@@ -793,21 +795,11 @@ int main (int argc, char *argv[])
   Ptr<TrafficControlLayer> tcPredict;
   tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
   tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
+  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+  tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
-  if (transportProt.compare ("UDP") == 0)
-  {
-    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
-  }
-  else
-  {
-    // the Predictive model will function just like a real non-predictive Shared Buffer would
-    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-    tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
-    tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
-    // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
-    tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
-  }
-
+  // inorder for the predictive model to operate well with TCP, it needs to behave as if it's non-predictive with optimal alphas
+  tcPredict->SetAttribute("AdjustableAlphas", BooleanValue(true)); 
   //////////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
   {
@@ -1247,7 +1239,7 @@ int main (int argc, char *argv[])
         clientHelpers_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         clientHelpers_vector[j].SetAttribute ("ApplicationToS", UintegerValue (ipTos_vector[j])); // set the IP ToS value for the application
         // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        // clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob))); // real packets use predictitions to estimate D
         clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
         sourceApps.Add(clientHelpers_vector[j].Install (servers.Get(serverIndex)));
         // clientHelpers_vector[j].AssignStreams(servers.Get(serverIndex), 0);
@@ -1260,7 +1252,7 @@ int main (int argc, char *argv[])
         clientHelpersPredict_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
         clientHelpersPredict_vector[j].SetAttribute ("ApplicationToS", UintegerValue (ipTos_vector[j])); // set the IP ToS value for the application
         // clientHelpersPredict_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelpersPredict_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb)));
+        clientHelpersPredict_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(miceElephantProb))); // predictive packets behave as non-predictive with optimal alphas
         clientHelpersPredict_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
         sourceAppsPredict.Add(clientHelpersPredict_vector[j].Install (serversPredict.Get(serverIndex)));
         // clientHelpersPredict_vector[j].AssignStreams(serversPredict.Get(serverIndex), 0);

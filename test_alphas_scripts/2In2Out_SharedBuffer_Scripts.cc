@@ -42,12 +42,13 @@
 // There are 2 servers connecting to a leaf switch
 #define SERVER_COUNT 2
 #define SWITCH_COUNT 1
+#define QUEUES_PER_PORT 5
 #define RECIEVER_COUNT 2
 
-#define SWITCH_RECIEVER_CAPACITY  500000        // Leaf-Spine Capacity 500Kbps/queue/port
-#define SERVER_SWITCH_CAPACITY 5000000          // Total Serever-Leaf Capacity 5Mbps/queue/port
-#define LINK_LATENCY MicroSeconds(20)            // each link latency 20 MicroSeconds 
-#define BUFFER_SIZE 250                         // Shared Buffer Size for a single queue/port. 250 [Packets]
+#define SERVER_SWITCH_CAPACITY 5*1e6            // Total Switch Rx (enqueue) Capacity 5Mbps/queue/port
+#define SWITCH_RECIEVER_CAPACITY 500*1e3        // Switch Tx (dequeue) Capacity 500Kbps/queue/port
+#define LINK_LATENCY MicroSeconds(20)           // each link latency 20 MicroSeconds 
+#define BUFFER_SIZE 250                         // Shared Buffer Size for a single queue per port. 250 Packets
 
 // The simulation starting and ending time
 #define START_TIME 0.0
@@ -3745,6 +3746,28 @@ viaMQueues5ToS (std::string traffic_control_type, std::string onoff_traffic_mode
 void
 viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type, std::string onoff_traffic_mode, double_t mice_elephant_prob, double_t alpha_high, double_t alpha_low, bool accumulate_stats)
 {
+  /*
+  * Basic Topology, with 2 ports p0 and p1 with 5 client servers [t0,...t5] on each port, a switch S, 2 Tx ports connected to 5 
+  * recievers [r0,...,r5] each
+  * this design is based on DumbellTopoplogy model.
+  * in this version all the NetDevices are created first and the TrafficControllHelper is installed on them simultanoiusly
+  *
+  *     t0__      _____      __r0
+  *     t1__|    |     |    |__r1
+  *     t2__|--p0|     |p0--|__r2
+  *     t3__|    |     |    |__r3
+  *     t4__|    |     |    |__r4
+  *              |  S  |
+  *     t0__     |     |     __r0
+  *     t1__|    |     |    |__r1
+  *     t2__|--p1|     |p1--|__r2
+  *     t3__|    |     |    |__r3
+  *     t4__|    |_____|    |__r4
+  * 
+  */
+  
+  
+  
   LogComponentEnable ("2In2Out", LOG_LEVEL_INFO);
 
   std::string implementation = "via_MultiQueues/5_ToS";
@@ -3771,7 +3794,7 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
   }
   else
   {
-    queue_capacity = ToString(5 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(QUEUES_PER_PORT * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
     // queue_capacity = ToString(7 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
@@ -3888,12 +3911,12 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = QUEUES_PER_PORT * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = QUEUES_PER_PORT * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -4047,14 +4070,14 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
   NS_LOG_INFO ("Create Sockets, Applications and Sinks");
 
   std::vector<uint32_t> serverPort_vector;
-  for (size_t i = 0; i < 5; i++)
+  for (size_t i = 0; i < QUEUES_PER_PORT; i++)
   {
     serverPort_vector.push_back(50000 + i);
   }
 
   // create a vector of IP_ToS_Priorities: P0>P1>...>P4
   std::vector<uint32_t> ipTos_vector;
-  uint32_t ipTos_P0 = 0x08; 
+  uint32_t ipTos_P0 = 0x10; 
   ipTos_vector.push_back(ipTos_P0);
   uint32_t ipTos_P1 = 0x06; 
   ipTos_vector.push_back(ipTos_P1);
@@ -4080,8 +4103,10 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
   {
     unequalNum = true;
   }
-   
-  for (size_t i = 0; i < 2; i++)
+  
+  std::remove("TCP_Socket_Priority_per_Port.dat"); // remove it here, to create a new one with every run
+
+  for (size_t i = 0; i < SERVER_COUNT; i++)
   {
     int serverIndex = i;
     int recieverIndex = i;
@@ -4118,7 +4143,7 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
     // create InetSocketAddresses and PrioOnOffHelper vectors
     std::vector<InetSocketAddress> socketAddress_vector;
     std::vector<PrioOnOffHelper> clientHelpers_vector;
-    for (size_t j = 0; j < 5; j++)
+    for (size_t j = 0; j < QUEUES_PER_PORT; j++)
     {
       InetSocketAddress tempSocketAddress = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), serverPort_vector[j]);
       tempSocketAddress.SetTos(ipTos_vector[j]); 
@@ -4130,7 +4155,7 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
     // create and install Client apps:    
     if (applicationType.compare("prioOnOff") == 0) 
     {
-      for (size_t j = 0; j < 5; j++) 
+      for (size_t j = 0; j < QUEUES_PER_PORT; j++) 
       {
         clientHelpers_vector[j].SetAttribute ("Remote", AddressValue (socketAddress_vector[j]));
         if (unequalNum) 
@@ -4167,6 +4192,11 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
               exit(1);
             }
             clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 1 << std::endl;
+            tcpPriorityPerPortOutputFile.close();
           }
           else
           {
@@ -4196,6 +4226,11 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
               exit(1);
             }
             clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 2 << std::endl;
+            tcpPriorityPerPortOutputFile.close();
           }
         }
         else
@@ -4228,6 +4263,11 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
               exit(1);
             }
             clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 1 << std::endl;
+            tcpPriorityPerPortOutputFile.close();
           }
           else // create OnOff machines that generate Low priority traffic
           {
@@ -4256,11 +4296,17 @@ viaMQueues5ToS_v2 (std::string transport_prot, std::string traffic_control_type,
               std::cerr << "unknown OnOffMode type: " << onoff_traffic_mode << std::endl;
               exit(1);
             }
-            clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low  
+            clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 2 << std::endl;
+            tcpPriorityPerPortOutputFile.close();  
           }
         }
         clientHelpers_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpers_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
+        clientHelpers_vector[j].SetAttribute ("ApplicationToS", UintegerValue (ipTos_vector[j])); // set the IP ToS value for the application
         // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
         clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
         clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
@@ -5311,7 +5357,7 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
   }
   else
   {
-    queue_capacity = ToString(5 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(QUEUES_PER_PORT * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -5427,12 +5473,12 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
   PointToPointHelper n2s, s2r;
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   // Setting servers
-  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = QUEUES_PER_PORT * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = QUEUES_PER_PORT * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -5586,14 +5632,14 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
   NS_LOG_INFO ("Create Sockets, Applications and Sinks");
 
   std::vector<uint32_t> serverPort_vector;
-  for (size_t i = 0; i < 5; i++)
+  for (size_t i = 0; i < QUEUES_PER_PORT; i++)
   {
     serverPort_vector.push_back(50000 + i);
   }
 
   // create a vector of IP_ToS_Priorities: P0>P1>...>P4
   std::vector<uint32_t> ipTos_vector;
-  uint32_t ipTos_P0 = 0x08; 
+  uint32_t ipTos_P0 = 0x10; 
   ipTos_vector.push_back(ipTos_P0);
   uint32_t ipTos_P1 = 0x06; 
   ipTos_vector.push_back(ipTos_P1);
@@ -5639,8 +5685,9 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
     unequalNum_vector.push_back(unequalNum);
   }
 
+  std::remove("TCP_Socket_Priority_per_Port.dat"); // remove it here, to create a new one with every run
 
-  for (size_t i = 0; i < 2; i++) // iterate over switch ports
+  for (size_t i = 0; i < SERVER_COUNT; i++) // iterate over switch ports
   {
     int serverIndex = i;
     int recieverIndex = i;
@@ -5677,7 +5724,7 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
     // create InetSocketAddresses and PrioOnOffHelper vectors
     std::vector<InetSocketAddress> socketAddress_vector;
     std::vector<PrioOnOffHelper> clientHelpers_vector;
-    for (size_t j = 0; j < 5; j++)
+    for (size_t j = 0; j < QUEUES_PER_PORT; j++)
     {
       InetSocketAddress tempSocketAddress = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), serverPort_vector[j]);
       tempSocketAddress.SetTos(ipTos_vector[j]); 
@@ -5693,7 +5740,7 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
       // create and install Client apps:    
       if (applicationType.compare("prioOnOff") == 0) 
       {
-        for (size_t k = 0; k < 5; k++) 
+        for (size_t k = 0; k < QUEUES_PER_PORT; k++) 
         {
           clientHelpers_matrix[j][k].SetAttribute ("Remote", AddressValue (socketAddress_vector[k]));
           if (unequalNum_vector[j]) 
@@ -5725,6 +5772,11 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
                 exit(1);
               }
               clientHelpers_matrix[j][k].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 1 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
             else
             {
@@ -5749,6 +5801,11 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
                 exit(1);
               }
               clientHelpers_matrix[j][k].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 2 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
           }
           else
@@ -5776,6 +5833,11 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
                 exit(1);
               }
               clientHelpers_matrix[j][k].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 1 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
             else // create OnOff machines that generate Low priority traffic
             {
@@ -5800,6 +5862,11 @@ viaMQueues5ToS_v2_VaryingD (std::string transport_prot, std::string traffic_cont
                 exit(1);
               }
               clientHelpers_matrix[j][k].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low  
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 2 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
           }
           clientHelpers_matrix[j][k].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
@@ -6154,7 +6221,7 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
   }
   else
   {
-    queue_capacity = ToString(5 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(QUEUES_PER_PORT * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
     // queue_capacity = ToString(7 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
@@ -6278,12 +6345,12 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
   NS_LOG_INFO ("Configuring channels for all the Nodes");
 
   // Setting servers
-  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = QUEUES_PER_PORT * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = QUEUES_PER_PORT * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -6374,6 +6441,7 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
   tch.AddChildQueueDisc(handle, cid[4], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[4] is < cid[3]
 
   QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  QueueDiscContainer qdiscsPredict = tch.Install (switchDevicesOutPredict);  // install same queue disc on predictive router so RouterPredict uses the queue-disc branch in Send()
 
   ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
@@ -6384,6 +6452,7 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
   tc->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
   tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(win_length));
+  tc->SetAttribute("AdjustableAlphas", BooleanValue(true));  // use the prediction to astimate D(t) and adjust the alphas accordingly
   tc->SetAttribute("ApplyTransientMitigation", BooleanValue(false));
 
   // monitor the packets in the Shared Buffer in Traffic Control Layer:
@@ -6399,8 +6468,10 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
   Ptr<TrafficControlLayer> tcPredict;
   tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
   tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
-  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
+  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+  tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
   tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
+  tcPredict->SetAttribute("AdjustableAlphas", BooleanValue(true)); // inorder for the predictive model to operate well with TCP, it needs to behave as if it's non-predictive with optimal alphas
 
   //////////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
@@ -6488,14 +6559,14 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
   NS_LOG_INFO ("Create Sockets, Applications and Sinks");
 
   std::vector<uint32_t> serverPort_vector;
-  for (size_t i = 0; i < 5; i++)
+  for (size_t i = 0; i < QUEUES_PER_PORT; i++)
   {
     serverPort_vector.push_back(50000 + i);
   }
 
   // create a vector of IP_ToS_Priorities: P0>P1>...>P4
   std::vector<uint32_t> ipTos_vector;
-  uint32_t ipTos_P0 = 0x08; 
+  uint32_t ipTos_P0 = 0x10; 
   ipTos_vector.push_back(ipTos_P0);
   uint32_t ipTos_P1 = 0x06; 
   ipTos_vector.push_back(ipTos_P1);
@@ -6507,7 +6578,7 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
   ipTos_vector.push_back(ipTos_P4);
   
   
-  ApplicationContainer sinkApps, sourceApps, sourceAppsPredict;
+  ApplicationContainer sinkApps, sinkAppsPredict, sourceApps, sourceAppsPredict;
 
   // time interval values for OnOff Aplications
   double_t miceOffTime = 0.01; // [sec]
@@ -6524,14 +6595,16 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
     unequalNum = true;
   }
    
-  for (size_t i = 0; i < 2; i++)
+  std::remove("TCP_Socket_Priority_per_Port.dat"); // remove it here, to create a new one with every run
+
+  for (size_t i = 0; i < SERVER_COUNT; i++)
   {
-    int serverIndex = i;
-    int recieverIndex = i;
+    size_t serverIndex = i;
+    size_t recieverIndex = i;
     // create sockets
     ns3::Ptr<ns3::Socket> sockptr, sockptrPredict;
 
-    if (transportProt.compare("TCP") == 0) 
+    if (transport_prot.compare("TCP") == 0) 
     {
       // setup source socket
       sockptr =
@@ -6547,7 +6620,7 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
       ns3::Ptr<ns3::TcpSocket> tcpsockptrPredict =
           ns3::DynamicCast<ns3::TcpSocket> (sockptrPredict);
     } 
-    else if (transportProt.compare("UDP") == 0) 
+    else if (transport_prot.compare("UDP") == 0) 
     {
       // setup source socket
       sockptr =
@@ -6556,8 +6629,8 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
       ////////Added by me///////////////        
       ns3::Ptr<ns3::UdpSocket> udpsockptr =
           ns3::DynamicCast<ns3::UdpSocket> (sockptr);
-      //////////////////////////////////
-
+          //////////////////////////////////
+      
       // setup source socket for predictive model
       sockptrPredict =
           ns3::Socket::CreateSocket(serversPredict.Get(serverIndex),
@@ -6565,13 +6638,14 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
       ////////Added by me///////////////        
       ns3::Ptr<ns3::UdpSocket> udpsockptrPredict =
           ns3::DynamicCast<ns3::UdpSocket> (sockptrPredict);
-      //////////////////////////////////  
+      //////////////////////////////////
+
     } 
     else 
     {
-    std::cerr << "unknown transport type: " <<
-        transportProt << std::endl;
-    exit(1);
+      std::cerr << "unknown transport type: " <<
+          transport_prot << std::endl;
+      exit(1);
     }
     
     // create InetSocketAddresses and PrioOnOffHelper vectors
@@ -6579,7 +6653,7 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
     std::vector<InetSocketAddress> socketAddressPredict_vector;
     std::vector<PrioOnOffHelper> clientHelpers_vector;
     std::vector<PrioOnOffHelper> clientHelpersPredict_vector;
-    for (size_t j = 0; j < 5; j++)
+    for (size_t j = 0; j < QUEUES_PER_PORT; j++)
     {
       InetSocketAddress tempSocketAddress = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), serverPort_vector[j]);
       tempSocketAddress.SetTos(ipTos_vector[j]); 
@@ -6599,7 +6673,7 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
     // create and install Client apps:    
     if (applicationType.compare("prioOnOff") == 0) 
     {
-      for (size_t j = 0; j < 5; j++) 
+      for (size_t j = 0; j < QUEUES_PER_PORT; j++) 
       {
         clientHelpers_vector[j].SetAttribute ("Remote", AddressValue (socketAddress_vector[j]));
         // for predicting traffic in queue
@@ -6657,6 +6731,13 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
             clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
             // for Predictive model
             clientHelpersPredict_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+            
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 1 << std::endl;
+            tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + j << " " << 1 << std::endl;
+            tcpPriorityPerPortOutputFile.close();
           }
           else
           {
@@ -6704,6 +6785,13 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
             clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
             // for Predictive model
             clientHelpersPredict_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+          
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 2 << std::endl;
+            tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + j << " " << 2 << std::endl;
+            tcpPriorityPerPortOutputFile.close();
           }
         }
         else
@@ -6754,6 +6842,13 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
             clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
             // for Predictive model
             clientHelpersPredict_vector[j].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+          
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 1 << std::endl;
+            tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + j << " " << 1 << std::endl;
+            tcpPriorityPerPortOutputFile.close();
           }
           else // create OnOff machines that generate Low priority traffic
           {
@@ -6801,20 +6896,29 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
             clientHelpers_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
             // for Predictive model
             clientHelpersPredict_vector[j].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
+          
+            // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+            // {[nodeID] [port] [priority]}
+            std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+            tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + j << " " << 2 << std::endl;
+            tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + j << " " << 2 << std::endl;
+            tcpPriorityPerPortOutputFile.close();
           }
         }
         clientHelpers_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpers_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
+        clientHelpers_vector[j].SetAttribute ("ApplicationToS", UintegerValue (ipTos_vector[j])); // set the IP ToS value for the application
         // clientHelpers_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
+        // clientHelpers_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob))); // real packets use predictitions to estimate D
         clientHelpers_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
         sourceApps.Add(clientHelpers_vector[j].Install (servers.Get(serverIndex)));
 
         // for Predictive model
         clientHelpersPredict_vector[j].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
         clientHelpersPredict_vector[j].SetAttribute ("DataRate", StringValue (IntToString(dataRate) + "Mb/s"));
+        clientHelpersPredict_vector[j].SetAttribute ("ApplicationToS", UintegerValue (ipTos_vector[j])); // set the IP ToS value for the application
         // clientHelpersPredict_vector[j].SetAttribute("NumOfPacketsHighPrioThreshold", UintegerValue (10)); // relevant only if "FlowPriority" NOT set by user
-        clientHelpersPredict_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob)));
+        clientHelpersPredict_vector[j].SetAttribute("MiceElephantProbability", StringValue (DoubleToString(mice_elephant_prob))); // predictive packets behave as non-predictive with optimal alphas
         clientHelpersPredict_vector[j].SetAttribute("StreamIndex", UintegerValue (1 + 2*(i + j))); // assign a stream for RNG for each OnOff application instanse
         sourceAppsPredict.Add(clientHelpersPredict_vector[j].Install (serversPredict.Get(serverIndex)));
       }
@@ -6823,7 +6927,8 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
     {
       std::cerr << "unknown app type: " << applicationType << std::endl;
       exit(1);
-    }
+    } 
+    
     // setup sinks
     Address sinkLocalAddressP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
     Address sinkLocalAddressP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
@@ -6839,7 +6944,23 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
     sinkApps.Add(sinkP1.Install (recievers.Get(recieverIndex))); 
     sinkApps.Add(sinkP2.Install (recievers.Get(recieverIndex)));
     sinkApps.Add(sinkP3.Install (recievers.Get(recieverIndex)));
-    sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
+    sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));
+    // for Predictive model - needed for TCP
+    Address sinkLocalAddressPredictP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressPredictP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    Address sinkLocalAddressPredictP2 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P2));
+    Address sinkLocalAddressPredictP3 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P3));
+    Address sinkLocalAddressPredictP4 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P4));
+    PacketSinkHelper sinkPredictP0 (socketType, sinkLocalAddressPredictP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP1 (socketType, sinkLocalAddressPredictP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP2 (socketType, sinkLocalAddressPredictP2); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP3 (socketType, sinkLocalAddressPredictP3); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP4 (socketType, sinkLocalAddressPredictP4); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkAppsPredict.Add(sinkPredictP0.Install (recieversPredict.Get(recieverIndex)));
+    sinkAppsPredict.Add(sinkPredictP1.Install (recieversPredict.Get(recieverIndex))); 
+    sinkAppsPredict.Add(sinkPredictP2.Install (recieversPredict.Get(recieverIndex)));
+    sinkAppsPredict.Add(sinkPredictP3.Install (recieversPredict.Get(recieverIndex)));
+    sinkAppsPredict.Add(sinkPredictP4.Install (recieversPredict.Get(recieverIndex)));     
   }
 
   // double_t trafficGenDuration = 2; // for a single OnOff segment
@@ -6851,6 +6972,9 @@ viaMQueuesPredictive5ToS_v2 (std::string transport_prot, std::string traffic_con
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
+
+  sinkAppsPredict.Start (Seconds (START_TIME));
+  sinkAppsPredict.Stop (Seconds (END_TIME + 0.1));
   
   NS_LOG_INFO ("Enabling flow monitor");
   FlowMonitorHelper flowmon;
@@ -7116,7 +7240,7 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   }
   else
   {
-    queue_capacity = ToString(5 * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(QUEUES_PER_PORT * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -7239,12 +7363,12 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   NS_LOG_INFO ("Configuring channels for all the Nodes");
 
   // Setting servers
-  uint64_t serverSwitchCapacity = 5 * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = QUEUES_PER_PORT * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = 5 * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = QUEUES_PER_PORT * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -7308,6 +7432,7 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   for (size_t i = 0; i < switchDevicesOut.GetN(); i++) // add a "name" to the "switchDeviceOut" NetDevices
   {     
     Names::Add("switchDeviceOut" + IntToString(i), switchDevicesOut.Get(i));  // Add a Name to the switch net-devices
+    Names::Add("switchDeviceOutPredict" + IntToString(i), switchDevicesOutPredict.Get(i));
   }
 
   // Now add ip/tcp stack to all nodes. this is a VERY IMPORTANT COMPONENT!!!!
@@ -7332,6 +7457,7 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   tch.AddChildQueueDisc(handle, cid[4], "ns3::FifoQueueDisc", "MaxSize", StringValue (queue_capacity)); // cid[4] is < cid[3]
 
   QueueDiscContainer qdiscs = tch.Install (switchDevicesOut);  // in this option we installed TCH on switchDevicesOut. to send data from switch to reciever
+  QueueDiscContainer qdiscsPredict = tch.Install (switchDevicesOutPredict);
 
   ///////// set the Traffic Controll layer to be a shared buffer////////////////////////
   TcPriomap tcPrioMap = TcPriomap{prioArray};
@@ -7343,7 +7469,7 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   tc->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
   tc->SetAttribute("Alpha_High", DoubleValue (alpha_high));
   tc->SetAttribute("Alpha_Low", DoubleValue (alpha_low));
-  tc->SetAttribute("AdjustableAlphas", BooleanValue(adjustableAlphas));
+  tc->SetAttribute("AdjustableAlphas", BooleanValue(true)); // use the prediction to astimate D and adjust the alphas accordingly
   tc->SetAttribute("TrafficEstimationWindowLength", DoubleValue(win_length));
   tc->SetAttribute("ApplyTransientMitigation", BooleanValue(false));
 
@@ -7360,8 +7486,11 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   Ptr<TrafficControlLayer> tcPredict;
   tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
   tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
-  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
+  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
   tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
+  tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
+  // inorder for the predictive model to operate well with TCP, it needs to behave as if it's non-predictive with optimal alphas
+  tcPredict->SetAttribute("AdjustableAlphas", BooleanValue(true));
 
   //////////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
@@ -7447,14 +7576,14 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   NS_LOG_INFO ("Create Sockets, Applications and Sinks");
 
   std::vector<uint32_t> serverPort_vector;
-  for (size_t i = 0; i < 5; i++)
+  for (size_t i = 0; i < QUEUES_PER_PORT; i++)
   {
     serverPort_vector.push_back(50000 + i);
   }
 
   // create a vector of IP_ToS_Priorities: P0>P1>...>P4
   std::vector<uint32_t> ipTos_vector;
-  uint32_t ipTos_P0 = 0x08; 
+  uint32_t ipTos_P0 = 0x10; 
   ipTos_vector.push_back(ipTos_P0);
   uint32_t ipTos_P1 = 0x06; 
   ipTos_vector.push_back(ipTos_P1);
@@ -7466,7 +7595,7 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   ipTos_vector.push_back(ipTos_P4);
 
 
-  ApplicationContainer sinkApps;
+  ApplicationContainer sinkApps, sinkAppsPredict;
   std::vector<ApplicationContainer> sourceApps_vector;
   std::vector<ApplicationContainer> sourceAppsPredict_vector;
   // create and install Client apps:  
@@ -7499,8 +7628,9 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
     unequalNum_vector.push_back(unequalNum);
   }
 
+  std::remove("TCP_Socket_Priority_per_Port.dat"); // remove it here, to create a new one with every run
 
-  for (size_t i = 0; i < 2; i++) // iterate over switch ports
+  for (size_t i = 0; i < SERVER_COUNT; i++) // iterate over switch ports
   {
     int serverIndex = i;
     int recieverIndex = i;
@@ -7555,7 +7685,7 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
     std::vector<InetSocketAddress> socketAddressPredict_vector;
     std::vector<PrioOnOffHelper> clientHelpers_vector;
     std::vector<PrioOnOffHelper> clientHelpersPredict_vector;
-    for (size_t j = 0; j < 5; j++)
+    for (size_t j = 0; j < QUEUES_PER_PORT; j++)
     {
       InetSocketAddress tempSocketAddress = InetSocketAddress (recieverIFs.GetAddress(recieverIndex), serverPort_vector[j]);
       tempSocketAddress.SetTos(ipTos_vector[j]); 
@@ -7635,6 +7765,12 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
               clientHelpers_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
               // for Predictive model
               clientHelpersPredict_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 1 << std::endl;
+              tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + k << " " << 1 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
             else
             {
@@ -7678,11 +7814,17 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
               clientHelpers_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
               // for Predictive model
               clientHelpersPredict_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 2 << std::endl;
+              tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + k << " " << 2 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
           }
           else
           {
-            if (k < int(Num_M_High_vector[d]/2)) // create OnOff machines that generate High priority traffic
+            if (k < size_t(Num_M_High_vector[d]/2)) // create OnOff machines that generate High priority traffic
             {
               if (onoff_traffic_mode.compare("Constant") == 0)
               { 
@@ -7724,6 +7866,12 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
               clientHelpers_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
               // for Predictive model
               clientHelpersPredict_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x1));  // manualy set generated packets priority: 0x1 high, 0x2 low
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 1 << std::endl;
+              tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + k << " " << 1 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
             else // create OnOff machines that generate Low priority traffic
             {
@@ -7767,6 +7915,12 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
               clientHelpers_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
               // for Predictive model
               clientHelpersPredict_matrix[d][k].SetAttribute("FlowPriority", UintegerValue (0x2));  // manualy set generated packets priority: 0x1 high, 0x2 low 
+              // for TCP control packets. need to map the Rx Port to the priority of the OnOff Application
+              // {[nodeID] [port] [priority]}
+              std::ofstream tcpPriorityPerPortOutputFile("TCP_Socket_Priority_per_Port.dat", std::ios::app); 
+              tcpPriorityPerPortOutputFile << servers.Get(i)->GetId() << " " << 50000 + k << " " << 2 << std::endl;
+              tcpPriorityPerPortOutputFile << serversPredict.Get(i)->GetId() << " " << 50000 + k << " " << 2 << std::endl;
+              tcpPriorityPerPortOutputFile.close();
             }
           }
           clientHelpers_matrix[d][k].SetAttribute ("PacketSize", UintegerValue (PACKET_SIZE));
@@ -7804,6 +7958,22 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
     sinkApps.Add(sinkP2.Install (recievers.Get(recieverIndex)));
     sinkApps.Add(sinkP3.Install (recievers.Get(recieverIndex)));
     sinkApps.Add(sinkP4.Install (recievers.Get(recieverIndex)));     
+    // for Predictive model - needed for TCP
+    Address sinkLocalAddressPredictP0 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P0));
+    Address sinkLocalAddressPredictP1 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P1));
+    Address sinkLocalAddressPredictP2 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P2));
+    Address sinkLocalAddressPredictP3 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P3));
+    Address sinkLocalAddressPredictP4 (InetSocketAddress (Ipv4Address::GetAny (), SERV_PORT_P4));
+    PacketSinkHelper sinkPredictP0 (socketType, sinkLocalAddressPredictP0); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP1 (socketType, sinkLocalAddressPredictP1); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP2 (socketType, sinkLocalAddressPredictP2); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP3 (socketType, sinkLocalAddressPredictP3); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    PacketSinkHelper sinkPredictP4 (socketType, sinkLocalAddressPredictP4); // socketType is: "ns3::TcpSocketFactory" or "ns3::UdpSocketFactory"
+    sinkAppsPredict.Add(sinkPredictP0.Install (recieversPredict.Get(recieverIndex)));
+    sinkAppsPredict.Add(sinkPredictP1.Install (recieversPredict.Get(recieverIndex))); 
+    sinkAppsPredict.Add(sinkPredictP2.Install (recieversPredict.Get(recieverIndex)));
+    sinkAppsPredict.Add(sinkPredictP3.Install (recieversPredict.Get(recieverIndex)));
+    sinkAppsPredict.Add(sinkPredictP4.Install (recieversPredict.Get(recieverIndex)));     
   }
 
   double_t silenceDuration = 10; // time between OnOff segments
@@ -7819,6 +7989,9 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
 
   sinkApps.Start (Seconds (START_TIME));
   sinkApps.Stop (Seconds (END_TIME + 0.1));
+
+  sinkAppsPredict.Start (Seconds (START_TIME));
+  sinkAppsPredict.Stop (Seconds (END_TIME + 0.1));
   
   NS_LOG_INFO ("Enabling flow monitor");
   FlowMonitorHelper flowmon;
@@ -7999,7 +8172,7 @@ viaMQueuesPredictive5ToS_v2_VaryingD (std::string transport_prot, std::string tr
   {
     testFlowStatistics << "Alpha High = " << alpha_high << " Alpha Low = " << alpha_low <<std::endl;
   }
-  testFlowStatistics << "Traffic Duration: " + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
+  testFlowStatistics << "Traffic Duration: 3x" + DoubleToString(trafficGenDuration) + " [Sec]" << std::endl;
   testFlowStatistics << "Application: " + applicationType << std::endl;
   testFlowStatistics << "traffic Mode " + onoff_traffic_mode + "Random" << std::endl; 
   testFlowStatistics << std::endl << "*** Flow monitor statistics ***" << std::endl;

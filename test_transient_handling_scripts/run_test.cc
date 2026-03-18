@@ -41,7 +41,7 @@ int main ()
   size_t alphaLow = 5;
   // Transient parameters:
   double_t transientLength = 0.1; // {0.01, 0.02, 0.05, 0.1} [sec] length of the transient period.
-  bool handleTransient = false; // true/false. to apply transient handling for the current flow or not. (relevant for Predictive model only)
+  bool handleTransient = true; // true/false. to apply transient handling for the current flow or not. (relevant for Predictive model only)
   // Run option:
   // (1) single Low Priority stream. no transient is inserted
   // (2) a low priority stream reaches steady state. high priority transient is inserted.
@@ -56,7 +56,6 @@ int main ()
     }
     case 2:  // transient is added
     {
-      bool handle_transient = true;
       viaMQueuesPredictive2ToS (transportProt, tcpType, trafficControlType, miceElephantProb, alphaHigh, alphaLow, futurePossition, winLength, transientLength, handleTransient, accumulateStats);
       break;
     }

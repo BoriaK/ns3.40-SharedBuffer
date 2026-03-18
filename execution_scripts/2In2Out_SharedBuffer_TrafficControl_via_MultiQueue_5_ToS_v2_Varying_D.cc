@@ -496,7 +496,7 @@ int main (int argc, char *argv[])
 
   // create a vector of IP_ToS_Priorities: P0>P1>...>P4
   std::vector<uint32_t> ipTos_vector;
-  uint32_t ipTos_P0 = 0x08; 
+  uint32_t ipTos_P0 = 0x10; 
   ipTos_vector.push_back(ipTos_P0);
   uint32_t ipTos_P1 = 0x06; 
   ipTos_vector.push_back(ipTos_P1);

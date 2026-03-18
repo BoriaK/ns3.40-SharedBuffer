@@ -685,13 +685,13 @@ int main (int argc, char *argv[])
   // Set the current working directory
   system (("cd " + currentPath).c_str ());
 
-  double_t miceElephantProb = 0.2;
+  double_t miceElephantProb = 0.3;
   double_t alpha_high = 15;
   double_t alpha_low = 5;
 
   std::string applicationType = "prioOnOff"; // "standardClient"/"OnOff"/"prioClient"/"prioOnOff"
   // Command line parameters parsing
-  std::string transportProt = "TCP"; // "UDP"/"TCP"
+  std::string transportProt = "UDP"; // "UDP"/"TCP"
   std::string cc = "ns3::TcpNoCongestion"; // if transportProt = "TCP", chose: "ns3::TcpNewReno"/"ns3::TcpNoCongestion"
   std::string socketType;
   std::string queue_capacity;

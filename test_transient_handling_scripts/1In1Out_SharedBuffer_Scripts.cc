@@ -53,10 +53,10 @@
 #include "ns3/names.h"
 #include "ns3/stats-module.h"
 
-// There are 2 servers connecting to a leaf switch
+// There is 1 server connecting to a leaf switch
 #define SERVER_COUNT 1
 #define SWITCH_COUNT 1
-#define PORTS_PER_SWITCH 1
+#define QUEUES_PER_PORT 1
 #define RECIEVER_COUNT 1
 
 #define SERVER_SWITCH_CAPACITY 5*1e6            // Total Switch Rx (enqueue) Capacity 5Mbps/queue/port
@@ -592,7 +592,7 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
   }
   else
   {
-    queue_capacity = ToString(PORTS_PER_SWITCH * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(QUEUES_PER_PORT * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -937,12 +937,12 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   
   // Setting servers
-  uint64_t serverSwitchCapacity = PORTS_PER_SWITCH * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = QUEUES_PER_PORT * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = PORTS_PER_SWITCH * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = QUEUES_PER_PORT * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -1061,20 +1061,15 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
   Ptr<TrafficControlLayer> tcPredict;
   tcPredict = routerPredict.Get(0)->GetObject<TrafficControlLayer>();
   tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
+  // tcPredict->SetAttribute("ApplyTransientMitigation", BooleanValue(handle_transient));
   tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
-  if (transport_prot.compare ("UDP") == 0)
-  {
-    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
-  }
-  else
-  {
-    // the Predictive model will function just like a real non-predictive Shared Buffer would
-    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-    tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
-    tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
-    // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
-    tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
-  }
+  // the Predictive model will function just like a real non-predictive Shared Buffer would
+  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+  tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+  tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
+  // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
+  // tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
+  tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
 
   ///////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports
@@ -1565,7 +1560,7 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
   }
   else
   {
-    queue_capacity = ToString(PORTS_PER_SWITCH * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(QUEUES_PER_PORT * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   // client type dependant parameters:
@@ -1792,7 +1787,7 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
   }
   else
   {
-    queue_capacity = ToString(PORTS_PER_SWITCH * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
+    queue_capacity = ToString(QUEUES_PER_PORT * RECIEVER_COUNT * BUFFER_SIZE) + "p"; // B, the total space on the buffer [packets]
   }
 
   LogComponentEnable("PacketSink", LOG_LEVEL_INFO); 
@@ -1822,12 +1817,12 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
   NS_LOG_INFO ("Configuring channels for all the Nodes");
   
   // Setting servers
-  uint64_t serverSwitchCapacity = PORTS_PER_SWITCH * SERVER_SWITCH_CAPACITY;
+  uint64_t serverSwitchCapacity = QUEUES_PER_PORT * SERVER_SWITCH_CAPACITY;
   n2s.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (serverSwitchCapacity)));
   n2s.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   n2s.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
   // setting routers
-  uint64_t switchRecieverCapacity = PORTS_PER_SWITCH * SWITCH_RECIEVER_CAPACITY;
+  uint64_t switchRecieverCapacity = QUEUES_PER_PORT * SWITCH_RECIEVER_CAPACITY;
   s2r.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (switchRecieverCapacity)));
   s2r.SetChannelAttribute ("Delay", TimeValue(LINK_LATENCY));
   s2r.SetQueue ("ns3::DropTailQueue", "MaxSize", StringValue ("1p"));  // set basic queues to 1 packet
@@ -1951,19 +1946,13 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
   tcPredict->SetAttribute("SharedBuffer", BooleanValue(true));
   // tcPredict->SetAttribute("ApplyTransientMitigation", BooleanValue(handle_transient));
   tcPredict->SetAttribute("PriorityMapforMultiQueue", TcPriomapValue(tcPrioMap));
-  if (transport_prot.compare ("UDP") == 0)
-  {
-    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue ("1p")); // no packets are actualy being stored in tcPredict
-  }
-  else
-  {
-    // the Predictive model will function just like a real non-predictive Shared Buffer would
-    tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
-    tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
-    tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
-    // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
-    tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
-  }
+  // the Predictive model will function just like a real non-predictive Shared Buffer would
+  tcPredict->SetAttribute("MaxSharedBufferSize", StringValue (queue_capacity));
+  tcPredict->SetAttribute("Alpha_High", DoubleValue (alpha_high));
+  tcPredict->SetAttribute("Alpha_Low", DoubleValue (alpha_low)); 
+  // TrafficControlAlgorythm is the non-predictive version of the TrafficControlAlgorythm
+  // tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm.substr(usedAlgorythm.length() - 2)));
+  tcPredict->SetAttribute("TrafficControlAlgorythm", StringValue (usedAlgorythm));
 
   ///////////Monitor data from q-disc//////////////////////////////////////////
   for (size_t i = 0; i < RECIEVER_COUNT; i++)  // over all ports

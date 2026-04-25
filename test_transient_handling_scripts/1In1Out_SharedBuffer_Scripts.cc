@@ -1347,34 +1347,46 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
 
   uint64_t totalBytesRx = 0;
   double goodTpT = 0;
-  // NEED TO ADJUST STATISTICS SUCH THAT IT COUNTS ONLY REAL DATA SENT, AND NOT PREDICTIVE DATA.
-  // (i.e. packets sent by the actual model and not the predictive packets)
-  // stats indexing needs to start from 1. 
-  // all the flows are in chronological order
-  // if TCP: flowStats[i].protocol == "TCP"
-  for (size_t i = 1; i <= flowStats.size(); i++)
+  // Count only real forward flows: source must be a real server (not predictive).
+  // This excludes predictive model flows and TCP ACK reverse flows.
+  int flowCount = 0;
+  for (auto& kv : flowStats)
   {
-    if ((transport_prot.compare("UDP") == 0 && i==2) || (transport_prot.compare("TCP") == 0 && i==3))
-    {
-      statTxPackets = statTxPackets + flowStats[i].txPackets;
-      statTxBytes = statTxBytes + flowStats[i].txBytes;
-      statRxPackets = statRxPackets + flowStats[i].rxPackets;
-      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+    FlowId flowId = kv.first;
+    FlowMonitor::FlowStats& fs = kv.second;
+    Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (flowId);
 
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+    // Accept only flows whose source IP belongs to a real server
+    bool isRealForward = false;
+    for (size_t j = 0; j < SERVER_COUNT; j++)
+    {
+      if (t.sourceAddress == serverIFs.GetAddress (j))
       {
-        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        isRealForward = true;
+        break;
       }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-      {
-        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-      }
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
     }
+    if (!isRealForward) continue;
+
+    statTxPackets = statTxPackets + fs.txPackets;
+    statTxBytes = statTxBytes + fs.txBytes;
+    statRxPackets = statRxPackets + fs.rxPackets;
+    statRxBytes = statRxBytes + fs.rxBytes;
+
+    if (fs.packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+    {
+      packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + fs.packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+      bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + fs.bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+    }
+    if (fs.packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+    {
+      packetsDroppedByNetDevice = packetsDroppedByNetDevice + fs.packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+      bytesDroppedByNetDevice = bytesDroppedByNetDevice + fs.bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+    }
+    TpT = TpT + (fs.rxBytes * 8.0 / (fs.timeLastRxPacket.GetSeconds () - fs.timeFirstRxPacket.GetSeconds ())) / 1000000;
+    AVGDelaySum = AVGDelaySum + fs.delaySum.GetSeconds () / fs.rxPackets;
+    AVGJitterSum = AVGJitterSum + fs.jitterSum.GetSeconds () / (fs.rxPackets - 1);
+    flowCount++;
   }
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
@@ -1390,10 +1402,10 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
   
   std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
                                   
-  AVGDelay = AVGDelaySum / (flowStats.size()/2);
+  AVGDelay = (flowCount > 0) ? AVGDelaySum / flowCount : 0;
   std::cout << "  Mean delay:   " << AVGDelay << std::endl;
   
-  AVGJitter = AVGJitterSum / (flowStats.size()/2);
+  AVGJitter = (flowCount > 0) ? AVGJitterSum / flowCount : 0;
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
   
   std::cout << std::endl << "*** Application statistics ***" << std::endl;
@@ -1404,7 +1416,7 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
     totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
   }
 
-  goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
+  goodTpT = totalBytesRx * 8 / (trafficGenDuration * 1000000.0); //Mbit/s
   std::cout << "  Rx Bytes: " << totalBytesRx << std::endl;
   std::cout << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;
 
@@ -1477,7 +1489,8 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
       << tcStats.nTotalDroppedPacketsHighPriority << " " 
-      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      << tcStats.nTotalDroppedPacketsLowPriority << " "
+      << TpT << std::endl;
       testAccumulativeStats.close ();
     }
     else
@@ -1488,7 +1501,8 @@ void viaMQueuesPredictive1ToS (std::string transport_prot, std::string tcp_type,
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
       << tcStats.nTotalDroppedPacketsHighPriority << " " 
-      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      << tcStats.nTotalDroppedPacketsLowPriority << " "
+      << TpT << std::endl;
       testAccumulativeStats.close ();
     }
   }
@@ -2281,31 +2295,48 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
   // all the flows are in chronological order
   // if TCP: flowStats[i].protocol == "TCP"
   
-  for (size_t i = 1; i <= flowStats.size(); i++)
-  { 
-    if ((transport_prot.compare("UDP") == 0 && i==2) || (transport_prot.compare("TCP") == 0 && i==3))
-    {
-      statTxPackets = statTxPackets + flowStats[i].txPackets;
-      statTxBytes = statTxBytes + flowStats[i].txBytes;
-      statRxPackets = statRxPackets + flowStats[i].rxPackets;
-      statRxBytes = statRxBytes + flowStats[i].rxBytes;
+  // Count only real forward flows: source must be a real server (not predictive).
+  // This excludes predictive model flows and TCP ACK reverse flows.
+  int flowCount = 0;
+  for (auto& kv : flowStats)
+  {
+    FlowId flowId = kv.first;
+    FlowMonitor::FlowStats& fs = kv.second;
+    Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (flowId);
 
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+    // Accept only flows whose source IP belongs to a real server
+    bool isRealForward = false;
+    for (size_t j = 0; j < SERVER_COUNT; j++)
+    {
+      if (t.sourceAddress == serverIFs.GetAddress (j))
       {
-        packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
-        bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+        isRealForward = true;
+        break;
       }
-      if (flowStats[i].packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
-      {
-        packetsDroppedByNetDevice = packetsDroppedByNetDevice + flowStats[i].packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
-        bytesDroppedByNetDevice = bytesDroppedByNetDevice + flowStats[i].bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
-      }
-      TpT = TpT + (flowStats[i].rxBytes * 8.0 / (flowStats[i].timeLastRxPacket.GetSeconds () - flowStats[i].timeFirstRxPacket.GetSeconds ())) / 1000000;
-      AVGDelaySum = AVGDelaySum + flowStats[i].delaySum.GetSeconds () / flowStats[i].rxPackets;
-      AVGJitterSum = AVGJitterSum + flowStats[i].jitterSum.GetSeconds () / (flowStats[i].rxPackets - 1);
     }
+    if (!isRealForward) continue;
+
+    statTxPackets = statTxPackets + fs.txPackets;
+    statTxBytes = statTxBytes + fs.txBytes;
+    statRxPackets = statRxPackets + fs.rxPackets;
+    statRxBytes = statRxBytes + fs.rxBytes;
+
+    if (fs.packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE_DISC)
+    {
+      packetsDroppedByQueueDisc = packetsDroppedByQueueDisc + fs.packetsDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+      bytesDroppedByQueueDisc = bytesDroppedByQueueDisc + fs.bytesDropped[Ipv4FlowProbe::DROP_QUEUE_DISC];
+    }
+    if (fs.packetsDropped.size () > Ipv4FlowProbe::DROP_QUEUE)
+    {
+      packetsDroppedByNetDevice = packetsDroppedByNetDevice + fs.packetsDropped[Ipv4FlowProbe::DROP_QUEUE];
+      bytesDroppedByNetDevice = bytesDroppedByNetDevice + fs.bytesDropped[Ipv4FlowProbe::DROP_QUEUE];
+    }
+    TpT = TpT + (fs.rxBytes * 8.0 / (fs.timeLastRxPacket.GetSeconds () - fs.timeFirstRxPacket.GetSeconds ())) / 1000000;
+    AVGDelaySum = AVGDelaySum + fs.delaySum.GetSeconds () / fs.rxPackets;
+    AVGJitterSum = AVGJitterSum + fs.jitterSum.GetSeconds () / (fs.rxPackets - 1);
+    flowCount++;
   }
-  
+
 
 
   std::cout << "  Tx Packets/Bytes:   " << statTxPackets
@@ -2321,10 +2352,10 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
   
   std::cout << "  Throughput: " << TpT << " Mbps" << std::endl;
                                   
-  AVGDelay = AVGDelaySum / (flowStats.size()/2);
+  AVGDelay = (flowCount > 0) ? AVGDelaySum / flowCount : 0;
   std::cout << "  Mean delay:   " << AVGDelay << std::endl;
   
-  AVGJitter = AVGJitterSum / (flowStats.size()/2);
+  AVGJitter = (flowCount > 0) ? AVGJitterSum / flowCount : 0;
   std::cout << "  Mean jitter:   " << AVGJitter << std::endl;
   
   std::cout << std::endl << "*** Application statistics ***" << std::endl;
@@ -2335,7 +2366,7 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
     totalBytesRx = totalBytesRx + DynamicCast<PacketSink> (sinkApps.Get (i))->GetTotalRx ();
   }
 
-  goodTpT = totalBytesRx * 8 / (END_TIME * 1000000.0); //Mbit/s
+  goodTpT = totalBytesRx * 8 / (trafficGenDuration * 1000000.0); //Mbit/s
   std::cout << "  Rx Bytes: " << totalBytesRx << std::endl;
   std::cout << "  Average Goodput: " << goodTpT << " Mbit/s" << std::endl;
 
@@ -2384,7 +2415,7 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
   // move all produced files into the per-d/Predictive subdirectory
   // dir = datDir + "Position_X/Length_Y/"
   // dirToSave = dir + traffic_control_type + "/" + implementation + "/" + applicationType
-  std::string newDir = dirToSave + "/" + DoubleToString(mice_elephant_prob) + "/Predictive/";
+  std::string newDir = dirToSave + "/" + DoubleToString(mice_elephant_prob) + "/Predictive/" + transport_prot + "/" + DoubleToString(transient_length) + "/";
   system (("mkdir -p " + newDir).c_str ());
   system (("mv -f " + datDir + "*.dat " + newDir).c_str ());
   system (("mv -f " + dirToSave + "/*.dat " + newDir).c_str ());
@@ -2407,7 +2438,8 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
       << tcStats.nTotalDroppedPacketsHighPriority << " " 
-      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      << tcStats.nTotalDroppedPacketsLowPriority << " "
+      << TpT << std::endl;
       testAccumulativeStats.close ();
     }
     else
@@ -2417,7 +2449,8 @@ void viaMQueuesPredictive2ToS (std::string transport_prot, std::string tcp_type,
       testAccumulativeStats
       << tcStats.nTotalDroppedPackets << " " 
       << tcStats.nTotalDroppedPacketsHighPriority << " " 
-      << tcStats.nTotalDroppedPacketsLowPriority << std::endl;
+      << tcStats.nTotalDroppedPacketsLowPriority << " "
+      << TpT << std::endl;
       testAccumulativeStats.close ();
     }
   }

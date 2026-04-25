@@ -1,5 +1,5 @@
 set terminal png
-set output "/home/boris/workspace/ns-allinone-3.40/ns-3.40/Trace_Plots/1In1Out/Predictive/Position_0.5/Length_0.4/SharedBuffer_DT/via_MultiQueues/2_ToS/prioSteadyOn/0.2/Predictive//port_0_queue_0_High.png"
+set output "/home/boris/workspace/ns-allinone-3.40/ns-3.40/Trace_Plots/1In1Out/Predictive/Position_0.5/Length_0.4/SharedBuffer_DT/via_MultiQueues/2_ToS/prioSteadyOn/0.2/Predictive/TCP/0.1//port_0_queue_0_High.png"
 set title "port 0 queue 0 High Priority Packets vs Threshold"
 set xlabel "Time[sec]"
 set ylabel "PacketsInQueue"
@@ -47,21 +47,21 @@ plot "-"  title "High priority enqueued Packets" with lines, "-"  title "High pr
 3.16774 1
 3.18387 0
 e
-2.53364 615
-2.53773 600
-2.54183 585
-2.54592 585
-2.55002 570
-2.55412 555
-2.55821 540
-2.56231 555
-2.5664 540
-2.5705 525
-2.5746 510
-2.57869 495
-2.58279 495
-2.58688 480
-2.59098 465
-2.59508 450
-2.59917 450
+2.53364 585
+2.53773 570
+2.54183 540
+2.54592 525
+2.55002 510
+2.55412 480
+2.55821 450
+2.56231 450
+2.5664 420
+2.5705 405
+2.5746 375
+2.57869 345
+2.58279 330
+2.58688 300
+2.59098 270
+2.59508 240
+2.59917 240
 e

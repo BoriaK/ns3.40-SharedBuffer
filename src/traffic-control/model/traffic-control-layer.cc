@@ -984,6 +984,7 @@ TrafficControlLayer::GetQueueThreshold_DT_Predict_v1(double_t alpha, double_t al
         else if (alpha == alpha_l)
         {
             if (!m_inTransient && GetNumOfHighPriorityPacketsInSharedQueue().GetValue() == 0) // if we're not in transient, and there are no high priority packets in the queue
+            // if (!m_inTransient)
             {
                 m_p_threshold_l = alpha_l * remainingSpace;
             } 
@@ -2626,7 +2627,8 @@ TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item)
                         else
                         {
                             m_alpha = m_alpha_l;
-                            m_queueThresholdDT = GetQueueThreshold_DT_Predict_v2(m_alpha, m_alpha_l, m_alpha_h, m_inTransient).GetValue();
+                            // m_queueThresholdDT = GetQueueThreshold_DT_Predict_v1(m_alpha, m_alpha_l, m_alpha_h, m_inTransient).GetValue(); // for debug
+                            m_queueThresholdDT = GetQueueThreshold_DT_Predict_v2(m_alpha, m_alpha_l, m_alpha_h, m_inTransient).GetValue(); // good version
                             // m_queueThresholdDT = GetQueueThreshold_DT_Predict_v3(m_alpha, m_alpha_l, m_alpha_h, m_inTransient, device, m_subQueueIndex).GetValue();
                             
                             if (m_flag || internal_qDisc->GetNumOfLowPrioPacketsInQueue().GetValue() <

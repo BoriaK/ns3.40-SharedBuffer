@@ -28,7 +28,7 @@ int main ()
 {
   std::string trafficControlType = "SharedBuffer_DT"; // "SharedBuffer_DT"/"SharedBuffer_FB"
   bool accumulateStats = true; // true/false. to acumulate run statistics in a single file
-  std::string transportProt = "TCP"; // "UDP"/"TCP"
+  std::string transportProt = "UDP"; // "UDP"/"TCP"
   std::string tcpType = "TcpTahoe"; // "TcpNewReno"/"TcpBbr"/"TcpTahoe"/"TcpNewRenoTest" - relevant for TCP only
 
   // for local d estimatiuon 
@@ -40,7 +40,7 @@ int main ()
   size_t alphaHigh = 15;
   size_t alphaLow = 5;
   // Transient parameters:
-  double_t transientLength = 0.1; // {0.01, 0.02, 0.05, 0.1} [sec] length of the transient period.
+  double_t transientLength = 0.1; // {0.01, 0.02, 0.05, 0.1, 0.11, 0.12} [sec] length of the transient period.
   bool handleTransient = true; // true/false. to apply transient handling for the current flow or not. (relevant for Predictive model only)
   // Run option:
   // (1) single Low Priority stream. no transient is inserted

@@ -4,35 +4,36 @@ Implementation Method: via_MultiQueues/1_ToS
 Used D value: 0.2
 Traffic Duration: 4 [Sec]
 Application: prioSteadyOn
+traffic Mode ConstantRandom
 
 *** Flow monitor statistics ***
-  Tx Packets/Bytes:   976 / 1026752
-  Rx Packets/Bytes:   447 / 470244
-  Packets/Bytes Dropped by Queue Disc:   0 / 0
+  Tx Packets/Bytes:   1438 / 1576052
+  Rx Packets/Bytes:   1119 / 1232748
+  Packets/Bytes Dropped by Queue Disc:   1 / 1136
   Packets/Bytes Dropped by NetDevice:   0 / 0
-  Throughput: 0.50017 Mbps
+  Throughput: 0.485908 Mbps
 
 *** Application statistics ***
-  Rx Bytes: 457728
-  Average Goodput: 0.915456 Mbit/s
+  Rx Bytes: 999424
+  Average Goodput: 0.133257 Mbit/s
 
 *** TC Layer statistics ***
 
-Packets/Bytes dropped by Traffic Control Layer: 529 / 556508
+Packets/Bytes dropped by Traffic Control Layer: 318 / 342168
 High Priority Packets/Bytes dropped by Traffic Control Layer: 0 / 0
-Low Priority Packets/Bytes dropped by Traffic Control Layer: 529 / 556508
+Low Priority Packets/Bytes dropped by Traffic Control Layer: 318 / 342168
 
 
 *** QueueDisc Layer statistics ***
 Queue Disceplene 0:
 
-Packets/Bytes received: 447 / 470244
-Packets/Bytes enqueued: 447 / 470244
-Packets/Bytes dequeued: 447 / 470244
+Packets/Bytes received: 1119 / 1232748
+Packets/Bytes enqueued: 1119 / 1232748
+Packets/Bytes dequeued: 1119 / 1232748
 Packets/Bytes requeued: 0 / 0
 Packets/Bytes dropped: 0 / 0
 Packets/Bytes dropped before enqueue: 0 / 0
 Packets/Bytes dropped after dequeue: 0 / 0
-Packets/Bytes sent: 447 / 470244
+Packets/Bytes sent: 1119 / 1232748
 Packets/Bytes marked: 0 / 0
 

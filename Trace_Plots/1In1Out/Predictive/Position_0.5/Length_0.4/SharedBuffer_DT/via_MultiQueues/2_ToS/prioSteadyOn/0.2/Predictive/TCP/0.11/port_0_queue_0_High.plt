@@ -1,0 +1,76 @@
+set terminal png
+set output "/home/boris/workspace/ns-allinone-3.40/ns-3.40/Trace_Plots/1In1Out/Predictive/Position_0.5/Length_0.4/SharedBuffer_DT/via_MultiQueues/2_ToS/prioSteadyOn/0.2/Predictive/TCP/0.11//port_0_queue_0_High.png"
+set title "port 0 queue 0 High Priority Packets vs Threshold"
+set xlabel "Time[sec]"
+set ylabel "PacketsInQueue"
+plot "-"  title "High priority enqueued Packets" with lines, "-"  title "High priority Queue Threshold" with lines
+2.50011 1
+2.50854 0
+2.5279 1
+2.53364 2
+2.53773 3
+2.54183 4
+2.54396 3
+2.54592 4
+2.55002 5
+2.55412 6
+2.55821 7
+2.56207 6
+2.56231 7
+2.5664 8
+2.5705 9
+2.5746 10
+2.57869 11
+2.58279 12
+2.58688 13
+2.59098 14
+2.59508 15
+2.59657 14
+2.59917 15
+2.60327 16
+2.60736 17
+2.61146 18
+2.61155 19
+2.63107 18
+2.66556 17
+2.70006 16
+2.73455 15
+2.76905 14
+2.80355 13
+2.83804 12
+2.87254 11
+2.90703 10
+2.94153 9
+2.97603 8
+3.01052 7
+3.04502 6
+3.07951 5
+3.11401 4
+3.14851 3
+3.183 2
+3.2175 1
+3.25199 0
+3.27122 1
+3.28735 0
+e
+2.53364 600
+2.53773 570
+2.54183 540
+2.54592 525
+2.55002 510
+2.55412 480
+2.55821 450
+2.56231 450
+2.5664 420
+2.5705 405
+2.5746 375
+2.57869 345
+2.58279 330
+2.58688 300
+2.59098 270
+2.59508 240
+2.59917 240
+2.60327 210
+2.60736 180
+2.61146 150
+e
